@@ -1805,7 +1805,7 @@ export default function UserDashboard() {
                     fontWeight: 500,
                     margin: 0
                   }}>
-                    "{profile.profile_update_message}"
+                    &quot;{profile.profile_update_message}&quot;
                   </p>
                 </div>
               )}

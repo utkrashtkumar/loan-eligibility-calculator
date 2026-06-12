@@ -35,6 +35,11 @@ export default function AdminDashboard() {
   const [updatingPayoutId, setUpdatingPayoutId] = useState(null);
   const [profileMsgText, setProfileMsgText] = useState('');
 
+  const handleSelectAgent = (agent) => {
+    setSelectedAgent(agent);
+    setProfileMsgText(agent?.profile_update_message || '');
+  };
+
   const fetchInquiries = async () => {
     try {
       // Fetch user inquiries and join profiles to identify role (agent vs customer)
@@ -143,14 +148,6 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  useEffect(() => {
-    if (selectedAgent) {
-      setProfileMsgText(selectedAgent.profile_update_message || '');
-    } else {
-      setProfileMsgText('');
-    }
-  }, [selectedAgent]);
-
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -196,7 +193,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Demotion failed: ' + error.message);
       } else {
-        setSelectedAgent(null);
+        handleSelectAgent(null);
         await fetchAgentsData();
       }
     } catch (err) {
@@ -302,6 +299,7 @@ export default function AdminDashboard() {
           profile_update_requested: false,
           profile_update_message: null
         } : null);
+        setProfileMsgText('');
       }
     } catch (err) {
       console.error(err);
@@ -1209,7 +1207,7 @@ export default function AdminDashboard() {
                             </tr>
                           ) : (
                             activeAgents.map((agent) => (
-                              <tr key={agent.id} onClick={() => setSelectedAgent(agent)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
+                              <tr key={agent.id} onClick={() => handleSelectAgent(agent)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
                                 <td style={{ padding: '16px 24px', fontWeight: 500 }}>{agent.full_name}</td>
                                 <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{agent.email}</td>
                                 <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{agent.phone || 'Not provided'}</td>
@@ -1222,7 +1220,7 @@ export default function AdminDashboard() {
                                 <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                     <button
-                                      onClick={() => setSelectedAgent(agent)}
+                                      onClick={() => handleSelectAgent(agent)}
                                       className="btn btn-secondary btn-sm"
                                       style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
                                     >
@@ -1712,7 +1710,7 @@ export default function AdminDashboard() {
           zIndex: 1000,
           display: 'flex',
           justifyContent: 'flex-end'
-        }} onClick={() => setSelectedAgent(null)}>
+        }} onClick={() => handleSelectAgent(null)}>
           <div style={{
             width: '100%',
             maxWidth: '650px',
@@ -1732,7 +1730,7 @@ export default function AdminDashboard() {
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Code: {selectedAgent.agent_code} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN')}</p>
               </div>
               <button
-                onClick={() => setSelectedAgent(null)}
+                onClick={() => handleSelectAgent(null)}
                 style={{
                   background: 'var(--color-bg-input)',
                   border: 'var(--border-light)',
