@@ -33,14 +33,32 @@ export default function Header() {
   const closeMenu = () => setMenuOpen(false);
 
   useEffect(() => {
+    const handleSessionCheck = async (session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile && profile.role === 'agent' && !profile.approved) {
+          await supabase.auth.signOut();
+          setUser(null);
+          router.push('/login?error=pending');
+          return;
+        }
+      }
+      setUser(session?.user || null);
+    };
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
+      handleSessionCheck(session);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+      handleSessionCheck(session);
     });
 
     return () => {
@@ -66,8 +84,8 @@ export default function Header() {
       <div className="header-inner">
         {/* Logo */}
         <Link href="/" className="logo" onClick={closeMenu}>
-          <span className="logo-text">LoanMatch</span>
-          <span className="logo-badge">Pro</span>
+          <span className="logo-text">Hand to Hand</span>
+          <span className="logo-badge">Fintech</span>
         </Link>
 
         {/* Desktop Navigation */}

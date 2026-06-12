@@ -13,8 +13,11 @@ function SignupContent() {
   const redirectPath = searchParams.get('redirect') || '/dashboard';
 
   const [name, setName] = useState('');
+  const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('user'); // 'user' or 'agent'
+  const [referredBy, setReferredBy] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -36,8 +39,14 @@ function SignupContent() {
     setError('');
     setSuccess('');
 
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!name.trim() || !mobile.trim() || !email.trim() || !password.trim()) {
       setError('Please fill in all fields.');
+      setLoading(false);
+      return;
+    }
+
+    if (!/^\d{10}$/.test(mobile.trim())) {
+      setError('Please enter a valid 10-digit mobile number.');
       setLoading(false);
       return;
     }
@@ -55,6 +64,9 @@ function SignupContent() {
         options: {
           data: {
             full_name: name.trim(),
+            role: role,
+            referred_by: role === 'agent' ? (referredBy.trim() || null) : null,
+            phone: mobile.trim()
           },
         },
       });
@@ -62,10 +74,14 @@ function SignupContent() {
       if (signUpError) {
         setError(signUpError.message);
       } else {
-        setSuccess('Account created successfully! Check your email or try logging in.');
+        if (role === 'agent') {
+          setSuccess('Agent account request submitted! It will require admin approval before you can log in.');
+        } else {
+          setSuccess('Account created successfully! Check your email or try logging in.');
+        }
         setTimeout(() => {
           router.push(`/login?redirect=${encodeURIComponent(redirectPath)}`);
-        }, 1500);
+        }, 3000);
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
@@ -95,6 +111,54 @@ function SignupContent() {
             required
           />
         </div>
+
+        <div className="input-group">
+          <label className="input-label">Mobile Number</label>
+          <input
+            type="tel"
+            className="input-field"
+            placeholder="Enter your 10-digit mobile number"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+            maxLength={10}
+            required
+          />
+        </div>
+
+        <div className="input-group">
+          <label className="input-label">I want to Register as</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '8px' }}>
+            <button
+              type="button"
+              className={`btn ${role === 'user' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ justifyContent: 'center', padding: '10px 8px', fontSize: 'var(--text-sm)' }}
+              onClick={() => setRole('user')}
+            >
+              👤 Customer
+            </button>
+            <button
+              type="button"
+              className={`btn ${role === 'agent' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ justifyContent: 'center', padding: '10px 8px', fontSize: 'var(--text-sm)' }}
+              onClick={() => setRole('agent')}
+            >
+              💼 Agent
+            </button>
+          </div>
+        </div>
+
+        {role === 'agent' && (
+          <div className="input-group">
+            <label className="input-label">Referral Agent Code (Optional)</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="e.g. H2H-12345"
+              value={referredBy}
+              onChange={(e) => setReferredBy(e.target.value)}
+            />
+          </div>
+        )}
 
         <div className="input-group">
           <label className="input-label">Email Address</label>

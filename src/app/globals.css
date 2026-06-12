@@ -682,7 +682,7 @@ p {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-bg-card-hover), transparent);
   transition: left 0.5s;
 }
 
@@ -805,7 +805,7 @@ p {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-bg-card-hover), transparent);
 }
 
 .glass-card:hover {
@@ -1020,7 +1020,7 @@ p {
 }
 
 .step-line.inactive {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-circle-track);
 }
 
 .step-label {
@@ -1125,7 +1125,7 @@ p {
   width: 100%;
   padding: var(--space-md) var(--space-lg);
   background: var(--color-bg-input);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: var(--border-light);
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
   font-family: var(--font-body);
@@ -1145,8 +1145,8 @@ p {
 }
 
 .input-field:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--color-text-muted);
+  background: var(--color-bg-input-focus);
 }
 
 .input-field:focus {
@@ -1204,7 +1204,7 @@ textarea.input-field {
   width: 20px;
   height: 20px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: var(--border-light);
   background: var(--color-bg-input);
   appearance: none;
   cursor: pointer;
@@ -1534,7 +1534,7 @@ textarea.input-field {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-sm) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: var(--border-subtle);
 }
 
 .bank-detail-row:last-child {
@@ -1613,7 +1613,7 @@ textarea.input-field {
   color: var(--color-text-muted);
   margin-top: var(--space-md);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-bg-card);
   border-radius: var(--border-radius-sm);
   border-left: 2px solid rgba(59, 130, 246, 0.3);
   font-style: italic;
@@ -2275,7 +2275,7 @@ textarea.input-field {
 .loan-type-toggle {
   display: flex;
   gap: var(--space-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-glass);
   border: var(--border-subtle);
   border-radius: var(--border-radius-md);
   padding: var(--space-xs);
@@ -2347,7 +2347,7 @@ textarea.input-field {
    TABLE HOVER STYLING
    ============================================ */
 .table-row-hover:hover {
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: var(--color-bg-card-hover) !important;
   backdrop-filter: blur(8px);
 }
 
@@ -2479,4 +2479,126 @@ textarea.input-field {
 .btn-secondary:hover,
 .btn-secondary:focus {
   color: var(--color-text-primary) !important;
+}
+
+/* ---------- Sidebar-style Glass Tabs ---------- */
+.tabs-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.tabs-sidebar {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  border-bottom: var(--border-subtle);
+}
+
+.tabs-sidebar-button {
+  width: auto;
+  text-align: center;
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  border-radius: var(--border-radius-full) !important;
+  transition: all var(--transition-base) !important;
+}
+
+.tabs-sidebar-button:hover {
+  background: var(--color-bg-card-hover) !important;
+}
+
+/* Preserve gradient background on active/selected tab hover */
+.tabs-sidebar-button.btn-primary:hover {
+  background: var(--gradient-primary-hover) !important;
+  color: #ffffff !important;
+}
+
+.tabs-content {
+  min-height: 400px;
+}
+
+@media (min-width: 768px) {
+  .tabs-container {
+    grid-template-columns: 280px 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .tabs-sidebar {
+    flex-direction: column;
+    gap: 8px;
+    background: var(--color-bg-glass) !important;
+    border: var(--border-light) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    padding: 16px !important;
+    border-radius: var(--border-radius-lg) !important;
+    overflow-x: visible;
+    border-bottom: none !important;
+    padding-bottom: 16px !important;
+  }
+
+  .tabs-sidebar-button {
+    width: 100% !important;
+    text-align: left !important;
+    border-radius: var(--border-radius-md) !important;
+  }
+}
+
+/* ---------- Badge Primary Contrast Rule ---------- */
+.badge-primary[style*="gradient-primary"],
+.badge-primary[style*="var(--gradient-primary)"] {
+  color: #ffffff !important;
+}
+
+/* ---------- Select Option Visibility Fix ---------- */
+select option,
+select.input-field option {
+  background-color: var(--color-bg-secondary) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* ---------- Light Theme Form Overrides ---------- */
+[data-theme='light'] .input-field {
+  border: 1px solid rgba(15, 23, 42, 0.15);
+}
+
+[data-theme='light'] .input-field:hover {
+  border-color: rgba(15, 23, 42, 0.25);
+}
+
+[data-theme='light'] .input-field:focus {
+  border-color: rgba(37, 99, 235, 0.5);
+}
+
+[data-theme='light'] .form-card {
+  background: var(--color-bg-glass);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .form-card::before {
+  background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.2), transparent);
+}
+
+[data-theme='light'] .tabs-sidebar {
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .tabs-sidebar-button {
+  color: var(--color-text-secondary);
+}
+
+[data-theme='light'] .tabs-sidebar-button:hover {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .tabs-sidebar-button.btn-primary,
+[data-theme='light'] .tabs-sidebar-button.btn-primary:hover {
+  background: var(--gradient-primary) !important;
+  color: #ffffff !important;
 }

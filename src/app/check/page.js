@@ -32,6 +32,18 @@ export default function CheckPage() {
   const [showResults, setShowResults] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const [userProfile, setUserProfile] = useState(null);
+
+  // Modal states for Agent client applications
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [clientName, setClientName] = useState('');
+  const [clientMobile, setClientMobile] = useState('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [applySuccess, setApplySuccess] = useState('');
+  const [applyError, setApplyError] = useState('');
+
   // Ensure user is authenticated
   useEffect(() => {
     async function checkAuth() {
@@ -40,6 +52,16 @@ export default function CheckPage() {
         router.push('/login?redirect=/check');
       } else {
         setUser(session.user);
+
+        // Retrieve role/agent status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        if (profile) {
+          setUserProfile(profile);
+        }
         
         // Pre-fill user name from metadata if available
         if (session.user?.user_metadata?.full_name) {
@@ -114,6 +136,64 @@ export default function CheckPage() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Agent Application handlers
+  const handleOpenApplyModal = (bank) => {
+    setSelectedBank(bank);
+    setClientName(formData.name || '');
+    setClientMobile(formData.mobile || '');
+    setLoanAmount('');
+    setApplySuccess('');
+    setApplyError('');
+    setApplyModalOpen(true);
+  };
+
+  const handleApplySubmit = async (e) => {
+    e.preventDefault();
+    if (!clientName.trim() || !clientMobile.trim() || !loanAmount) {
+      setApplyError('Please fill in all fields.');
+      return;
+    }
+    if (!/^\d{10}$/.test(clientMobile.trim())) {
+      setApplyError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (Number(loanAmount) <= 0) {
+      setApplyError('Please enter a valid loan amount.');
+      return;
+    }
+
+    setApplying(true);
+    setApplyError('');
+    setApplySuccess('');
+
+    try {
+      const { error } = await supabase.from('applications').insert({
+        agent_id: user.id,
+        client_name: clientName.trim(),
+        client_mobile: clientMobile.trim(),
+        bank_name: selectedBank.bank_name,
+        loan_amount: Number(loanAmount),
+        loan_type: selectedBank.loan_type,
+        commission_rate: 2.00,
+        commission_amount: Number(loanAmount) * 0.02,
+      });
+
+      if (error) {
+        setApplyError(error.message);
+      } else {
+        setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);
+        setTimeout(() => {
+          setApplyModalOpen(false);
+        }, 2000);
+      }
+    } catch (err) {
+      setApplyError('An unexpected error occurred.');
+      console.error(err);
+    } finally {
+      setApplying(false);
+    }
   };
 
   /* ---------- submit ---------- */
@@ -276,7 +356,12 @@ export default function CheckPage() {
                 {results.length > 0 ? (
                   <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
                     {results.map((bank) => (
-                      <ResultCard key={bank.id} bank={bank} />
+                      <ResultCard 
+                        key={bank.id} 
+                        bank={bank} 
+                        isAgent={userProfile?.role === 'agent'}
+                        onApply={handleOpenApplyModal}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -436,34 +521,6 @@ export default function CheckPage() {
                       <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyText: 'center', justifyContent: 'center', fontWeight: 600 }}>3</span>
                       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Financial profile</h2>
                     </div>
-
-                    <div className="input-group">
-                      <label className="input-label">Loan Type <span className="required">*</span></label>
-                      <div className="loan-type-toggle" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px', borderRadius: '8px', border: 'var(--border-subtle)' }}>
-                        {['ALL', 'PL', 'BL'].map((type) => (
-                          <button
-                            key={type}
-                            type="button"
-                            className={`loan-type-btn ${formData.loanType === type ? 'active' : ''}`}
-                            onClick={() => updateField('loanType', type)}
-                            style={{
-                              padding: '8px',
-                              fontSize: 'var(--text-xs)',
-                              borderRadius: '6px',
-                              background: formData.loanType === type ? 'var(--gradient-primary)' : 'transparent',
-                              border: 'none',
-                              color: formData.loanType === type ? '#fff' : 'var(--color-text-secondary)',
-                              cursor: 'pointer',
-                              fontWeight: 500,
-                              transition: 'all var(--transition-fast)'
-                            }}
-                          >
-                            {type === 'ALL' ? '🏦 All' : type === 'PL' ? '💳 Personal' : '💼 Business'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     <div className="input-group">
                       <label className="input-label">Monthly Salary (Net) <span className="required">*</span></label>
                       <div className="input-wrapper">
@@ -526,6 +583,88 @@ export default function CheckPage() {
 
           </div>
         </section>
+
+        {/* Client Application Modal for Agents */}
+        {applyModalOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px'
+          }}>
+            <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Apply for Client</h3>
+                <button onClick={() => setApplyModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <BankLogo bankName={selectedBank?.bank_name} size={32} />
+                <div>
+                  <h4 style={{ fontWeight: 600 }}>{selectedBank?.bank_name}</h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Type: {selectedBank?.loan_type === 'PL' ? 'Personal Loan' : 'Business Loan'}</p>
+                </div>
+              </div>
+
+              {applyError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠ {applyError}</div>}
+              {applySuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {applySuccess}</div>}
+
+              <form onSubmit={handleApplySubmit} style={{ display: 'grid', gap: '16px' }}>
+                <div className="input-group">
+                  <label className="input-label">Client Name</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Client Mobile Number</label>
+                  <input
+                    type="tel"
+                    className="input-field"
+                    value={clientMobile}
+                    onChange={(e) => setClientMobile(e.target.value.replace(/\D/g, ''))}
+                    maxLength={10}
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Requested Loan Amount</label>
+                  <div className="input-wrapper">
+                    <span className="input-prefix">₹</span>
+                    <input
+                      type="number"
+                      className="input-field has-prefix"
+                      value={loanAmount}
+                      placeholder="e.g. 500000"
+                      onChange={(e) => setLoanAmount(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setApplyModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
+                    {applying ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </main>
       <Footer />
     </>
@@ -535,19 +674,7 @@ export default function CheckPage() {
 /* ============================================
    RESULT CARD SUB-COMPONENT
    ============================================ */
-function ResultCard({ bank }) {
-  const score = bank.match_score;
-
-  // Gradient color based on score
-  const getScoreColor = (s) => {
-    if (s >= 85) return '#10b981'; // Green
-    if (s >= 70) return '#0ea5e9'; // Ocean Blue
-    return '#f59e0b'; // Amber
-  };
-
-  const scoreColor = getScoreColor(score);
-  const conicGradient = `conic-gradient(${scoreColor} ${score * 3.6}deg, var(--color-circle-track) ${score * 3.6}deg)`;
-
+function ResultCard({ bank, isAgent, onApply }) {
   return (
     <div className="result-card" style={{
       background: 'var(--color-bg-card)',
@@ -564,33 +691,6 @@ function ResultCard({ bank }) {
           <BankLogo bankName={bank.bank_name} size={40} />
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
             {bank.bank_name}
-          </div>
-        </div>
-        
-        {/* Progress Match Score Circle */}
-        <div className="match-circle" style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: conicGradient
-        }}>
-          <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            background: 'var(--color-bg-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 'var(--text-xs)',
-            fontWeight: 700,
-            color: scoreColor
-          }}>
-            {score}%
           </div>
         </div>
       </div>
@@ -642,6 +742,16 @@ function ResultCard({ bank }) {
         }}>
           📝 {bank.special_notes}
         </div>
+      )}
+
+      {isAgent && (
+        <button
+          onClick={() => onApply(bank)}
+          className="btn btn-primary btn-sm"
+          style={{ width: '100%', marginTop: '8px', justifyContent: 'center' }}
+        >
+          💼 Apply for Client
+        </button>
       )}
     </div>
   );

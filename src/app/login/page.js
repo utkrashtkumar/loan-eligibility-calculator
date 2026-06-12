@@ -15,7 +15,11 @@ function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    searchParams.get('error') === 'pending'
+      ? 'Your agent account is pending approval by the admin. Please try again later.'
+      : ''
+  );
   const [success, setSuccess] = useState('');
 
   // If already logged in, redirect
@@ -50,6 +54,30 @@ function LoginContent() {
       if (signInError) {
         setError(signInError.message);
       } else {
+        const user = data.user;
+        
+        // Fetch approval status and role from profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, approved')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          // If profile table hasn't populated yet, sign out and throw error
+          await supabase.auth.signOut();
+          setError('Could not retrieve profile settings. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        if (profile.role === 'agent' && !profile.approved) {
+          await supabase.auth.signOut();
+          setError('Your agent account is pending approval by the admin. Please try again later.');
+          setLoading(false);
+          return;
+        }
+
         setSuccess('Logged in successfully!');
         setTimeout(() => {
           router.push(redirectPath);

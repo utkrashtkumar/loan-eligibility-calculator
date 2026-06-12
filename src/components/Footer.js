@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <p className="footer-copyright">
-          © {year} LoanMatch Pro. All rights reserved.
+          © {year} Hand to Hand Fintech Loan Platform. All rights reserved.
         </p>
         <p className="footer-disclaimer">
           Disclaimer: Loan eligibility results shown are indicative and based on

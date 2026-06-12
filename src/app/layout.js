@@ -16,14 +16,14 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: 'LoanMatch Pro - Smart Loan Eligibility Checker',
+  title: 'Hand to Hand Fintech Loan Platform',
   description:
-    'Check your loan eligibility instantly across 10+ banks and NBFCs. Compare personal loan offers, CIBIL requirements, and find the best match for your profile — 100% free.',
-  keywords: ['loan eligibility', 'personal loan', 'CIBIL score', 'loan checker', 'bank comparison'],
+    'Check loan eligibility instantly across 10+ banks and NBFCs, manage client applications, track agent earnings, and build your referral tree on the premium Hand to Hand Fintech platform.',
+  keywords: ['fintech loan platform', 'agent portal', 'loan eligibility', 'personal loan', 'CIBIL score', 'loan checker', 'bank comparison'],
   openGraph: {
-    title: 'LoanMatch Pro - Smart Loan Eligibility Checker',
+    title: 'Hand to Hand Fintech Loan Platform',
     description:
-      'Instantly check your loan eligibility across multiple banks. Find the best personal loan match for your profile.',
+      'Check loan eligibility instantly, submit client applications, and manage agent commissions on the Hand to Hand Fintech platform.',
     type: 'website',
   },
 };

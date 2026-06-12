@@ -160,6 +160,13 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
  * Save user inquiry along with eligible bank results for lead tracking.
  */
 export async function saveInquiry(data) {
+  // Deduplicate: remove any previous inquiries matching the same mobile number
+  try {
+    await supabase.from('user_inquiries').delete().eq('mobile', data.mobile);
+  } catch (err) {
+    console.error('Error deduplicating inquiries:', err);
+  }
+
   const { error } = await supabase.from('user_inquiries').insert([
     {
       name: data.name,
