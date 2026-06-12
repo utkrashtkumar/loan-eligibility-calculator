@@ -354,7 +354,7 @@ export default function CheckPage() {
 
                 {/* Bank Grid */}
                 {results.length > 0 ? (
-                  <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+                  <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
                     {results.map((bank) => (
                       <ResultCard 
                         key={bank.id} 
@@ -412,7 +412,7 @@ export default function CheckPage() {
                 {/* 3-Column Inputs Layout */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                   gap: '24px',
                   alignItems: 'start'
                 }}>

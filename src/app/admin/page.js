@@ -1608,7 +1608,7 @@ export default function AdminDashboard() {
             {/* Profile Info Card */}
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Customer Profile</h4>
-              <div className="form-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+              <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Full Name</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedInquiry.name}</div>
@@ -1631,7 +1631,7 @@ export default function AdminDashboard() {
             {/* Financial Details */}
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Financial details</h4>
-              <div className="form-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+              <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Monthly Salary</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>₹{Number(selectedInquiry.salary).toLocaleString('en-IN')}</div>
@@ -1640,7 +1640,7 @@ export default function AdminDashboard() {
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Running EMIs</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>₹{Number(selectedInquiry.existing_emi).toLocaleString('en-IN')}</div>
                 </div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div className="span-2-desktop">
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated FOIR (EMI / Salary)</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
                     {selectedInquiry.salary > 0 ? ((selectedInquiry.existing_emi / selectedInquiry.salary) * 100).toFixed(1) : 0}%
@@ -1897,7 +1897,7 @@ export default function AdminDashboard() {
                   Demote to Normal User 👤
                 </button>
               </div>
-              <div className="form-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+              <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Name</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.full_name}</div>
@@ -1932,11 +1932,11 @@ export default function AdminDashboard() {
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Marital Status</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.marital_status || 'N/A'}</div>
                 </div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div className="span-2-desktop">
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Current Address</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.current_address || 'N/A'}</div>
                 </div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div className="span-2-desktop">
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Permanent Address</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.permanent_address || 'N/A'}</div>
                 </div>
@@ -1957,7 +1957,7 @@ export default function AdminDashboard() {
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Identity Verification</h4>
               <div className="form-card" style={{ display: 'grid', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
                   <div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity Proof Type</div>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_type || 'N/A'}</div>

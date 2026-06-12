@@ -750,7 +750,7 @@ export default function UserDashboard() {
         }
       `}</style>
       <main className="main-content">
-        <section className="dashboard-section" style={{ padding: '48px 24px', minHeight: '80vh' }}>
+        <section className="dashboard-section">
           <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {loading ? (
               <div className="text-center" style={{ padding: '80px 0' }}>
@@ -760,20 +760,7 @@ export default function UserDashboard() {
             ) : (
               <>
                 {/* Dashboard Header Banner */}
-                <div className="dashboard-header-card" style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'var(--color-bg-card)',
-                  border: 'var(--border-light)',
-                  borderRadius: 'var(--border-radius-lg)',
-                  padding: '24px 32px',
-                  marginBottom: '32px',
-                  backdropFilter: 'blur(20px)',
-                  boxShadow: 'var(--shadow-md)',
-                  flexWrap: 'wrap',
-                  gap: '20px'
-                }}>
+                <div className="dashboard-header-card">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <div style={{
                       width: '64px',
@@ -1143,7 +1130,7 @@ export default function UserDashboard() {
                                 </div>
                               </div>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                              <div className="responsive-grid-2" style={{ gap: '20px' }}>
                                 <div className="input-group">
                                   <label className="input-label">Current Address</label>
                                   <input
@@ -1691,7 +1678,7 @@ export default function UserDashboard() {
                         required
                       />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="responsive-grid-2" style={{ gap: '12px' }}>
                       <div className="input-group">
                         <label className="input-label">Bank Name</label>
                         <input

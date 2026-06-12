@@ -456,12 +456,14 @@ p {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-bg-primary);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-bg-glass-heavy) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
   padding: var(--space-2xl);
   z-index: var(--z-overlay);
   animation: slideDown 0.3s ease;
+  border-bottom: var(--border-subtle);
+  box-shadow: var(--shadow-lg);
 }
 
 .mobile-menu.open {
@@ -2602,3 +2604,86 @@ select.input-field option {
   background: var(--gradient-primary) !important;
   color: #ffffff !important;
 }
+
+/* ============================================
+   RESPONSIVE SCALING & MOBILE OPTIMIZATIONS
+   ============================================ */
+
+/* Root Typography Scaler */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+/* Horizontal scrollable tab sidebar adjustments */
+.tabs-sidebar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tabs-sidebar::-webkit-scrollbar {
+  display: none;
+}
+.tabs-sidebar-button {
+  flex-shrink: 0 !important;
+}
+
+/* Responsive Grid Helpers */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .responsive-grid-2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}
+
+.span-2-desktop {
+  grid-column: span 1;
+}
+@media (min-width: 768px) {
+  .span-2-desktop {
+    grid-column: span 2;
+  }
+}
+
+/* Dashboard Header & Card Responsive Classes */
+.dashboard-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg-card);
+  border: var(--border-light);
+  border-radius: var(--border-radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .dashboard-header-card {
+    padding: 24px 32px;
+    margin-bottom: 32px;
+  }
+}
+
+.dashboard-section {
+  padding: 24px 12px;
+  min-height: 80vh;
+}
+@media (min-width: 768px) {
+  .dashboard-section {
+    padding: 48px 24px;
+  }
+}
+
