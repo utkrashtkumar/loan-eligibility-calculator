@@ -488,26 +488,104 @@ p {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-bg-glass-heavy) !important;
+  background: rgba(10, 15, 30, 0.95) !important; /* Rich heavy dark base */
   backdrop-filter: blur(30px) !important;
   -webkit-backdrop-filter: blur(30px) !important;
-  padding: var(--space-2xl);
+  padding: 32px 24px;
   z-index: var(--z-overlay);
-  animation: slideDown 0.3s ease;
-  border-bottom: var(--border-subtle);
-  box-shadow: var(--shadow-lg);
+  border-bottom: var(--border-accent);
+  box-shadow: var(--shadow-xl);
+  overflow-y: auto; /* Allow scrolling if screen is short */
 }
 
 .mobile-menu.open {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 16px;
 }
 
+/* Beautiful glass button shape */
 .mobile-menu .nav-link {
-  font-size: var(--text-xl);
-  padding: var(--space-md) 0;
-  border-bottom: var(--border-subtle);
+  font-size: var(--text-base) !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  padding: 14px 20px !important;
+  border: var(--border-light) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 12px !important;
+  color: var(--color-text-primary) !important;
+  transition: all var(--transition-base) !important;
+  text-decoration: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  border-bottom: var(--border-light) !important; /* Override standard bottom line */
+}
+
+/* Active tab style */
+.mobile-menu .nav-link.active {
+  background: var(--gradient-primary) !important;
+  border-color: rgba(45, 212, 191, 0.4) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(45, 212, 191, 0.2) !important;
+}
+
+/* Special CTA buttons in mobile menu (like Sign In / Logout / Admin) */
+.mobile-menu .nav-link.nav-cta {
+  background: var(--gradient-primary) !important;
+  border-color: rgba(45, 212, 191, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.mobile-menu .nav-link.nav-logout {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: var(--color-error) !important;
+}
+
+.mobile-menu .nav-link.nav-admin {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: var(--color-success) !important;
+  background: rgba(16, 185, 129, 0.05) !important;
+}
+
+.mobile-menu .nav-link:hover,
+.mobile-menu .nav-link:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--color-primary) !important;
+  transform: translateY(-2px) !important;
+}
+
+.mobile-menu .nav-link.nav-logout:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.mobile-menu .nav-link.nav-admin:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: var(--color-success) !important;
+}
+
+/* Mobile Theme Toggle Button styling */
+.mobile-menu-theme-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+  padding: 14px 20px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: var(--border-light) !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  transition: all var(--transition-base) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.mobile-menu-theme-row:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--color-primary) !important;
 }
 
 @keyframes slideDown {

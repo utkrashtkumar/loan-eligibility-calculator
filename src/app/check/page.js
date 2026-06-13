@@ -359,7 +359,7 @@ export default function CheckPage() {
                       <ResultCard 
                         key={bank.id} 
                         bank={bank} 
-                        isAgent={userProfile?.role === 'agent'}
+                        isAgent={userProfile?.role === 'agent' || userProfile?.role === 'admin'}
                         onApply={handleOpenApplyModal}
                       />
                     ))}
