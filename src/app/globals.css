@@ -3104,10 +3104,90 @@ main, article, aside {
   }
 }
 
-/* 14. Responsive Tables - ensure tables do not squish under 800px and allow horizontal scroll inside container */
-.tabs-content table,
-.dashboard-section table,
-.admin-section table {
-  min-width: 800px !important;
-  width: 100% !important;
+/* 14. Responsive Tables - Stack columns vertically on mobile to prevent horizontal scrolling */
+@media (max-width: 767px) {
+  /* Force tables to behave like block elements instead of table layout */
+  .tabs-content table,
+  .dashboard-section table,
+  .admin-section table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    border: none !important;
+  }
+
+  .tabs-content thead,
+  .dashboard-section thead,
+  .admin-section thead {
+    display: none !important; /* Hide table headers */
+  }
+
+  .tabs-content tbody,
+  .dashboard-section tbody,
+  .admin-section tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .tabs-content tr,
+  .dashboard-section tr,
+  .admin-section tr {
+    display: block !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: var(--border-light) !important;
+    border-radius: var(--border-radius-lg) !important;
+    padding: 16px !important;
+    margin-bottom: 20px !important;
+    box-sizing: border-box !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+
+  /* Make each table cell behave like a flex row displaying label and value */
+  .tabs-content td,
+  .dashboard-section td,
+  .admin-section td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 10px 0 !important;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08) !important;
+    text-align: right !important;
+    font-size: var(--text-sm) !important;
+    white-space: normal !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tabs-content td:last-child,
+  .dashboard-section td:last-child,
+  .admin-section td:last-child {
+    border-bottom: none !important;
+    justify-content: flex-end !important;
+    padding-top: 14px !important;
+  }
+
+  /* Auto-generate labels from data-label attributes */
+  .tabs-content td::before,
+  .dashboard-section td::before,
+  .admin-section td::before {
+    content: attr(data-label) ":";
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    text-align: left;
+    margin-right: 16px;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+}
+
+/* Ensure wide tables on desktop screens have adequate spacing */
+@media (min-width: 768px) {
+  .tabs-content table,
+  .dashboard-section table,
+  .admin-section table {
+    min-width: 800px;
+    width: 100%;
+  }
 }

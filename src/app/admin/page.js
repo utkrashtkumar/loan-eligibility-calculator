@@ -447,6 +447,26 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
+  // Auto-inject data-label attributes to td elements based on th text content
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const tables = document.querySelectorAll('table');
+      tables.forEach(table => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.replace(/[^a-zA-Z0-9\s/()₹%-]/g, '').trim());
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          cells.forEach((cell, index) => {
+            if (headers[index] && !cell.getAttribute('data-label')) {
+              cell.setAttribute('data-label', headers[index]);
+            }
+          });
+        });
+      });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [activeTab, loading, inquiries, activeAgents, pendingAgents, demotedUsers, applications, payoutRequests, policies]);
+
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
