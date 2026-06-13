@@ -73,15 +73,20 @@ export default function AdminLoginPage() {
       <main className="main-content">
         <section className="form-page">
           <div className="form-container" style={{ maxWidth: '480px' }}>
-            <div className="form-card text-center" style={{ border: '1px solid rgba(16, 185, 129, 0.2)', boxShadow: '0 0 30px rgba(16, 185, 129, 0.1)' }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔒</div>
+            <div className="form-card text-center" style={{ border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', color: 'var(--color-primary)' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
               <h2 className="form-step-title" style={{ background: 'var(--gradient-text)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Admin Portal
               </h2>
               <p className="form-step-subtitle">Log in to view user eligibility inquiries</p>
 
-              {error && <div className="input-error-text" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', margin: '16px 0' }}>⚠ {error}</div>}
-              {success && <div style={{ color: 'var(--color-success)', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', margin: '16px 0' }}>✓ {success}</div>}
+              {error && <div className="input-error-text" style={{ padding: '12px', background: 'var(--color-error-bg)', border: 'var(--border-error)', borderRadius: '8px', margin: '16px 0' }}>⚠ {error}</div>}
+              {success && <div style={{ color: 'var(--color-success)', padding: '12px', background: 'var(--color-success-bg)', border: 'var(--border-success)', borderRadius: '8px', margin: '16px 0' }}>✓ {success}</div>}
 
               <form onSubmit={handleAdminLogin} style={{ textAlign: 'left', marginTop: '24px' }}>
                 <div className="input-group">
@@ -93,7 +98,7 @@ export default function AdminLoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     readOnly
-                    style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--color-text-secondary)', cursor: 'not-allowed' }}
+                    style={{ background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)', cursor: 'not-allowed' }}
                   />
                 </div>
 
@@ -113,7 +118,7 @@ export default function AdminLoginPage() {
                 <button
                   type="submit"
                   className="btn btn-primary btn-lg"
-                  style={{ width: '100%', marginTop: '16px', justifyContent: 'center', background: 'var(--gradient-primary)' }}
+                  style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }}
                   disabled={loading}
                 >
                   {loading ? 'Authenticating...' : 'Enter Admin Panel'}

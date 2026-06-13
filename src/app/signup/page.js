@@ -134,7 +134,11 @@ function SignupContent() {
               style={{ justifyContent: 'center', padding: '10px 8px', fontSize: 'var(--text-sm)' }}
               onClick={() => setRole('user')}
             >
-              👤 Customer
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Customer
             </button>
             <button
               type="button"
@@ -142,7 +146,11 @@ function SignupContent() {
               style={{ justifyContent: 'center', padding: '10px 8px', fontSize: 'var(--text-sm)' }}
               onClick={() => setRole('agent')}
             >
-              💼 Agent
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+              Agent
             </button>
           </div>
         </div>
@@ -196,7 +204,7 @@ function SignupContent() {
 
       <div style={{ marginTop: '24px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
         Already have an account?{' '}
-        <Link href={`/login?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-accent-violet)', fontWeight: 500 }}>
+        <Link href={`/login?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
           Log In
         </Link>
       </div>

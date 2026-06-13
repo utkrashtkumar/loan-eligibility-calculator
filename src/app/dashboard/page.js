@@ -388,7 +388,7 @@ export default function UserDashboard() {
         } else {
           setProfileSuccess('Profile picture updated successfully!');
           setProfile(prev => ({ ...prev, avatar: base64 }));
-          showToast('✅ Profile picture updated successfully!');
+          showToast('âœ… Profile picture updated successfully!');
         }
       }
     } catch (err) {
@@ -454,7 +454,7 @@ export default function UserDashboard() {
           ...prev,
           ...profileFormData
         }));
-        showToast('✅ All details updated successfully!');
+        showToast('âœ… All details updated successfully!');
 
         // Auto-clear profile update request when profile is 100% complete
         const fields = [
@@ -475,7 +475,7 @@ export default function UserDashboard() {
             profile_update_message: null
           }));
           setShowProfileUpdatePopup(false);
-          showToast('🎉 Profile 100% complete! Update request cleared.');
+          showToast('ðŸŽ‰ Profile 100% complete! Update request cleared.');
         }
       }
     } catch (err) {
@@ -529,7 +529,7 @@ export default function UserDashboard() {
       return;
     }
     if (amt > availableBalance) {
-      setPayoutError(`Insufficient balance. Maximum request amount is ₹${availableBalance.toLocaleString('en-IN')}`);
+      setPayoutError(`Insufficient balance. Maximum request amount is â‚¹${availableBalance.toLocaleString('en-IN')}`);
       return;
     }
 
@@ -587,7 +587,12 @@ export default function UserDashboard() {
 
           {inquiries.length === 0 ? (
             <div className="form-card text-center" style={{ padding: '64px 32px', backdropFilter: 'blur(20px)' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                </svg>
+              </div>
               <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: '8px' }}>No Saved Inquiries</h3>
               <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
                 You haven&apos;t run any eligibility checks yet. Check your eligibility to see matched banks here.
@@ -638,13 +643,13 @@ export default function UserDashboard() {
                       <div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Monthly Salary</div>
                         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          ₹{Number(inq.salary).toLocaleString('en-IN')}
+                          â‚¹{Number(inq.salary).toLocaleString('en-IN')}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Running EMIs</div>
                         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          ₹{Number(inq.existing_emi).toLocaleString('en-IN')}
+                          â‚¹{Number(inq.existing_emi).toLocaleString('en-IN')}
                         </div>
                       </div>
                       <div>
@@ -733,7 +738,7 @@ export default function UserDashboard() {
           onClick={() => setToastMessage('')}
         >
           <span>{toastMessage}</span>
-          <span style={{ opacity: 0.6, fontSize: 'var(--text-xs)' }}>✕</span>
+          <span style={{ opacity: 0.6, fontSize: 'var(--text-xs)' }}>âœ•</span>
         </div>
       )}
 
@@ -751,7 +756,7 @@ export default function UserDashboard() {
       `}</style>
       <main className="main-content">
         <section className="dashboard-section">
-          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="container" style={{ maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
             {loading ? (
               <div className="text-center" style={{ padding: '80px 0' }}>
                 <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
@@ -794,13 +799,13 @@ export default function UserDashboard() {
                         )}
                       </h1>
                       <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-                        {profile?.email} {profile?.role === 'agent' && `• Agent Code: ${profile?.agent_code}`}
+                        {profile?.email} {profile?.role === 'agent' && `â€¢ Agent Code: ${profile?.agent_code}`}
                       </p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     <Link href="/check" className="btn btn-primary">
-                      {profile?.role === 'agent' ? '🔍 Check Client Eligibility' : '+ Check New Eligibility'}
+                      {profile?.role === 'agent' ? 'ðŸ” Check Client Eligibility' : '+ Check New Eligibility'}
                     </Link>
                     <button onClick={handleSignOut} className="btn btn-secondary">
                       Sign Out
@@ -818,8 +823,24 @@ export default function UserDashboard() {
                       {/* Glass Tab Selector Bar for Demoted User */}
                       <div className="tabs-sidebar">
                         {[
-                          { id: 'inquiries', label: '📁 Inquiries' },
-                          { id: 'payments', label: '💸 Payments & Balance' },
+                          { 
+                            id: 'inquiries', 
+                            label: 'Inquiries',
+                            icon: (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                              </svg>
+                            )
+                          },
+                          { 
+                            id: 'payments', 
+                            label: 'Payments & Balance',
+                            icon: (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                              </svg>
+                            )
+                          },
                         ].map((tab) => (
                           <button
                             key={tab.id}
@@ -829,9 +850,12 @@ export default function UserDashboard() {
                               padding: '10px 20px',
                               fontSize: 'var(--text-sm)',
                               whiteSpace: 'nowrap',
-                              background: activeTab === tab.id ? 'var(--gradient-primary)' : 'var(--color-bg-card)',
+                              background: activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-bg-card)',
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                           >
+                            {tab.icon}
                             {tab.label}
                           </button>
                         ))}
@@ -844,16 +868,16 @@ export default function UserDashboard() {
                           <div style={{ display: 'grid', gap: '32px' }}>
                             {/* Metrics Header */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-                              <div className="form-card" style={{ background: 'rgba(59,130,246,0.02)', border: 'var(--border-light)', backdropFilter: 'blur(20px)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>TOTAL COMMISSION EARNED</div>
+                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>TOTAL COMMISSION EARNED</div>
                                 <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-                                  ₹{totalEarnings.toLocaleString('en-IN')}
+                                  â‚¹{totalEarnings.toLocaleString('en-IN')}
                                 </div>
                               </div>
-                              <div className="form-card" style={{ background: 'rgba(16,185,129,0.03)', border: 'var(--border-success)', backdropFilter: 'blur(20px)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>AVAILABLE BALANCE</div>
+                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>AVAILABLE BALANCE</div>
                                 <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>₹{availableBalance.toLocaleString('en-IN')}</span>
+                                  <span>â‚¹{availableBalance.toLocaleString('en-IN')}</span>
                                   {availableBalance > 0 && (
                                     <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
                                       Request Payout
@@ -861,16 +885,16 @@ export default function UserDashboard() {
                                   )}
                                 </div>
                               </div>
-                              <div className="form-card" style={{ background: 'rgba(14,165,233,0.02)', border: 'var(--border-light)', backdropFilter: 'blur(20px)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PAID PAYOUTS</div>
-                                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-info)', marginTop: '8px' }}>
-                                  ₹{totalPaid.toLocaleString('en-IN')}
+                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PAID PAYOUTS</div>
+                                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-primary)', marginTop: '8px' }}>
+                                  â‚¹{totalPaid.toLocaleString('en-IN')}
                                 </div>
                               </div>
-                              <div className="form-card" style={{ background: 'rgba(245,158,11,0.02)', border: 'var(--border-light)', backdropFilter: 'blur(20px)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PENDING PAYOUTS</div>
+                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PENDING PAYOUTS</div>
                                 <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
-                                  ₹{totalPending.toLocaleString('en-IN')}
+                                  â‚¹{totalPending.toLocaleString('en-IN')}
                                 </div>
                               </div>
                             </div>
@@ -887,7 +911,8 @@ export default function UserDashboard() {
                                 </div>
                               ) : (
                                 <div className="form-card" style={{ padding: 0, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                  <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                     <thead>
                                       <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
                                         <th style={{ padding: '12px 16px' }}>Date Requested</th>
@@ -901,7 +926,7 @@ export default function UserDashboard() {
                                       {payoutRequests.map((req) => (
                                         <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                           <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>â‚¹{Number(req.amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                           <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                             {req.upi_id ? (
@@ -919,6 +944,7 @@ export default function UserDashboard() {
                                       ))}
                                     </tbody>
                                   </table>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -938,10 +964,42 @@ export default function UserDashboard() {
                     {/* Glass Tab Selector Bar */}
                     <div className="tabs-sidebar">
                       {[
-                        { id: 'profile', label: '👤 Profile Code' },
-                        { id: 'applications', label: '📋 Client Applications' },
-                        { id: 'earnings', label: '💰 Earning & Referral' },
-                        { id: 'subagents', label: '👥 Sub-agents' },
+                        { 
+                          id: 'profile', 
+                          label: 'Profile Code',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          id: 'applications', 
+                          label: 'Client Applications',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          id: 'earnings', 
+                          label: 'Earning & Referral',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <circle cx="8" cy="8" r="6" /><circle cx="18" cy="18" r="4" /><path d="M12 18a6 6 0 0 0-6-6" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          id: 'subagents', 
+                          label: 'Sub-agents',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                          )
+                        },
                       ].map((tab) => (
                         <button
                           key={tab.id}
@@ -951,9 +1009,12 @@ export default function UserDashboard() {
                             padding: '10px 20px',
                             fontSize: 'var(--text-sm)',
                             whiteSpace: 'nowrap',
-                            background: activeTab === tab.id ? 'var(--gradient-primary)' : 'var(--color-bg-card)',
+                            background: activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-bg-card)',
+                            display: 'inline-flex',
+                            alignItems: 'center'
                           }}
                         >
+                          {tab.icon}
                           {tab.label}
                         </button>
                       ))}
@@ -1006,7 +1067,7 @@ export default function UserDashboard() {
                                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent Invitation Link</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
                                   <button onClick={handleCopyLink} className="btn btn-secondary btn-sm" style={{ gap: '8px' }}>
-                                    🔗 {copied ? 'Copied Link!' : 'Copy Referral Link'}
+                                    ðŸ”— {copied ? 'Copied Link!' : 'Copy Referral Link'}
                                   </button>
                                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                                     Invite sub-agents & earn 0.5% commission override.
@@ -1015,8 +1076,8 @@ export default function UserDashboard() {
                               </div>
                             </div>
 
-                            {profileSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {profileSuccess}</div>}
-                            {profileError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠ {profileError}</div>}
+                            {profileSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>âœ“ {profileSuccess}</div>}
+                            {profileError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>âš  {profileError}</div>}
                             
                             {profile?.profile_locked && (
                               <div style={{
@@ -1033,7 +1094,7 @@ export default function UserDashboard() {
                                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
                                 marginBottom: '16px'
                               }}>
-                                <span>🔒 Profile Verified & Locked: Your profile details have been locked by the administrator. Contact support if you need to update them. Note: You can still update your Profile Picture (Avatar).</span>
+                                <span>ðŸ”’ Profile Verified & Locked: Your profile details have been locked by the administrator. Contact support if you need to update them. Note: You can still update your Profile Picture (Avatar).</span>
                               </div>
                             )}
 
@@ -1044,7 +1105,10 @@ export default function UserDashboard() {
                                   {profileFormData.avatar ? (
                                     <img src={profileFormData.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   ) : (
-                                    <span style={{ fontSize: '24px' }}>👤</span>
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                      <circle cx="12" cy="7" r="4" />
+                                    </svg>
                                   )}
                                 </div>
                                 <div className="input-group" style={{ margin: 0, flex: 1 }}>
@@ -1251,7 +1315,11 @@ export default function UserDashboard() {
                                           className="btn btn-secondary btn-sm"
                                           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                                         >
-                                          📄 Download / View Uploaded PDF
+                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                          </svg>
+                                          Download / View Uploaded PDF
                                         </a>
                                       ) : (
                                         <div style={{ display: 'grid', gap: '4px' }}>
@@ -1266,7 +1334,18 @@ export default function UserDashboard() {
 
                               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
                                 <button type="submit" className="btn btn-primary" style={{ padding: '12px 32px' }} disabled={savingProfile || profile?.profile_locked}>
-                                  {savingProfile ? 'Saving Changes...' : '💾 Save Profile Details'}
+                                  {savingProfile ? (
+                                    'Saving Changes...'
+                                  ) : (
+                                    <>
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                        <polyline points="17 21 17 13 7 13 7 21" />
+                                        <polyline points="7 3 7 8 15 8" />
+                                      </svg>
+                                      Save Profile Details
+                                    </>
+                                  )}
                                 </button>
                               </div>
                             </form>
@@ -1288,7 +1367,15 @@ export default function UserDashboard() {
 
                           {applications.length === 0 ? (
                             <div className="form-card text-center" style={{ padding: '64px 32px', backdropFilter: 'blur(20px)' }}>
-                              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+                              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                  <line x1="16" y1="13" x2="8" y2="13" />
+                                  <line x1="16" y1="17" x2="8" y2="17" />
+                                  <polyline points="10 9 9 9 8 9" />
+                                </svg>
+                              </div>
                               <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: '8px' }}>No Submitted Applications</h3>
                               <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
                                 Run an eligibility inquiry for your clients and submit applications directly to match list cards.
@@ -1313,8 +1400,11 @@ export default function UserDashboard() {
                                 }}>
                                   <div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)' }}>{app.client_name}</div>
-                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                                      📞 {app.client_mobile}
+                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                      </svg>
+                                      {app.client_mobile}
                                     </div>
                                   </div>
 
@@ -1331,14 +1421,14 @@ export default function UserDashboard() {
                                   <div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Amount</div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                                      ₹{Number(app.loan_amount).toLocaleString('en-IN')}
+                                      â‚¹{Number(app.loan_amount).toLocaleString('en-IN')}
                                     </div>
                                   </div>
 
                                   <div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Est. Commission (2.0%)</div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-accent-violet)' }}>
-                                      ₹{Number(app.commission_amount).toLocaleString('en-IN')}
+                                      â‚¹{Number(app.commission_amount).toLocaleString('en-IN')}
                                     </div>
                                   </div>
 
@@ -1364,16 +1454,16 @@ export default function UserDashboard() {
                         <div style={{ display: 'grid', gap: '32px' }}>
                           {/* Metrics Header */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-                            <div className="form-card" style={{ background: 'rgba(59,130,246,0.02)', border: 'var(--border-light)', backdropFilter: 'blur(20px)' }}>
+                            <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>TOTAL COMMISSION EARNED</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-                                ₹{totalEarnings.toLocaleString('en-IN')}
+                                â‚¹{totalEarnings.toLocaleString('en-IN')}
                               </div>
                             </div>
-                            <div className="form-card" style={{ background: 'rgba(16,185,129,0.03)', border: 'var(--border-success)', backdropFilter: 'blur(20px)' }}>
+                            <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>AVAILABLE BALANCE</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>₹{availableBalance.toLocaleString('en-IN')}</span>
+                                <span>â‚¹{availableBalance.toLocaleString('en-IN')}</span>
                                 {availableBalance > 0 && (
                                   <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
                                     Request Payout
@@ -1381,16 +1471,16 @@ export default function UserDashboard() {
                                 )}
                               </div>
                             </div>
-                            <div className="form-card" style={{ background: 'rgba(14,165,233,0.02)', border: 'var(--border-light)', backdropFilter: 'blur(20px)' }}>
+                            <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PAID PAYOUTS</div>
-                              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-info)', marginTop: '8px' }}>
-                                ₹{totalPaid.toLocaleString('en-IN')}
+                              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-accent)', marginTop: '8px' }}>
+                                â‚¹{totalPaid.toLocaleString('en-IN')}
                               </div>
                             </div>
-                            <div className="form-card" style={{ background: 'rgba(245,158,11,0.02)', border: 'var(--border-light)', backdropFilter: 'blur(20px)' }}>
+                            <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PENDING PAYOUTS</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
-                                ₹{totalPending.toLocaleString('en-IN')}
+                                â‚¹{totalPending.toLocaleString('en-IN')}
                               </div>
                             </div>
                           </div>
@@ -1407,7 +1497,8 @@ export default function UserDashboard() {
                               </div>
                             ) : (
                               <div className="form-card" style={{ padding: 0, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                 <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                   <thead>
                                     <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
                                       <th style={{ padding: '12px 16px' }}>Date Requested</th>
@@ -1421,7 +1512,7 @@ export default function UserDashboard() {
                                     {payoutRequests.map((req) => (
                                       <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                         <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>â‚¹{Number(req.amount).toLocaleString('en-IN')}</td>
                                         <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                         <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                           {req.upi_id ? (
@@ -1439,6 +1530,7 @@ export default function UserDashboard() {
                                     ))}
                                   </tbody>
                                 </table>
+                                  </div>
                               </div>
                             )}
                           </div>
@@ -1451,7 +1543,12 @@ export default function UserDashboard() {
 
                             {disbursedApps.length === 0 && subAgentDisbursedApps.length === 0 ? (
                               <div className="form-card text-center" style={{ padding: '48px 32px', backdropFilter: 'blur(20px)' }}>
-                                <div style={{ fontSize: '32px', marginBottom: '12px' }}>💸</div>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                                    <line x1="12" y1="1" x2="12" y2="23" />
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                  </svg>
+                                </div>
                                 <h3 style={{ fontSize: 'var(--text-md)', color: 'var(--color-text-secondary)' }}>No Disbursements Tracked Yet</h3>
                                 <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
                                   Earnings populate here automatically as soon as loan applications are marked as &quot;Disbursed&quot; by the admin.
@@ -1459,7 +1556,7 @@ export default function UserDashboard() {
                               </div>
                             ) : (
                               <div className="form-card" style={{ padding: 0, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                                <div style={{ overflowX: 'auto' }}>
+                                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                     <thead>
                                       <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
@@ -1479,9 +1576,9 @@ export default function UserDashboard() {
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-success)', fontWeight: 500 }}>Direct (2%)</span></td>
                                           <td style={{ padding: '16px' }}>{app.client_name}</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
-                                          <td style={{ padding: '16px' }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>â‚¹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: 'var(--color-success)' }}>
-                                            +₹{Number(app.commission_amount).toLocaleString('en-IN')}
+                                            +â‚¹{Number(app.commission_amount).toLocaleString('en-IN')}
                                           </td>
                                         </tr>
                                       ))}
@@ -1493,9 +1590,9 @@ export default function UserDashboard() {
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-info)', fontWeight: 500 }}>Referral (0.5%)</span></td>
                                           <td style={{ padding: '16px' }}>Agent Referral client ({app.client_name})</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
-                                          <td style={{ padding: '16px' }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>â‚¹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: 'var(--color-info)' }}>
-                                            +₹{(Number(app.loan_amount) * 0.005).toLocaleString('en-IN')}
+                                            +â‚¹{(Number(app.loan_amount) * 0.005).toLocaleString('en-IN')}
                                           </td>
                                         </tr>
                                       ))}
@@ -1522,7 +1619,14 @@ export default function UserDashboard() {
 
                           {subAgents.length === 0 ? (
                             <div className="form-card text-center" style={{ padding: '64px 32px', backdropFilter: 'blur(20px)' }}>
-                              <div style={{ fontSize: '48px', marginBottom: '16px' }}>👥</div>
+                              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                  <circle cx="9" cy="7" r="4" />
+                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg>
+                              </div>
                               <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: '8px' }}>No Referred Sub-Agents</h3>
                               <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
                                 Share your agent registration link with other financial partners to build your network and earn referral fees.
@@ -1533,7 +1637,7 @@ export default function UserDashboard() {
                             </div>
                           ) : (
                             <div className="form-card" style={{ padding: 0, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                              <div style={{ overflowX: 'auto' }}>
+                              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                   <thead>
                                     <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
@@ -1595,20 +1699,20 @@ export default function UserDashboard() {
             <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Request Earnings Payout</h3>
-                <button onClick={() => setPayoutModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
+                <button onClick={() => setPayoutModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>Ã—</button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.05)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-success)' }}>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Available Balance:</span>
-                <span style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-success)' }}>₹{availableBalance.toLocaleString('en-IN')}</span>
+                <span style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-success)' }}>â‚¹{availableBalance.toLocaleString('en-IN')}</span>
               </div>
 
-              {payoutError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠ {payoutError}</div>}
-              {payoutSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {payoutSuccess}</div>}
+              {payoutError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>âš  {payoutError}</div>}
+              {payoutSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>âœ“ {payoutSuccess}</div>}
 
               <form onSubmit={handlePayoutSubmit} style={{ display: 'grid', gap: '16px' }}>
                 <div className="input-group">
-                  <label className="input-label">Request Amount (₹)</label>
+                  <label className="input-label">Request Amount (â‚¹)</label>
                   <input
                     type="number"
                     className="input-field"
@@ -1628,7 +1732,10 @@ export default function UserDashboard() {
                       style={{ justifyContent: 'center', padding: '8px', fontSize: 'var(--text-xs)' }}
                       onClick={() => setPaymentMethod('UPI')}
                     >
-                      ⚡ UPI Payout
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      </svg>
+                      UPI Payout
                     </button>
                     <button
                       type="button"
@@ -1636,7 +1743,15 @@ export default function UserDashboard() {
                       style={{ justifyContent: 'center', padding: '8px', fontSize: 'var(--text-xs)' }}
                       onClick={() => setPaymentMethod('BANK')}
                     >
-                      🏦 Bank Account
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                        <rect x="2" y="10" width="20" height="11" rx="2" />
+                        <path d="M6 6v4" />
+                        <path d="M10 6v4" />
+                        <path d="M14 6v4" />
+                        <path d="M18 6v4" />
+                        <path d="M3 10V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4" />
+                      </svg>
+                      Bank Account
                     </button>
                   </div>
                 </div>
@@ -1747,7 +1862,14 @@ export default function UserDashboard() {
               padding: '32px'
             }}>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', borderBottom: '1px solid rgba(245, 158, 11, 0.2)', paddingBottom: '16px' }}>
-                <div style={{ fontSize: '36px' }}>📢</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-warning)' }}>
+                    <path d="M18 8a3 3 0 0 0-3-3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3l3 3V17h4a3 3 0 0 0 3-3V8z" />
+                    <line x1="22" y1="12" x2="18" y2="12" />
+                    <line x1="21" y1="9" x2="19" y2="10" />
+                    <line x1="21" y1="15" x2="19" y2="14" />
+                  </svg>
+                </div>
                 <div>
                   <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-warning)' }}>Profile Update Required</h3>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Action requested by Administrator</p>
@@ -1783,7 +1905,7 @@ export default function UserDashboard() {
                     letterSpacing: '0.05em',
                     marginBottom: '6px'
                   }}>
-                    <span>⚠ Message from Administrator:</span>
+                    <span>âš  Message from Administrator:</span>
                   </div>
                   <p style={{
                     fontSize: 'var(--text-sm)',
@@ -1836,7 +1958,7 @@ export default function UserDashboard() {
                   return (
                     <div style={{ marginTop: '12px' }}>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-error)', fontWeight: 600, marginBottom: '6px' }}>
-                        ⚠ Missing Fields ({missing.length}):
+                        âš  Missing Fields ({missing.length}):
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {missing.map(f => (
@@ -1874,7 +1996,11 @@ export default function UserDashboard() {
                   className="btn btn-primary"
                   style={{ padding: '10px 20px', fontSize: 'var(--text-sm)' }}
                 >
-                  📝 Go to Profile
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z" />
+                  </svg>
+                  Go to Profile
                 </button>
               </div>
             </div>
@@ -1898,8 +2024,8 @@ export default function UserDashboard() {
             padding: '24px'
           }}>
             <div className="form-card" style={{
-              maxWidth: '650px',
-              width: '100%',
+              maxWidth: '640px',
+              width: '95vw',
               margin: '0 auto',
               display: 'grid',
               gap: '24px',
@@ -1912,7 +2038,13 @@ export default function UserDashboard() {
               color: '#fff'
             }}>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', borderBottom: '1px solid rgba(239, 68, 68, 0.2)', paddingBottom: '16px' }}>
-                <div style={{ fontSize: '36px' }}>⚠️</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-error)' }}>
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
                 <div>
                   <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--color-error)' }}>Account Status Update</h3>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Notice of Agent Partnership Revocation</p>
@@ -1953,7 +2085,7 @@ export default function UserDashboard() {
                         {payoutRequests.map((req) => (
                           <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                             <td style={{ padding: '8px 12px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>â‚¹{Number(req.amount).toLocaleString('en-IN')}</td>
                             <td style={{ padding: '8px 12px' }}>{req.upi_id ? 'UPI' : 'Bank'}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                               <span className="badge" style={{ ...getStatusBadgeStyle(req.status), fontSize: '8px', padding: '2px 6px', display: 'inline-block' }}>

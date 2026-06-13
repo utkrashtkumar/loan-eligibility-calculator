@@ -354,7 +354,7 @@ export default function CheckPage() {
 
                 {/* Bank Grid */}
                 {results.length > 0 ? (
-                  <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+                  <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: '24px' }}>
                     {results.map((bank) => (
                       <ResultCard 
                         key={bank.id} 
@@ -373,7 +373,13 @@ export default function CheckPage() {
                     textAlign: 'center',
                     backdropFilter: 'blur(20px)'
                   }}>
-                    <div className="no-results-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>😔</div>
+                    <div className="no-results-icon" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-error)' }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                    </div>
                     <h3 className="no-results-title" style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--color-error)' }}>
                       No Matching Lenders Found
                     </h3>
@@ -575,7 +581,12 @@ export default function CheckPage() {
                 {/* Form Action Button */}
                 <div style={{ textAlign: 'center', marginTop: '24px' }}>
                   <button type="submit" className="btn btn-primary btn-lg" style={{ minWidth: '280px', padding: '16px 32px' }}>
-                    🔍 Check Loan Eligibility
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      Check Loan Eligibility
+                    </span>
                   </button>
                 </div>
               </form>
@@ -600,14 +611,14 @@ export default function CheckPage() {
             zIndex: 9999,
             padding: '16px'
           }}>
-            <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
+            <div className="form-card" style={{ maxWidth: 'min(480px, 96vw)', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Apply for Client</h3>
                 <button onClick={() => setApplyModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <BankLogo bankName={selectedBank?.bank_name} size={32} />
+                <BankLogo bankName={selectedBank?.bank_name} logoUrl={selectedBank?.logo_url} size={32} />
                 <div>
                   <h4 style={{ fontWeight: 600 }}>{selectedBank?.bank_name}</h4>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Type: {selectedBank?.loan_type === 'PL' ? 'Personal Loan' : 'Business Loan'}</p>
@@ -677,21 +688,34 @@ export default function CheckPage() {
 function ResultCard({ bank, isAgent, onApply }) {
   return (
     <div className="result-card" style={{
-      background: 'var(--color-bg-card)',
-      border: 'var(--border-light)',
-      borderRadius: 'var(--border-radius-md)',
+      background: 'var(--bg-surface)',
+      border: '1px solid var(--border-default)',
+      borderRadius: '16px',
       padding: '24px',
       backdropFilter: 'blur(20px)',
       display: 'grid',
       gap: '16px',
-      transition: 'all var(--transition-base)'
+      transition: 'all var(--transition-base)',
+      boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <BankLogo bankName={bank.bank_name} size={40} />
+          <BankLogo bankName={bank.bank_name} logoUrl={bank.logo_url} size={40} />
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
             {bank.bank_name}
           </div>
+        </div>
+        {/* Match Score Badge */}
+        <div style={{
+          padding: '6px 12px',
+          borderRadius: '999px',
+          fontSize: 'var(--text-xs)',
+          fontWeight: 700,
+          background: 'rgba(22, 163, 74, 0.1)',
+          color: 'var(--color-success)',
+          border: '1px solid rgba(22, 163, 74, 0.3)'
+        }}>
+          Eligible
         </div>
       </div>
 
@@ -718,7 +742,17 @@ function ResultCard({ bank, isAgent, onApply }) {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
         <span className="badge badge-primary">
-          {bank.loan_type === 'PL' ? '💳 PL' : '💼 BL'}
+          {bank.loan_type === 'PL' ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+              PL
+            </span>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+              BL
+            </span>
+          )}
         </span>
         <span className="badge badge-info">
           {bank.company_category}
@@ -738,9 +772,18 @@ function ResultCard({ bank, isAgent, onApply }) {
           padding: '8px 12px',
           borderRadius: '6px',
           border: 'var(--border-subtle)',
-          lineHeight: 1.4
+          lineHeight: 1.4,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '6px'
         }}>
-          📝 {bank.special_notes}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px', color: 'var(--color-primary)' }}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span>{bank.special_notes}</span>
         </div>
       )}
 
@@ -750,7 +793,13 @@ function ResultCard({ bank, isAgent, onApply }) {
           className="btn btn-primary btn-sm"
           style={{ width: '100%', marginTop: '8px', justifyContent: 'center' }}
         >
-          💼 Apply for Client
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+            Apply for Client
+          </span>
         </button>
       )}
     </div>

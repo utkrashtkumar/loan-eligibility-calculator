@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 /**
  * Returns a high-fidelity stylized SVG logo for the matching bank/NBFC.
  * 
  * @param {Object} props
  * @param {string} props.bankName - Name of the bank
+ * @param {string} [props.logoUrl=''] - Optional external URL for the logo
  * @param {number} [props.size=32] - Width/Height of the logo
  */
-export default function BankLogo({ bankName = '', size = 32 }) {
+export default function BankLogo({ bankName = '', logoUrl = '', size = 32 }) {
+  const [imgError, setImgError] = useState(false);
+
   // Normalize bank name
   const name = bankName.toUpperCase().replace(/\(BL\)/g, '').trim();
 
@@ -25,6 +28,20 @@ export default function BankLogo({ bankName = '', size = 32 }) {
     flexShrink: 0,
     overflow: 'hidden'
   };
+
+  // Render external logo if provided and hasn't failed to load
+  if (logoUrl && !imgError) {
+    return (
+      <div style={wrapperStyle} title={bankName}>
+        <img 
+          src={logoUrl} 
+          alt={bankName} 
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          onError={() => setImgError(true)}
+        />
+      </div>
+    );
+  }
 
   // SVG Renderers for each bank
   if (name.includes('FIBE')) {

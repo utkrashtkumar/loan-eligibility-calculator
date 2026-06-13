@@ -35,9 +35,306 @@ export default function AdminDashboard() {
   const [updatingPayoutId, setUpdatingPayoutId] = useState(null);
   const [profileMsgText, setProfileMsgText] = useState('');
 
+  // Agent profile editing state
+  const [isEditingAgent, setIsEditingAgent] = useState(false);
+  const [editAgentData, setEditAgentData] = useState(null);
+
+  // Bank policies state
+  const [policies, setPolicies] = useState([]);
+  const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [policyForm, setPolicyForm] = useState({
+    bank_name: '',
+    loan_type: 'PL',
+    min_salary: 25000,
+    min_cibil: 650,
+    foir_max: 55,
+    min_age: 21,
+    max_age: 60,
+    company_category: 'ALL TYPES',
+    pf_required: 'No',
+    min_experience: '1 Year',
+    min_residence_stability: '1 Year',
+    all_pincodes: true,
+    special_notes: '',
+    logo_url: ''
+  });
+
+  // Pincode management state
+  const [bankPincodes, setBankPincodes] = useState([]);
+  const [newPincodeText, setNewPincodeText] = useState('');
+  const [pincodeActionLoading, setPincodeActionLoading] = useState(null);
+
   const handleSelectAgent = (agent) => {
     setSelectedAgent(agent);
     setProfileMsgText(agent?.profile_update_message || '');
+    setIsEditingAgent(false);
+    setEditAgentData(agent ? { ...agent } : null);
+  };
+
+  const fetchPolicies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_policies')
+        .select('*')
+        .order('bank_name', { ascending: true });
+      if (error) console.error('Error fetching policies:', error.message);
+      else setPolicies(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchBankPincodes = async (bankName) => {
+    if (!bankName) return;
+    try {
+      const { data, error } = await supabase
+        .from('bank_pincodes')
+        .select('*')
+        .eq('bank_name', bankName)
+        .order('pincode', { ascending: true });
+      if (error) console.error('Error fetching bank pincodes:', error.message);
+      else setBankPincodes(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveAgentProfile = async () => {
+    if (!editAgentData || !selectedAgent) return;
+    setAgentActionLoading(selectedAgent.id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editAgentData.full_name,
+          email: editAgentData.email,
+          phone: editAgentData.phone,
+          dob: editAgentData.dob,
+          fathers_name: editAgentData.fathers_name,
+          marital_status: editAgentData.marital_status,
+          current_address: editAgentData.current_address,
+          permanent_address: editAgentData.permanent_address,
+          pincode: editAgentData.pincode,
+          city: editAgentData.city,
+          state: editAgentData.state,
+          id_type: editAgentData.id_type,
+          id_number: editAgentData.id_number
+        })
+        .eq('id', selectedAgent.id);
+
+      if (error) {
+        alert('Failed to update agent profile: ' + error.message);
+      } else {
+        alert('Agent profile updated successfully!');
+        const updatedAgent = { ...selectedAgent, ...editAgentData };
+        setSelectedAgent(updatedAgent);
+        setIsEditingAgent(false);
+        await fetchAgentsData(); // Refresh active agents list
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating agent profile.');
+    } finally {
+      setAgentActionLoading(null);
+    }
+  };
+
+  const handleAgentPincodeChange = async (pincodeVal) => {
+    const cleaned = pincodeVal.replace(/\D/g, '').slice(0, 6);
+    setEditAgentData(prev => ({ ...prev, pincode: cleaned }));
+    
+    if (cleaned.length === 6) {
+      try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${cleaned}`);
+        const data = await res.json();
+        if (data && data[0]?.Status === 'Success') {
+          const postOffice = data[0].PostOffice[0];
+          setEditAgentData(prev => ({
+            ...prev,
+            city: postOffice.District,
+            state: postOffice.State
+          }));
+        }
+      } catch (err) {
+        console.error('Pincode fetch error:', err);
+      }
+    }
+  };
+
+  const handleSavePolicy = async (e) => {
+    e.preventDefault();
+    if (!policyForm.bank_name) {
+      alert('Bank Name is required');
+      return;
+    }
+    setAgentActionLoading('saving-policy');
+    try {
+      let query;
+      if (selectedPolicy) {
+        query = supabase
+          .from('bank_policies')
+          .update(policyForm)
+          .eq('id', selectedPolicy.id);
+      } else {
+        query = supabase
+          .from('bank_policies')
+          .insert([policyForm]);
+      }
+      
+      const { error } = await query;
+      if (error) {
+        alert('Error saving policy: ' + error.message);
+      } else {
+        alert(selectedPolicy ? 'Policy updated successfully!' : 'Policy added successfully!');
+        setIsPolicyModalOpen(false);
+        setSelectedPolicy(null);
+        await fetchPolicies();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving policy');
+    } finally {
+      setAgentActionLoading(null);
+    }
+  };
+
+  const handleDeletePolicy = async (policyId) => {
+    if (!window.confirm('Are you sure you want to delete this bank policy? This action cannot be undone.')) {
+      return;
+    }
+    setAgentActionLoading('deleting-policy');
+    try {
+      const { error } = await supabase
+        .from('bank_policies')
+        .delete()
+        .eq('id', policyId);
+      if (error) {
+        alert('Error deleting policy: ' + error.message);
+      } else {
+        alert('Policy deleted successfully!');
+        await fetchPolicies();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting policy');
+    } finally {
+      setAgentActionLoading(null);
+    }
+  };
+
+  const handleOpenAddPolicy = () => {
+    setSelectedPolicy(null);
+    setPolicyForm({
+      bank_name: '',
+      loan_type: 'PL',
+      min_salary: 25000,
+      min_cibil: 650,
+      foir_max: 55,
+      min_age: 21,
+      max_age: 60,
+      company_category: 'ALL TYPES',
+      pf_required: 'No',
+      min_experience: '1 Year',
+      min_residence_stability: '1 Year',
+      all_pincodes: true,
+      special_notes: '',
+      logo_url: ''
+    });
+    setBankPincodes([]);
+    setIsPolicyModalOpen(true);
+  };
+
+  const handleOpenEditPolicy = (policy) => {
+    setSelectedPolicy(policy);
+    setPolicyForm({
+      bank_name: policy.bank_name,
+      loan_type: policy.loan_type,
+      min_salary: policy.min_salary,
+      min_cibil: policy.min_cibil,
+      foir_max: policy.foir_max,
+      min_age: policy.min_age,
+      max_age: policy.max_age,
+      company_category: policy.company_category || 'ALL TYPES',
+      pf_required: policy.pf_required || 'No',
+      min_experience: policy.min_experience || '1 Year',
+      min_residence_stability: policy.min_residence_stability || '1 Year',
+      all_pincodes: policy.all_pincodes !== false,
+      special_notes: policy.special_notes || '',
+      logo_url: policy.logo_url || ''
+    });
+    setIsPolicyModalOpen(true);
+    
+    if (policy.all_pincodes === false) {
+      fetchBankPincodes(policy.bank_name);
+    } else {
+      setBankPincodes([]);
+    }
+  };
+
+  const handleAddBankPincodes = async () => {
+    if (!newPincodeText.trim()) return;
+    const bankName = policyForm.bank_name || selectedPolicy?.bank_name;
+    if (!bankName) {
+      alert('Please specify the Bank Name first.');
+      return;
+    }
+    
+    setPincodeActionLoading('adding');
+    const pincodesToAdd = newPincodeText
+      .split(',')
+      .map(p => p.trim())
+      .filter(p => /^\d{6}$/.test(p));
+      
+    if (pincodesToAdd.length === 0) {
+      alert('Please enter valid 6-digit numeric pincode(s).');
+      setPincodeActionLoading(null);
+      return;
+    }
+    
+    try {
+      const rows = pincodesToAdd.map(pin => ({
+        bank_name: bankName,
+        pincode: pin,
+        is_active: true
+      }));
+      
+      const { error } = await supabase
+        .from('bank_pincodes')
+        .insert(rows);
+        
+      if (error) {
+        alert('Error adding pincodes: ' + error.message);
+      } else {
+        setNewPincodeText('');
+        await fetchBankPincodes(bankName);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPincodeActionLoading(null);
+    }
+  };
+
+  const handleDeleteBankPincode = async (pincodeId) => {
+    const bankName = policyForm.bank_name || selectedPolicy?.bank_name;
+    setPincodeActionLoading(pincodeId);
+    try {
+      const { error } = await supabase
+        .from('bank_pincodes')
+        .delete()
+        .eq('id', pincodeId);
+        
+      if (error) {
+        alert('Error removing pincode: ' + error.message);
+      } else {
+        await fetchBankPincodes(bankName);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPincodeActionLoading(null);
+    }
   };
 
   const fetchInquiries = async () => {
@@ -128,7 +425,8 @@ export default function AdminDashboard() {
       fetchInquiries(),
       fetchAgentsData(),
       fetchApplications(),
-      fetchPayoutRequests()
+      fetchPayoutRequests(),
+      fetchPolicies()
     ]);
     setLoading(false);
   };
@@ -476,8 +774,8 @@ export default function AdminDashboard() {
     <>
       <Header />
       <main className="main-content">
-        <section className="admin-section" style={{ padding: '48px 24px', minHeight: '90vh' }}>
-          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <section className="admin-section" style={{ padding: 'clamp(16px, 3vw, 48px) clamp(12px, 2vw, 24px)', minHeight: '90vh' }}>
+          <div className="container" style={{ maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
             
             {loading ? (
               <div className="text-center" style={{ padding: '80px 0' }}>
@@ -551,6 +849,7 @@ export default function AdminDashboard() {
                       { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
                       { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
                       { id: 'applications', label: `📝 Client Applications (${applications.length})` },
+                      { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -587,7 +886,7 @@ export default function AdminDashboard() {
                          </div>
                        ) : (
                          <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                           <div style={{ overflowX: 'auto' }}>
+                           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                <thead>
                                  <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -634,7 +933,7 @@ export default function AdminDashboard() {
                          </div>
                        ) : (
                          <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                           <div style={{ overflowX: 'auto' }}>
+                           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                <thead>
                                  <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -705,7 +1004,7 @@ export default function AdminDashboard() {
                          </div>
                        ) : (
                          <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                           <div style={{ overflowX: 'auto' }}>
+                           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                <thead>
                                  <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -785,7 +1084,7 @@ export default function AdminDashboard() {
                          </div>
                        ) : (
                          <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                           <div style={{ overflowX: 'auto' }}>
+                           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                                <thead>
                                  <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -933,7 +1232,7 @@ export default function AdminDashboard() {
 
                     {/* Customer Leads Table */}
                     <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                      <div style={{ overflowX: 'auto' }}>
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                           <thead>
                             <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1092,7 +1391,7 @@ export default function AdminDashboard() {
 
                     {/* Agent Leads Table */}
                     <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                      <div style={{ overflowX: 'auto' }}>
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                           <thead>
                             <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1186,7 +1485,7 @@ export default function AdminDashboard() {
                 {/* PANEL 2: ACTIVE AGENTS */}
                 {activeTab === 'active_agents' && (
                   <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                         <thead>
                           <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1253,7 +1552,7 @@ export default function AdminDashboard() {
                         Pending Agent Registrations
                       </h2>
                       <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                        <div style={{ overflowX: 'auto' }}>
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                             <thead>
                               <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1306,7 +1605,7 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', fontWeight: 400 }}>(Allows restoring user profiles back to agents within 30 days)</span>
                       </h2>
                       <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                        <div style={{ overflowX: 'auto' }}>
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                             <thead>
                               <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1375,7 +1674,7 @@ export default function AdminDashboard() {
                 {/* PANEL 4: PAYOUT REQUESTS PROCESSOR */}
                 {activeTab === 'payouts' && (
                   <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                         <thead>
                           <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1456,7 +1755,7 @@ export default function AdminDashboard() {
                 {/* PANEL 5: CLIENT APPLICATIONS */}
                 {activeTab === 'applications' && (
                   <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                         <thead>
                           <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
@@ -1545,6 +1844,115 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
+
+                {/* PANEL 6: BANK POLICIES */}
+                {activeTab === 'policies' && (
+                  <div style={{ display: 'grid', gap: '24px' }}>
+                    {/* Header Row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                      <div>
+                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>🏦 Bank & NBFC Policies</h3>
+                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                          Manage lender eligibility criteria — CIBIL, salary, FOIR, age, PF, pincodes and more
+                        </p>
+                      </div>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={handleOpenAddPolicy}
+                        style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add New Policy
+                      </button>
+                    </div>
+
+                    {/* Policies Table */}
+                    {policies.length === 0 ? (
+                      <div className="form-card" style={{ padding: '48px 24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏦</div>
+                        <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No bank policies configured yet.</p>
+                        <p style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>Click &quot;Add New Policy&quot; to define your first lender criteria.</p>
+                      </div>
+                    ) : (
+                      <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', minWidth: '720px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                            <thead>
+                              <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Bank / NBFC</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Type</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min Salary (₹)</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min CIBIL</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Max FOIR %</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Age Range</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Pincodes</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {policies.map((policy) => (
+                                <tr key={policy.id} style={{ borderBottom: 'var(--border-subtle)', transition: 'background 0.15s' }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-card)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <td style={{ padding: '12px 10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <BankLogo bankName={policy.bank_name} logoUrl={policy.logo_url} size={20} />
+                                      <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{policy.bank_name}</span>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '12px 10px' }}>
+                                    <span className={`badge ${policy.loan_type === 'PL' ? 'badge-primary' : 'badge-info'}`}>
+                                      {policy.loan_type === 'PL' ? '💳 Personal' : '💼 Business'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                    ₹{Number(policy.min_salary).toLocaleString('en-IN')}
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                    {policy.min_cibil}+
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                    {policy.foir_max}%
+                                  </td>
+                                  <td style={{ padding: '12px 10px' }}>
+                                    {policy.min_age}–{policy.max_age} yrs
+                                  </td>
+                                  <td style={{ padding: '12px 10px' }}>
+                                    {policy.all_pincodes ? (
+                                      <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>🌍 All India</span>
+                                    ) : (
+                                      <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>📍 Limited</span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                      <button
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ padding: '5px 12px', fontSize: '11px' }}
+                                        onClick={() => handleOpenEditPolicy(policy)}
+                                      >
+                                        ✏️ Edit
+                                      </button>
+                                      <button
+                                        className="btn btn-sm"
+                                        style={{ padding: '5px 12px', fontSize: '11px', background: 'rgba(239,68,68,0.1)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.25)' }}
+                                        onClick={() => handleDeletePolicy(policy.id)}
+                                        disabled={agentActionLoading === 'deleting-policy'}
+                                      >
+                                        🗑️ Delete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </>
@@ -1569,7 +1977,7 @@ export default function AdminDashboard() {
         }} onClick={() => setSelectedInquiry(null)}>
           <div style={{
             width: '100%',
-            maxWidth: '550px',
+            maxWidth: 'min(550px, 96vw)',
             height: '100%',
             background: 'var(--color-bg-secondary)',
             borderLeft: 'var(--border-light)',
@@ -1697,8 +2105,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Active Agent Detail Inspector Drawer */}
-      {selectedAgent && (
+      {/* Bank Policy Edit/Add Modal with Pincode Sub-Management */}
+      {isPolicyModalOpen && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -1709,28 +2117,36 @@ export default function AdminDashboard() {
           backdropFilter: 'blur(8px)',
           zIndex: 1000,
           display: 'flex',
-          justifyContent: 'flex-end'
-        }} onClick={() => handleSelectAgent(null)}>
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px'
+        }} onClick={() => setIsPolicyModalOpen(false)}>
           <div style={{
             width: '100%',
-            maxWidth: '650px',
-            height: '100%',
+            maxWidth: policyForm.all_pincodes ? 'min(600px, 96vw)' : 'min(1100px, 96vw)',
+            maxHeight: '90vh',
             background: 'var(--color-bg-secondary)',
-            borderLeft: 'var(--border-light)',
+            border: 'var(--border-light)',
+            borderRadius: 'var(--border-radius-xl)',
             boxShadow: 'var(--shadow-xl)',
             padding: '32px',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: '24px'
+            gap: '24px',
+            transition: 'max-width var(--transition-base)'
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>Inspect Agent Profile</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Code: {selectedAgent.agent_code} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN')}</p>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>
+                  {selectedPolicy ? 'Edit Bank Policy & Criteria' : 'Define New Bank Policy'}
+                </h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                  Configure lending criteria and geographical coverage settings
+                </p>
               </div>
               <button
-                onClick={() => handleSelectAgent(null)}
+                onClick={() => setIsPolicyModalOpen(false)}
                 style={{
                   background: 'var(--color-bg-input)',
                   border: 'var(--border-light)',
@@ -1747,6 +2163,399 @@ export default function AdminDashboard() {
               >
                 ✕
               </button>
+            </div>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr',
+              gap: '32px',
+              alignItems: 'start'
+            }} className={!policyForm.all_pincodes ? 'responsive-grid-2' : ''}>
+              
+              {/* Left Column: Form Fields */}
+              <form onSubmit={handleSavePolicy} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Bank/NBFC Name</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      required
+                      placeholder="e.g. SBI, AXIS, HDFC"
+                      value={policyForm.bank_name}
+                      onChange={(e) => setPolicyForm({ ...policyForm, bank_name: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Loan Type</label>
+                    <select
+                      className="input-field"
+                      value={policyForm.loan_type}
+                      onChange={(e) => setPolicyForm({ ...policyForm, loan_type: e.target.value })}
+                    >
+                      <option value="PL">Personal Loan (PL)</option>
+                      <option value="BL">Business Loan (BL)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min Monthly Salary (₹)</label>
+                    <input 
+                      type="number"
+                      className="input-field"
+                      required
+                      min="0"
+                      value={policyForm.min_salary}
+                      onChange={(e) => setPolicyForm({ ...policyForm, min_salary: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min CIBIL Score</label>
+                    <input 
+                      type="number"
+                      className="input-field"
+                      required
+                      min="300"
+                      max="900"
+                      value={policyForm.min_cibil}
+                      onChange={(e) => setPolicyForm({ ...policyForm, min_cibil: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Max FOIR Ratio (%)</label>
+                    <input 
+                      type="number"
+                      className="input-field"
+                      required
+                      min="0"
+                      max="100"
+                      value={policyForm.foir_max}
+                      onChange={(e) => setPolicyForm({ ...policyForm, foir_max: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>PF Contribution Required?</label>
+                    <select
+                      className="input-field"
+                      value={policyForm.pf_required}
+                      onChange={(e) => setPolicyForm({ ...policyForm, pf_required: e.target.value })}
+                    >
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min Age (Years)</label>
+                    <input 
+                      type="number"
+                      className="input-field"
+                      required
+                      min="18"
+                      value={policyForm.min_age}
+                      onChange={(e) => setPolicyForm({ ...policyForm, min_age: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Max Age (Years)</label>
+                    <input 
+                      type="number"
+                      className="input-field"
+                      required
+                      min="18"
+                      value={policyForm.max_age}
+                      onChange={(e) => setPolicyForm({ ...policyForm, max_age: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min Experience</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. 1 Year, 6 Months"
+                      value={policyForm.min_experience}
+                      onChange={(e) => setPolicyForm({ ...policyForm, min_experience: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min Residence Stability</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. 1 Year, Own House"
+                      value={policyForm.min_residence_stability}
+                      onChange={(e) => setPolicyForm({ ...policyForm, min_residence_stability: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Company Category Mapped</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. CAT A, CAT B, ALL TYPES"
+                      value={policyForm.company_category}
+                      onChange={(e) => setPolicyForm({ ...policyForm, company_category: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Bank Logo URL</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. /logos/sbi.png (Optional)"
+                      value={policyForm.logo_url}
+                      onChange={(e) => setPolicyForm({ ...policyForm, logo_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Special Credit Policies Notes</label>
+                  <textarea 
+                    className="input-field"
+                    placeholder="Provide any additional rules (e.g. Salary account with same bank required)"
+                    rows="3"
+                    value={policyForm.special_notes}
+                    onChange={(e) => setPolicyForm({ ...policyForm, special_notes: e.target.value })}
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--color-bg-card)', padding: '12px 16px', borderRadius: '12px', border: 'var(--border-subtle)' }}>
+                  <input 
+                    type="checkbox"
+                    id="all_pincodes_checkbox"
+                    checked={policyForm.all_pincodes}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setPolicyForm({ ...policyForm, all_pincodes: checked });
+                      if (!checked && (policyForm.bank_name || selectedPolicy?.bank_name)) {
+                        fetchBankPincodes(policyForm.bank_name || selectedPolicy.bank_name);
+                      }
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="all_pincodes_checkbox" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', fontWeight: 600, cursor: 'pointer' }}>
+                    🌍 Serves all Pincodes in India (No mapping needed)
+                  </label>
+                </div>
+
+                <button 
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '14px 28px', justifyContent: 'center', marginTop: '8px' }}
+                  disabled={agentActionLoading === 'saving-policy'}
+                >
+                  {agentActionLoading === 'saving-policy' ? 'Saving Policy...' : 'Save Bank Policy'}
+                </button>
+              </form>
+
+              {/* Right Column: Pincode Management (Only when all_pincodes is false) */}
+              {!policyForm.all_pincodes && (
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '16px',
+                  background: 'var(--color-bg-card)',
+                  border: 'var(--border-light)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  height: '100%',
+                  maxHeight: '680px'
+                }}>
+                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    📍 Serviced Pincodes ({bankPincodes.length})
+                  </h4>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="Enter pincode (e.g. 110001) or comma separated"
+                      value={newPincodeText}
+                      onChange={(e) => setNewPincodeText(e.target.value)}
+                    />
+                    <button
+                      className="btn btn-primary btn-sm"
+                      type="button"
+                      onClick={handleAddBankPincodes}
+                      disabled={pincodeActionLoading === 'adding'}
+                      style={{ padding: '0 16px' }}
+                    >
+                      {pincodeActionLoading === 'adding' ? 'Adding...' : 'Add'}
+                    </button>
+                  </div>
+
+                  <div style={{ 
+                    overflowY: 'auto', 
+                    flex: 1, 
+                    border: 'var(--border-subtle)', 
+                    borderRadius: '12px',
+                    background: 'var(--color-bg-input)',
+                    padding: '8px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                    gap: '8px',
+                    alignContent: 'start',
+                    minHeight: '200px',
+                    maxHeight: '400px'
+                  }}>
+                    {bankPincodes.length === 0 ? (
+                      <div style={{ 
+                        gridColumn: '1 / -1', 
+                        padding: '32px 16px', 
+                        textAlign: 'center', 
+                        color: 'var(--color-text-muted)',
+                        fontSize: 'var(--text-xs)'
+                      }}>
+                        No pincodes mapped. This bank will not appear in any match results.
+                      </div>
+                    ) : (
+                      bankPincodes.map((pin) => (
+                        <div 
+                          key={pin.id} 
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 10px',
+                            background: 'var(--color-bg-card)',
+                            border: 'var(--border-light)',
+                            borderRadius: '8px',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600
+                          }}
+                        >
+                          <span>{pin.pincode}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBankPincode(pin.id)}
+                            disabled={pincodeActionLoading === pin.id}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--color-error)',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              padding: '0 2px'
+                            }}
+                            title="Remove pincode serviceability"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <p style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', lineHeight: 1.4 }}>
+                    * Pincodes added here map mapping links directly in the serviceable regions list for eligibility matching.
+                  </p>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Agent Detail Inspector Drawer */}
+      {selectedAgent && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'flex-end'
+        }} onClick={() => handleSelectAgent(null)}>
+          <div style={{
+            width: '100%',
+            maxWidth: 'min(650px, 96vw)',
+            height: '100%',
+            background: 'var(--color-bg-secondary)',
+            borderLeft: 'var(--border-light)',
+            boxShadow: 'var(--shadow-xl)',
+            padding: '32px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>Inspect Agent Profile</h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Code: {selectedAgent.agent_code} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN')}</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isEditingAgent ? (
+                  <>
+                    <button
+                      onClick={handleSaveAgentProfile}
+                      disabled={agentActionLoading === selectedAgent.id}
+                      className="btn btn-primary btn-sm"
+                      style={{ padding: '6px 14px' }}
+                    >
+                      {agentActionLoading === selectedAgent.id ? 'Saving...' : 'Save Profile'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingAgent(false);
+                        setEditAgentData({ ...selectedAgent });
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '6px 14px' }}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsEditingAgent(true);
+                      setEditAgentData({ ...selectedAgent });
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '6px 14px' }}
+                  >
+                    Edit Profile
+                  </button>
+                )}
+                <button
+                  onClick={() => handleSelectAgent(null)}
+                  style={{
+                    background: 'var(--color-bg-input)',
+                    border: 'var(--border-light)',
+                    color: 'var(--color-text-primary)',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Avatar Block */}
@@ -1897,96 +2706,241 @@ export default function AdminDashboard() {
                   Demote to Normal User 👤
                 </button>
               </div>
-              <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Name</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.full_name}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Email Address</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.email}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Phone Number</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.phone || 'N/A'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)' }}>{selectedAgentSubAgents.length}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.dob || 'N/A'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated Age</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
-                    {selectedAgent.dob ? (new Date().getFullYear() - new Date(selectedAgent.dob).getFullYear()) : 'N/A'}
+              {isEditingAgent ? (
+                <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Agent Name</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.full_name || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, full_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Email Address</label>
+                    <input 
+                      type="email"
+                      className="input-field"
+                      value={editAgentData.email || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Phone Number</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      maxLength={10}
+                      value={editAgentData.phone || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, phone: e.target.value.replace(/\D/g, '') })}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)', marginTop: '8px' }}>{selectedAgentSubAgents.length}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Date of Birth</label>
+                    <input 
+                      type="date"
+                      className="input-field"
+                      value={editAgentData.dob || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, dob: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated Age</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, marginTop: '8px' }}>
+                      {editAgentData.dob ? (new Date().getFullYear() - new Date(editAgentData.dob).getFullYear()) : 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Father&apos;s Name</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.fathers_name || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, fathers_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Marital Status</label>
+                    <select
+                      className="input-field"
+                      value={editAgentData.marital_status || 'Single'}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, marital_status: e.target.value })}
+                    >
+                      <option value="Single">Single</option>
+                      <option value="Married">Married</option>
+                      <option value="Divorced">Divorced</option>
+                      <option value="Widowed">Widowed</option>
+                    </select>
+                  </div>
+                  <div className="span-2-desktop">
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Current Address</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.current_address || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, current_address: e.target.value })}
+                    />
+                  </div>
+                  <div className="span-2-desktop">
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Permanent Address</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.permanent_address || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, permanent_address: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Pincode</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      maxLength={6}
+                      placeholder="6 digit pincode"
+                      value={editAgentData.pincode || ''}
+                      onChange={(e) => handleAgentPincodeChange(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>City & State</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.city ? `${editAgentData.city}, ${editAgentData.state || ''}` : editAgentData.state || ''}
+                      disabled
+                      placeholder="Auto-filled from Pincode"
+                    />
                   </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Father&apos;s Name</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.fathers_name || 'N/A'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Marital Status</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.marital_status || 'N/A'}</div>
-                </div>
-                <div className="span-2-desktop">
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Current Address</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.current_address || 'N/A'}</div>
-                </div>
-                <div className="span-2-desktop">
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Permanent Address</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.permanent_address || 'N/A'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Pincode</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.pincode || 'N/A'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>City & State</div>
-                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
-                    {selectedAgent.city ? `${selectedAgent.city}, ${selectedAgent.state || ''}` : selectedAgent.state || 'N/A'}
+              ) : (
+                <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Name</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.full_name}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Email Address</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.email}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Phone Number</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.phone || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)' }}>{selectedAgentSubAgents.length}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.dob || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated Age</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+                      {selectedAgent.dob ? (new Date().getFullYear() - new Date(selectedAgent.dob).getFullYear()) : 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Father&apos;s Name</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.fathers_name || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Marital Status</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.marital_status || 'N/A'}</div>
+                  </div>
+                  <div className="span-2-desktop">
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Current Address</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.current_address || 'N/A'}</div>
+                  </div>
+                  <div className="span-2-desktop">
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Permanent Address</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.permanent_address || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Pincode</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.pincode || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>City & State</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+                      {selectedAgent.city ? `${selectedAgent.city}, ${selectedAgent.state || ''}` : selectedAgent.state || 'N/A'}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Identity Details */}
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Identity Verification</h4>
-              <div className="form-card" style={{ display: 'grid', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
-                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+              {isEditingAgent ? (
+                <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity Proof Type</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_type || 'N/A'}</div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Identity Proof Type</label>
+                    <select
+                      className="input-field"
+                      value={editAgentData.id_type || 'PAN Card'}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, id_type: e.target.value })}
+                    >
+                      <option value="PAN Card">PAN Card</option>
+                      <option value="Aadhaar Card">Aadhaar Card</option>
+                      <option value="Passport">Passport</option>
+                      <option value="Voter ID Card">Voter ID Card</option>
+                    </select>
                   </div>
                   <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity ID Number</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_number || 'N/A'}</div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Identity ID Number</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      maxLength={12}
+                      value={editAgentData.id_number || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, id_number: e.target.value.replace(/[^a-zA-Z0-9]/g, '') })}
+                    />
                   </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File</div>
-                  {selectedAgent.id_file ? (
-                    selectedAgent.id_file.startsWith('data:application/pdf') || !selectedAgent.id_file.startsWith('data:image/') ? (
-                      <a
-                        href={selectedAgent.id_file}
-                        download={`identity-${selectedAgent.id_type || 'verification'}`}
-                        className="btn btn-secondary btn-sm"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                      >
-                        📄 View / Download Identity Proof PDF
-                      </a>
+              ) : (
+                <div className="form-card" style={{ display: 'grid', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+                  <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity Proof Type</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_type || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity ID Number</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_number || 'N/A'}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File</div>
+                    {selectedAgent.id_file ? (
+                      selectedAgent.id_file.startsWith('data:application/pdf') || !selectedAgent.id_file.startsWith('data:image/') ? (
+                        <a
+                          href={selectedAgent.id_file}
+                          download={`identity-${selectedAgent.id_type || 'verification'}`}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          View / Download Identity Proof PDF
+                        </a>
+                      ) : (
+                        <img src={selectedAgent.id_file} alt="ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                      )
                     ) : (
-                      <img src={selectedAgent.id_file} alt="ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
-                    )
-                  ) : (
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
-                  )}
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Agent Financial Summary */}

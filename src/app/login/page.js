@@ -137,7 +137,7 @@ function LoginContent() {
 
       <div style={{ marginTop: '24px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
         Don&apos;t have an account?{' '}
-        <Link href={`/signup?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-accent-violet)', fontWeight: 500 }}>
+        <Link href={`/signup?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
           Sign Up Free
         </Link>
       </div>

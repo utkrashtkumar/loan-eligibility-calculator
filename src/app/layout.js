@@ -1,4 +1,4 @@
-import { Inter, Outfit } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({
@@ -8,9 +8,9 @@ const inter = Inter({
   weight: ['300', '400', '500', '600', '700'],
 });
 
-const outfit = Outfit({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-outfit',
+  variable: '--font-plus-jakarta',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
 });
@@ -30,7 +30,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

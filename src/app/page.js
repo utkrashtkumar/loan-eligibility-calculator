@@ -1,10 +1,59 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function Home() {
+  const [activeFaq, setActiveFaq] = useState(null);
+  const [formState, setFormState] = useState({ name: '', email: '', subject: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleFaqToggle = (index) => {
+    setActiveFaq(activeFaq === index ? null : index);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!formState.name || !formState.email || !formState.message) return;
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      setFormState({ name: '', email: '', subject: '', message: '' });
+    }, 1200);
+  };
+
+  const faqs = [
+    {
+      q: "What is Hand to Hand Fintech?",
+      a: "Hand to Hand Fintech is an intelligent platform that lets you check your personal loan eligibility across 10+ major Indian banks and NBFCs in under 60 seconds. We analyze your credit profile, salary, location, and existing liabilities against complex bank lending rules to find your best matches."
+    },
+    {
+      q: "Is checking my eligibility free, and does it affect my CIBIL score?",
+      a: "Yes, our eligibility check is 100% free and always will be. Checking your eligibility on our platform is a \"soft search\" and does not impact your CIBIL credit score in any way."
+    },
+    {
+      q: "What documents are required to apply for a loan after matching?",
+      a: "Typically, you will need your PAN card, Aadhaar card, last 3 months' bank statements, salary slips (for salaried individuals), or business proof (for self-employed individuals)."
+    },
+    {
+      q: "How accurate are the eligibility scores?",
+      a: "Our matching engine uses real-time bank policies, credit criteria, FOIR calculations, and location mapping. While highly accurate (90%+ alignment with bank decisions), the final loan approval and interest rates are determined solely by the partner bank/NBFC after physical document verification."
+    },
+    {
+      q: "How can I earn commissions as a Referral Agent?",
+      a: "You can sign up as a Referral Agent, check eligibility for your clients, submit their applications, and track progress on your Agent Dashboard. You earn payouts/commissions for every successfully disbursed loan."
+    }
+  ];
+
   return (
     <>
       <Header />
@@ -42,19 +91,41 @@ export default function Home() {
           </Link>
 
           {/* Floating Stats */}
-          <div className="hero-stats">
+          <div className="hero-stats" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
             <div className="hero-stat-card">
-              <span className="hero-stat-icon">🏦</span>
+              <span className="hero-stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                  <path d="M3 21h18" />
+                  <path d="M3 10h18" />
+                  <path d="M5 6h14" />
+                  <path d="M4 10v11" />
+                  <path d="M20 10v11" />
+                  <path d="M8 14v3" />
+                  <path d="M12 14v3" />
+                  <path d="M16 14v3" />
+                  <path d="M12 2L2 7h20L12 2z" />
+                </svg>
+              </span>
               <span className="hero-stat-value">10+</span>
               <span className="hero-stat-label">Banks & NBFCs</span>
             </div>
             <div className="hero-stat-card">
-              <span className="hero-stat-icon">⚡</span>
+              <span className="hero-stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </span>
               <span className="hero-stat-value">60s</span>
               <span className="hero-stat-label">Instant Results</span>
             </div>
             <div className="hero-stat-card">
-              <span className="hero-stat-icon">🎯</span>
+              <span className="hero-stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+              </span>
               <span className="hero-stat-value">100%</span>
               <span className="hero-stat-label">Free Forever</span>
             </div>
@@ -66,7 +137,7 @@ export default function Home() {
       <section className="section features-section">
         <div className="container">
           <h2 className="section-title">
-            Why Choose <span className="text-gradient">LoanMatch Pro?</span>
+            Why Choose <span className="text-gradient">Hand to Hand Fintech?</span>
           </h2>
           <p className="section-subtitle">
             Our intelligent engine matches your profile with the best available loan options
@@ -126,7 +197,12 @@ export default function Home() {
           <div className="steps-grid">
             <div className="step-card">
               <div className="step-number">01</div>
-              <div className="step-icon">📝</div>
+              <div className="step-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-primary)' }}>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+              </div>
               <h3 className="step-title">Enter Your Details</h3>
               <p className="step-desc">
                 Fill in your basic info, address, salary, existing EMI, and credit score.
@@ -138,8 +214,8 @@ export default function Home() {
                 <path d="M0 12h36m0 0l-6-6m6 6l-6 6" stroke="url(#arrow-grad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <defs>
                   <linearGradient id="arrow-grad" x1="0" y1="12" x2="36" y2="12">
-                    <stop stopColor="#6366f1"/>
-                    <stop offset="1" stopColor="#a855f7"/>
+                    <stop stopColor="var(--color-primary)"/>
+                    <stop offset="1" stopColor="var(--color-accent)"/>
                   </linearGradient>
                 </defs>
               </svg>
@@ -147,7 +223,12 @@ export default function Home() {
 
             <div className="step-card">
               <div className="step-number">02</div>
-              <div className="step-icon">🔍</div>
+              <div className="step-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-primary)' }}>
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
               <h3 className="step-title">Smart Matching</h3>
               <p className="step-desc">
                 Our engine checks pincode coverage, salary, CIBIL, and FOIR against all banks.
@@ -159,8 +240,8 @@ export default function Home() {
                 <path d="M0 12h36m0 0l-6-6m6 6l-6 6" stroke="url(#arrow-grad2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <defs>
                   <linearGradient id="arrow-grad2" x1="0" y1="12" x2="36" y2="12">
-                    <stop stopColor="#8b5cf6"/>
-                    <stop offset="1" stopColor="#ec4899"/>
+                    <stop stopColor="var(--color-accent)"/>
+                    <stop offset="1" stopColor="var(--color-secondary)"/>
                   </linearGradient>
                 </defs>
               </svg>
@@ -168,7 +249,15 @@ export default function Home() {
 
             <div className="step-card">
               <div className="step-number">03</div>
-              <div className="step-icon">🎉</div>
+              <div className="step-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-primary)' }}>
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M4 22h16" />
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
+                  <path d="M12 2a5 5 0 0 0-5 5v3c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4V7a5 5 0 0 0-5-5z" />
+                </svg>
+              </div>
               <h3 className="step-title">View Results</h3>
               <p className="step-desc">
                 See your eligible banks ranked by match score with detailed breakdowns.
@@ -186,12 +275,197 @@ export default function Home() {
             <p className="cta-subtitle">
               Join thousands of borrowers who found their ideal loan match in under a minute.
             </p>
-            <Link href="/check" className="btn-primary">
+            <Link 
+              href="/check" 
+              className="btn btn-primary btn-lg" 
+              style={{ 
+                marginTop: '16px',
+                padding: '16px 36px',
+                fontSize: '1.1rem',
+                boxShadow: 'var(--shadow-glow-purple), 0 8px 24px rgba(251, 146, 60, 0.35)',
+                transform: 'translateY(0)',
+                transition: 'all var(--transition-base)'
+              }}
+            >
               Start Free Check
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '8px' }}>
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="section faq-section" style={{ borderTop: 'var(--border-subtle)' }}>
+        <div className="container">
+          <h2 className="section-title">
+            Frequently Asked <span className="text-gradient">Questions</span>
+          </h2>
+          <p className="section-subtitle">
+            Find answers to common questions about eligibility checks, credit scores, and agent partnerships
+          </p>
+
+          <div className="faq-container">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className={`faq-item ${activeFaq === idx ? 'active' : ''}`}>
+                <button className="faq-header" onClick={() => handleFaqToggle(idx)}>
+                  <span>{faq.q}</span>
+                  <span className="faq-icon-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </span>
+                </button>
+                <div className="faq-body">
+                  <div className="faq-content">
+                    <p>{faq.a}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Us Section */}
+      <section className="section contact-section" style={{ borderTop: 'var(--border-subtle)' }}>
+        <div className="container">
+          <h2 className="section-title">
+            Contact <span className="text-gradient">Our Team</span>
+          </h2>
+          <p className="section-subtitle">
+            Have queries, partnership requests, or need support? We are here to help.
+          </p>
+
+          <div className="contact-grid">
+            <div className="contact-info">
+              <div className="contact-card-info">
+                <div className="contact-info-item">
+                  <div className="contact-info-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="contact-info-title">Email Us</h4>
+                    <p className="contact-info-text">handtohandloans@gmail.com</p>
+                    <p className="contact-info-text" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>We reply within 24 hours</p>
+                  </div>
+                </div>
+
+                <div className="contact-info-item">
+                  <div className="contact-info-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="contact-info-title">Helpline Hours</h4>
+                    <p className="contact-info-text">Monday to Saturday</p>
+                    <p className="contact-info-text">9:00 AM - 6:00 PM IST</p>
+                  </div>
+                </div>
+
+                <div className="contact-info-item">
+                  <div className="contact-info-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="contact-info-title">Secure & Encrypted</h4>
+                    <p className="contact-info-text">Your personal and financial information is fully protected under bank-grade security protocols.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="contact-form-container">
+              {isSubmitted ? (
+                <div className="contact-success-card">
+                  <div className="contact-success-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <h3 className="contact-success-title">Message Sent!</h3>
+                  <p className="contact-success-text">
+                    Thank you for reaching out. We have received your inquiry and our support team will contact you shortly.
+                  </p>
+                  <button className="btn btn-secondary" onClick={() => setIsSubmitted(false)}>
+                    Send Another Message
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="responsive-grid-2">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Name</label>
+                      <input 
+                        type="text" 
+                        name="name" 
+                        className="input-field" 
+                        placeholder="Your Name" 
+                        required 
+                        value={formState.name} 
+                        onChange={handleInputChange} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Email</label>
+                      <input 
+                        type="email" 
+                        name="email" 
+                        className="input-field" 
+                        placeholder="Your Email" 
+                        required 
+                        value={formState.email} 
+                        onChange={handleInputChange} 
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Subject</label>
+                    <input 
+                      type="text" 
+                      name="subject" 
+                      className="input-field" 
+                      placeholder="Subject (e.g. Agent Query, Eligibility Help)" 
+                      value={formState.subject} 
+                      onChange={handleInputChange} 
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Message</label>
+                    <textarea 
+                      name="message" 
+                      className="input-field" 
+                      placeholder="Type your message here..." 
+                      rows="4" 
+                      required 
+                      value={formState.message} 
+                      onChange={handleInputChange} 
+                      style={{ resize: 'vertical' }}
+                    ></textarea>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary btn-lg" 
+                    style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }} 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Sending Message...' : 'Send Message'}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </section>
