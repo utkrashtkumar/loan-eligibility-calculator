@@ -3086,3 +3086,28 @@ main, article, aside {
     align-items: flex-start;
   }
 }
+
+/* 13. Mobile Tabs Dropdown Menu & Desktop Sidebar Grid Toggle */
+.mobile-tabs-menu {
+  display: block;
+}
+.desktop-tabs-sidebar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-tabs-menu {
+    display: none;
+  }
+  .desktop-tabs-sidebar {
+    display: flex;
+  }
+}
+
+/* 14. Responsive Tables - ensure tables do not squish under 800px and allow horizontal scroll inside container */
+.tabs-content table,
+.dashboard-section table,
+.admin-section table {
+  min-width: 800px !important;
+  width: 100% !important;
+}

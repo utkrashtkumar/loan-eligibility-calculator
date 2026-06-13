@@ -11,6 +11,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('notifications');
+  const [isMobileTabSelectOpen, setIsMobileTabSelectOpen] = useState(false);
 
   // Leads state
   const [inquiries, setInquiries] = useState([]);
@@ -839,8 +840,98 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="tabs-container">
-                  {/* Tabs bar */}
-                  <div className="tabs-sidebar" style={{ marginBottom: '24px' }}>
+                  {/* MOBILE TABS MENU (hamburger / dropdown toggle style) */}
+                  <div className="mobile-tabs-menu" style={{ marginBottom: '20px', position: 'relative' }}>
+                    <button
+                      onClick={() => setIsMobileTabSelectOpen(!isMobileTabSelectOpen)}
+                      className="btn btn-secondary"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '14px 18px',
+                        background: 'var(--color-bg-glass)',
+                        border: 'var(--border-light)',
+                        borderRadius: 'var(--border-radius-lg)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-primary)'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {[
+                          { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
+                          { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
+                          { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
+                          { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
+                          { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
+                          { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
+                          { id: 'applications', label: `📝 Client Applications (${applications.length})` },
+                          { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
+                        ].find(t => t.id === activeTab)?.label || 'Select Menu Option'}
+                      </span>
+                      <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
+                    </button>
+
+                    {isMobileTabSelectOpen && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '8px',
+                          background: 'rgba(17, 24, 39, 0.95)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: 'var(--border-accent)',
+                          borderRadius: 'var(--border-radius-lg)',
+                          padding: '8px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          boxShadow: 'var(--shadow-lg)',
+                          zIndex: 99999
+                        }}
+                      >
+                        {[
+                          { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
+                          { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
+                          { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
+                          { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
+                          { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
+                          { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
+                          { id: 'applications', label: `📝 Client Applications (${applications.length})` },
+                          { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => {
+                              setActiveTab(tab.id);
+                              setIsMobileTabSelectOpen(false);
+                            }}
+                            className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '12px 16px',
+                              fontSize: 'var(--text-sm)',
+                              background: activeTab === tab.id ? 'var(--gradient-primary)' : 'transparent',
+                              border: 'none',
+                              color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary)',
+                              justifyContent: 'flex-start'
+                            }}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DESKTOP TABS SIDEBAR (vertical sidebar layout) */}
+                  <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
                     {[
                       { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
                       { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },

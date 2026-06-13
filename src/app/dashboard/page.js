@@ -83,6 +83,7 @@ export default function UserDashboard() {
 
   // Agent Specific Data
   const [activeTab, setActiveTab] = useState('profile');
+  const [isMobileTabSelectOpen, setIsMobileTabSelectOpen] = useState(false);
   const [showDemotionPopup, setShowDemotionPopup] = useState(false);
   const [showProfileUpdatePopup, setShowProfileUpdatePopup] = useState(false);
   const [applications, setApplications] = useState([]);
@@ -820,8 +821,96 @@ export default function UserDashboard() {
                      ======================================================== */
                   profile?.demoted_at ? (
                     <div className="tabs-container">
-                      {/* Glass Tab Selector Bar for Demoted User */}
-                      <div className="tabs-sidebar">
+                      {/* MOBILE TABS MENU for Demoted User */}
+                      <div className="mobile-tabs-menu" style={{ marginBottom: '20px', position: 'relative' }}>
+                        <button
+                          onClick={() => setIsMobileTabSelectOpen(!isMobileTabSelectOpen)}
+                          className="btn btn-secondary"
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '14px 18px',
+                            background: 'var(--color-bg-glass)',
+                            border: 'var(--border-light)',
+                            borderRadius: 'var(--border-radius-lg)',
+                            fontSize: 'var(--text-sm)',
+                            fontWeight: 600,
+                            color: 'var(--color-text-primary)'
+                          }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {activeTab === 'inquiries' ? '📁 Inquiries' : '💸 Payments & Balance'}
+                          </span>
+                          <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
+                        </button>
+
+                        {isMobileTabSelectOpen && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              marginTop: '8px',
+                              background: 'rgba(17, 24, 39, 0.95)',
+                              backdropFilter: 'blur(30px)',
+                              WebkitBackdropFilter: 'blur(30px)',
+                              border: 'var(--border-accent)',
+                              borderRadius: 'var(--border-radius-lg)',
+                              padding: '8px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px',
+                              boxShadow: 'var(--shadow-lg)',
+                              zIndex: 99999
+                            }}
+                          >
+                            <button
+                              onClick={() => {
+                                setActiveTab('inquiries');
+                                setIsMobileTabSelectOpen(false);
+                              }}
+                              className={`btn ${activeTab === 'inquiries' ? 'btn-primary' : 'btn-secondary'}`}
+                              style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '12px 16px',
+                                fontSize: 'var(--text-sm)',
+                                background: activeTab === 'inquiries' ? 'var(--gradient-primary)' : 'transparent',
+                                border: 'none',
+                                color: activeTab === 'inquiries' ? '#ffffff' : 'var(--color-text-secondary)',
+                                justifyContent: 'flex-start'
+                              }}
+                            >
+                              📁 Inquiries
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveTab('payments');
+                                setIsMobileTabSelectOpen(false);
+                              }}
+                              className={`btn ${activeTab === 'payments' ? 'btn-primary' : 'btn-secondary'}`}
+                              style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '12px 16px',
+                                fontSize: 'var(--text-sm)',
+                                background: activeTab === 'payments' ? 'var(--gradient-primary)' : 'transparent',
+                                border: 'none',
+                                color: activeTab === 'payments' ? '#ffffff' : 'var(--color-text-secondary)',
+                                justifyContent: 'flex-start'
+                              }}
+                            >
+                              💸 Payments & Balance
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* DESKTOP TABS SIDEBAR for Demoted User */}
+                      <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
                         {[
                           { 
                             id: 'inquiries', 
@@ -960,9 +1049,88 @@ export default function UserDashboard() {
                      AGENT PARTNER DASHBOARD VIEW (GLASS TABS)
                      ======================================================== */
                   <div className="tabs-container">
-                    
-                    {/* Glass Tab Selector Bar */}
-                    <div className="tabs-sidebar">
+                    {/* MOBILE TABS MENU for Active Agent */}
+                    <div className="mobile-tabs-menu" style={{ marginBottom: '20px', position: 'relative' }}>
+                      <button
+                        onClick={() => setIsMobileTabSelectOpen(!isMobileTabSelectOpen)}
+                        className="btn btn-secondary"
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '14px 18px',
+                          background: 'var(--color-bg-glass)',
+                          border: 'var(--border-light)',
+                          borderRadius: 'var(--border-radius-lg)',
+                          fontSize: 'var(--text-sm)',
+                          fontWeight: 600,
+                          color: 'var(--color-text-primary)'
+                        }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {activeTab === 'profile' && '👤 Profile Code'}
+                          {activeTab === 'applications' && '📝 Client Applications'}
+                          {activeTab === 'earnings' && '💸 Earning & Referral'}
+                          {activeTab === 'subagents' && '👥 Sub-agents'}
+                        </span>
+                        <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
+                      </button>
+
+                      {isMobileTabSelectOpen && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            marginTop: '8px',
+                            background: 'rgba(17, 24, 39, 0.95)',
+                            backdropFilter: 'blur(30px)',
+                            WebkitBackdropFilter: 'blur(30px)',
+                            border: 'var(--border-accent)',
+                            borderRadius: 'var(--border-radius-lg)',
+                            padding: '8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            boxShadow: 'var(--shadow-lg)',
+                            zIndex: 99999
+                          }}
+                        >
+                          {[
+                            { id: 'profile', label: '👤 Profile Code' },
+                            { id: 'applications', label: '📝 Client Applications' },
+                            { id: 'earnings', label: '💸 Earning & Referral' },
+                            { id: 'subagents', label: '👥 Sub-agents' },
+                          ].map((tab) => (
+                            <button
+                              key={tab.id}
+                              onClick={() => {
+                                setActiveTab(tab.id);
+                                setIsMobileTabSelectOpen(false);
+                              }}
+                              className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+                              style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '12px 16px',
+                                fontSize: 'var(--text-sm)',
+                                background: activeTab === tab.id ? 'var(--gradient-primary)' : 'transparent',
+                                border: 'none',
+                                color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary)',
+                                justifyContent: 'flex-start'
+                              }}
+                            >
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* DESKTOP TABS SIDEBAR for Active Agent */}
+                    <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
                       {[
                         { 
                           id: 'profile', 
