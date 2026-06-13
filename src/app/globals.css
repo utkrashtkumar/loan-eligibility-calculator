@@ -2777,6 +2777,54 @@ select.input-field option {
   color: #ffffff !important;
 }
 
+/* ---------- Light Theme Mobile Menu Overrides ---------- */
+[data-theme='light'] .mobile-menu {
+  background: rgba(245, 247, 246, 0.98) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1) !important;
+}
+
+[data-theme='light'] .mobile-menu .nav-link {
+  background: rgba(15, 23, 42, 0.03) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  color: var(--color-text-primary) !important;
+}
+
+[data-theme='light'] .mobile-menu .nav-link:hover,
+[data-theme='light'] .mobile-menu .nav-link:focus {
+  background: rgba(15, 23, 42, 0.06) !important;
+  border-color: var(--color-primary) !important;
+}
+
+[data-theme='light'] .mobile-menu-theme-row {
+  background: rgba(15, 23, 42, 0.03) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme='light'] .mobile-menu-theme-row:hover {
+  background: rgba(15, 23, 42, 0.06) !important;
+  border-color: var(--color-primary) !important;
+}
+
+[data-theme='light'] .mobile-menu .nav-link.nav-logout {
+  background: rgba(220, 38, 38, 0.05) !important;
+  border: 1px solid rgba(220, 38, 38, 0.2) !important;
+  color: var(--color-error) !important;
+}
+
+[data-theme='light'] .mobile-menu .nav-link.nav-logout:hover {
+  background: rgba(220, 38, 38, 0.1) !important;
+}
+
+[data-theme='light'] .mobile-menu .nav-link.nav-admin {
+  background: rgba(22, 163, 74, 0.05) !important;
+  border: 1px solid rgba(22, 163, 74, 0.2) !important;
+  color: var(--color-success) !important;
+}
+
+[data-theme='light'] .mobile-menu .nav-link.nav-admin:hover {
+  background: rgba(22, 163, 74, 0.1) !important;
+}
+
 /* ============================================
    RESPONSIVE SCALING & MOBILE OPTIMIZATIONS
    ============================================ */
