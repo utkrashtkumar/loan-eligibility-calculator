@@ -66,6 +66,20 @@ export default function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'relative';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+    };
+  }, [menuOpen]);
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -192,7 +206,6 @@ export default function Header() {
         <button 
           onClick={toggleTheme} 
           className="mobile-menu-theme-row"
-          style={{ border: 'none', background: 'none' }}
         >
           <div className="theme-toggle-btn" style={{ margin: 0 }}>
             {theme === 'dark' ? (
