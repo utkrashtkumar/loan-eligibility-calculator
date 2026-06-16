@@ -49,6 +49,7 @@
   --color-bg-glass-heavy: rgba(20, 38, 36, 0.8);
   --color-bg-input: var(--bg-base);
   --color-bg-input-focus: var(--bg-subtle);
+  --color-bg-section-subtle: rgba(15, 20, 36, 0.4);
 
   /* Accent Colors */
   --color-accent-indigo: var(--color-primary);
@@ -2293,10 +2294,15 @@ textarea.input-field {
    HOW IT WORKS STEPS
    ============================================ */
 .how-section {
-  background: rgba(15, 20, 36, 0.4);
+  background: var(--color-bg-section-subtle);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: var(--border-subtle);
+  border-bottom: var(--border-subtle);
+}
+
+.emi-calculator-section {
+  background: var(--color-bg-section-subtle);
   border-bottom: var(--border-subtle);
 }
 
@@ -2532,6 +2538,7 @@ textarea.input-field {
   --color-bg-glass-heavy: rgba(255, 255, 255, 0.85);
   --color-bg-input: var(--bg-base);
   --color-bg-input-focus: var(--bg-surface);
+  --color-bg-section-subtle: var(--bg-subtle);
 
   /* Accent Colors */
   --color-accent-indigo: var(--color-primary);
@@ -2874,6 +2881,7 @@ select.input-field option {
   --color-bg-glass-heavy: rgba(0, 10, 26, 0.85);
   --color-bg-input: var(--bg-base);
   --color-bg-input-focus: var(--bg-subtle);
+  --color-bg-section-subtle: rgba(0, 18, 46, 0.4);
 
   /* Accent Colors */
   --color-accent-indigo: var(--color-primary);

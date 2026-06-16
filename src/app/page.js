@@ -544,7 +544,7 @@ export default function Home() {
       </section>
 
       {/* EMI Calculator Section */}
-      <section className="section emi-calculator-section" style={{ borderTop: 'var(--border-subtle)', background: 'rgba(0, 10, 26, 0.2)' }}>
+      <section className="section emi-calculator-section" style={{ borderTop: 'var(--border-subtle)' }}>
         <div className="container" style={{ maxWidth: '1200px' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <h2 className="section-title">
