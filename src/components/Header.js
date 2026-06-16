@@ -64,14 +64,18 @@ export default function Header() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSessionCheck(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        router.push('/reset-password');
+      } else {
+        handleSessionCheck(session);
+      }
     });
 
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (menuOpen) {
