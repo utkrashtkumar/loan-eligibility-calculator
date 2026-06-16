@@ -68,32 +68,47 @@ function SignupContent() {
     }
 
     // Check for duplicate email or mobile number in profiles table
+    let isDuplicate = false;
     try {
-      const { data: existingEmail } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email.trim())
-        .maybeSingle();
+      // 1. Try secure RPC database function first (bypasses RLS SELECT restrictions)
+      const { data: userExists, error: rpcError } = await supabase
+        .rpc('check_user_exists', {
+          p_email: email.trim(),
+          p_phone: mobile.trim()
+        });
 
-      if (existingEmail) {
-        setError('An account with this email address is already registered.');
-        setLoading(false);
-        return;
-      }
+      if (!rpcError && userExists) {
+        isDuplicate = true;
+      } else {
+        // 2. Fallback to direct client-side selects (in case RPC function is not installed yet)
+        const { data: existingEmail } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email.trim())
+          .maybeSingle();
 
-      const { data: existingPhone } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', mobile.trim())
-        .maybeSingle();
+        if (existingEmail) {
+          isDuplicate = true;
+        } else {
+          const { data: existingPhone } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('phone', mobile.trim())
+            .maybeSingle();
 
-      if (existingPhone) {
-        setError('An account with this mobile number is already registered.');
-        setLoading(false);
-        return;
+          if (existingPhone) {
+            isDuplicate = true;
+          }
+        }
       }
     } catch (checkErr) {
       console.warn('Profile check warning:', checkErr);
+    }
+
+    if (isDuplicate) {
+      setError('An account with this email address or mobile number is already registered.');
+      setLoading(false);
+      return;
     }
 
     try {
@@ -112,6 +127,9 @@ function SignupContent() {
 
       if (signUpError) {
         setError(signUpError.message);
+      } else if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+        // 3. Post-signup Check (Supabase Auth returns an empty identities array for duplicate signups to prevent user enumeration)
+        setError('An account with this email address or mobile number is already registered.');
       } else {
         if (role === 'agent') {
           setShowAgentModal(true);
