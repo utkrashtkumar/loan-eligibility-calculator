@@ -101,6 +101,59 @@ function LoginContent() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    setError('');
+    setSuccess('');
+    if (!email.trim()) {
+      setError('Please enter your email address first to reset your password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setSuccess('Password reset link sent! Check your email to create a new password.');
+      }
+    } catch (err) {
+      setError('Failed to send password reset email. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMagicLinkLogin = async () => {
+    setError('');
+    setSuccess('');
+    if (!email.trim()) {
+      setError('Please enter your email address first to receive a magic link.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}${redirectPath}`
+        }
+      });
+      if (otpError) {
+        setError(otpError.message);
+      } else {
+        setSuccess('Magic Link sent! Please check your email inbox to log in.');
+      }
+    } catch (err) {
+      setError('Failed to send magic link. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="form-card text-center" style={{ backdropFilter: 'blur(20px)' }}>
       <h2 className="form-step-title">Welcome Back</h2>
@@ -165,16 +218,45 @@ function LoginContent() {
               )}
             </button>
           </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: 0,
+                textDecoration: 'underline'
+              }}
+            >
+              Forgot Password?
+            </button>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          className="btn btn-primary btn-lg"
-          style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }}
-          disabled={loading}
-        >
-          {loading ? 'Logging In...' : 'Log In'}
-        </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '24px' }}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{ width: '100%', justifyContent: 'center', margin: 0 }}
+            disabled={loading}
+          >
+            {loading ? 'Logging In...' : 'Log In'}
+          </button>
+          <button
+            type="button"
+            onClick={handleMagicLinkLogin}
+            className="btn btn-secondary"
+            style={{ width: '100%', justifyContent: 'center', margin: 0, border: 'var(--border-accent)', background: 'var(--color-bg-glass)' }}
+            disabled={loading}
+          >
+            ✨ Magic Link
+          </button>
+        </div>
       </form>
 
       <div style={{ marginTop: '24px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
