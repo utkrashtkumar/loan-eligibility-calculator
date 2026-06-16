@@ -207,6 +207,9 @@ export default function Header() {
         <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
           Check Eligibility
         </Link>
+        <Link href="/#emi-calculator" className="nav-link" onClick={closeMenu}>
+          EMI Calculator
+        </Link>
         {user ? (
           <>
             <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`} onClick={closeMenu}>

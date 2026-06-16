@@ -134,6 +134,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* EMI Calculator Section */}
+      <section id="emi-calculator" className="section emi-calculator-section" style={{ borderTop: 'var(--border-subtle)' }}>
+        <div className="container" style={{ maxWidth: '1200px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 className="section-title">
+              Calculate Your <span className="text-gradient">Loan EMIs</span>
+            </h2>
+            <p className="section-subtitle">
+              Check your monthly payments instantly using fixed or reducing interest rate structures.
+            </p>
+          </div>
+          <EmiCalculator />
+        </div>
+      </section>
+
       {/* Why HandToHand? Section */}
       <section className="section features-section" style={{ paddingBottom: '32px' }}>
         <div className="container">
@@ -540,21 +555,6 @@ export default function Home() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* EMI Calculator Section */}
-      <section className="section emi-calculator-section" style={{ borderTop: 'var(--border-subtle)' }}>
-        <div className="container" style={{ maxWidth: '1200px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 className="section-title">
-              Calculate Your <span className="text-gradient">Loan EMIs</span>
-            </h2>
-            <p className="section-subtitle">
-              Check your monthly payments instantly using fixed or reducing interest rate structures.
-            </p>
-          </div>
-          <EmiCalculator />
         </div>
       </section>
 
