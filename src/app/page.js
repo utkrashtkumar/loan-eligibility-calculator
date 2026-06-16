@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import EmiCalculator from '@/components/EmiCalculator';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [activeFaq, setActiveFaq] = useState(null);
@@ -21,15 +22,30 @@ export default function Home() {
     setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!formState.name || !formState.email || !formState.message) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert([{
+          name: formState.name,
+          email: formState.email,
+          subject: formState.subject || null,
+          message: formState.message
+        }]);
+
+      if (error) throw error;
+      
       setIsSubmitted(true);
       setFormState({ name: '', email: '', subject: '', message: '' });
-    }, 1200);
+    } catch (err) {
+      console.error('Error submitting contact form:', err);
+      alert('Failed to send message: ' + (err.message || 'Unknown network error. Make sure migrations are run.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const faqs = [

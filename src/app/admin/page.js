@@ -41,6 +41,12 @@ export default function AdminDashboard() {
   const [isEditingAgent, setIsEditingAgent] = useState(false);
   const [editAgentData, setEditAgentData] = useState(null);
 
+  // Contact messages state
+  const [contactMessages, setContactMessages] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [messageActionLoading, setMessageActionLoading] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
+
   // Bank policies state
   const [policies, setPolicies] = useState([]);
   const [selectedPolicy, setSelectedPolicy] = useState(null);
@@ -421,6 +427,44 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchContactMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) console.error('Error fetching contact messages:', error.message);
+      else setContactMessages(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteContactMessage = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this contact message?')) return;
+    setMessageActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      alert('Message deleted successfully.');
+      setContactMessages((prev) => prev.filter((msg) => msg.id !== id));
+      if (selectedMessage?.id === id) {
+        setSelectedMessage(null);
+      }
+    } catch (err) {
+      console.error('Error deleting contact message:', err.message);
+      alert('Failed to delete message: ' + err.message);
+    } finally {
+      setMessageActionLoading(false);
+    }
+  };
+
   const fetchAllData = async () => {
     setLoading(true);
     await Promise.all([
@@ -428,7 +472,8 @@ export default function AdminDashboard() {
       fetchAgentsData(),
       fetchApplications(),
       fetchPayoutRequests(),
-      fetchPolicies()
+      fetchPolicies(),
+      fetchContactMessages()
     ]);
     setLoading(false);
   };
@@ -466,7 +511,7 @@ export default function AdminDashboard() {
       });
     }, 150);
     return () => clearTimeout(timer);
-  }, [activeTab, loading, inquiries, activeAgents, pendingAgents, demotedUsers, applications, payoutRequests, policies]);
+  }, [activeTab, loading, inquiries, activeAgents, pendingAgents, demotedUsers, applications, payoutRequests, policies, contactMessages]);
 
   const handleSignOut = async () => {
     try {
@@ -918,6 +963,7 @@ export default function AdminDashboard() {
                           { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
                           { id: 'applications', label: `📝 Client Applications (${applications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
+                          { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                           { id: 'emi', label: '🧮 EMI Calculator' },
                         ].find(t => t.id === activeTab)?.label || 'Select Menu Option'}
                       </span>
@@ -954,6 +1000,7 @@ export default function AdminDashboard() {
                           { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
                           { id: 'applications', label: `📝 Client Applications (${applications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
+                          { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                           { id: 'emi', label: '🧮 EMI Calculator' },
                         ].map((tab) => (
                           <button
@@ -992,6 +1039,7 @@ export default function AdminDashboard() {
                       { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
                       { id: 'applications', label: `📝 Client Applications (${applications.length})` },
                       { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
+                      { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                       { id: 'emi', label: '🧮 EMI Calculator' },
                     ].map((tab) => (
                       <button
@@ -2142,6 +2190,113 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
+                {/* PANEL 8: CONTACT MESSAGES */}
+                {activeTab === 'contacts' && (
+                  <div className="form-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                      <div>
+                        <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Contact Inquiries</h3>
+                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                          Manage messages and inquiries sent by visitors via the Contact Us homepage form.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="🔍 Search messages by sender, email, subject, or content..."
+                        value={contactSearch || ''}
+                        onChange={(e) => setContactSearch(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Messages Table */}
+                    {contactMessages.filter((msg) => {
+                      const query = (contactSearch || '').toLowerCase();
+                      return (
+                        msg.name?.toLowerCase().includes(query) ||
+                        msg.email?.toLowerCase().includes(query) ||
+                        msg.subject?.toLowerCase().includes(query) ||
+                        msg.message?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
+                        No contact messages found.
+                      </div>
+                    ) : (
+                      <div className="table-scroll-x" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--color-text-secondary)' }}>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Sender Info</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Subject</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Message Snippet</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Submitted On</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {contactMessages.filter((msg) => {
+                              const query = (contactSearch || '').toLowerCase();
+                              return (
+                                msg.name?.toLowerCase().includes(query) ||
+                                msg.email?.toLowerCase().includes(query) ||
+                                msg.subject?.toLowerCase().includes(query) ||
+                                msg.message?.toLowerCase().includes(query)
+                              );
+                            }).map((msg) => (
+                              <tr key={msg.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--color-text-primary)' }}>
+                                <td style={{ padding: '16px' }}>
+                                  <div style={{ fontWeight: 600 }}>{msg.name}</div>
+                                  <a href={`mailto:${msg.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{msg.email}</a>
+                                </td>
+                                <td style={{ padding: '16px', fontWeight: 500 }}>
+                                  {msg.subject || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No Subject</span>}
+                                </td>
+                                <td style={{ padding: '16px', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {msg.message}
+                                </td>
+                                <td style={{ padding: '16px', color: 'var(--color-text-secondary)' }}>
+                                  {new Date(msg.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                                </td>
+                                <td style={{ padding: '16px', textAlign: 'right' }}>
+                                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <button
+                                      className="btn btn-secondary btn-xs"
+                                      onClick={() => setSelectedMessage(msg)}
+                                      style={{ padding: '6px 12px', fontSize: '11px', borderRadius: '6px' }}
+                                    >
+                                      View details
+                                    </button>
+                                    <button
+                                      className="btn btn-danger btn-xs"
+                                      onClick={() => deleteContactMessage(msg.id)}
+                                      disabled={messageActionLoading}
+                                      style={{
+                                        padding: '6px 12px',
+                                        fontSize: '11px',
+                                        borderRadius: '6px',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: '#ef4444'
+                                      }}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* PANEL 7: EMI CALCULATOR */}
                 {activeTab === 'emi' && (
                   <EmiCalculator />
@@ -2153,6 +2308,122 @@ export default function AdminDashboard() {
           </div>
         </section>
       </main>
+
+      {/* Contact Message Detail Modal */}
+      {selectedMessage && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '16px'
+        }}>
+          <div className="modal-drawer" style={{
+            background: 'var(--color-bg-glass-heavy)',
+            border: 'var(--border-accent)',
+            borderRadius: 'var(--border-radius-xl)',
+            width: '100%',
+            maxWidth: 'min(600px, 96vw)',
+            padding: '28px',
+            boxShadow: 'var(--shadow-lg)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div>
+                <span className="badge badge-primary" style={{ background: 'var(--gradient-primary)', color: '#ffffff !important' }}>Contact Query</span>
+                <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '8px' }}>
+                  {selectedMessage.subject || '(No Subject)'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedMessage(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-primary)',
+                  fontSize: '18px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-light)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: '4px' }}>{selectedMessage.name}</div>
+                </div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-light)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-primary)', marginTop: '4px' }}>
+                    <a href={`mailto:${selectedMessage.email}`} style={{ textDecoration: 'underline', color: 'var(--color-primary)' }}>
+                      {selectedMessage.email}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-light)' }}>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Submitted On</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)' }}>
+                  {new Date(selectedMessage.created_at).toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' })}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '8px', border: 'var(--border-light)', minHeight: '120px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Message Body</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                  {selectedMessage.message}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedMessage(null)}
+                  style={{ padding: '10px 20px', borderRadius: '8px' }}
+                >
+                  Close Window
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => {
+                    deleteContactMessage(selectedMessage.id);
+                  }}
+                  disabled={messageActionLoading}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    background: '#ef4444',
+                    border: 'none',
+                    color: '#ffffff'
+                  }}
+                >
+                  Delete Message
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Leads Detail Drawer Modal */}
       {selectedInquiry && (
