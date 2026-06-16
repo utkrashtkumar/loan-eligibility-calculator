@@ -17,7 +17,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(
     searchParams.get('error') === 'pending'
-      ? 'Your agent account is pending approval by the admin. Please try again later.'
+      ? 'Your agent account is pending approval by the admin. Contact this number (8171261318) for approval of your agent id.'
       : ''
   );
   const [success, setSuccess] = useState('');
@@ -73,7 +73,7 @@ function LoginContent() {
 
         if (profile.role === 'agent' && !profile.approved) {
           await supabase.auth.signOut();
-          setError('Your agent account is pending approval by the admin. Please try again later.');
+          setError('Your agent account is pending approval by the admin. Contact this number (8171261318) for approval of your agent id.');
           setLoading(false);
           return;
         }

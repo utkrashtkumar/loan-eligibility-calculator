@@ -75,13 +75,13 @@ function SignupContent() {
         setError(signUpError.message);
       } else {
         if (role === 'agent') {
-          setSuccess('Agent account request submitted! It will require admin approval before you can log in.');
+          setSuccess('You must require approval from admin. Contact this number (8171261318) for approval of your agent id.');
         } else {
           setSuccess('Account created successfully! Check your email or try logging in.');
         }
         setTimeout(() => {
           router.push(`/login?redirect=${encodeURIComponent(redirectPath)}`);
-        }, 3000);
+        }, role === 'agent' ? 8000 : 3000);
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
