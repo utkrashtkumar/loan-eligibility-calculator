@@ -2826,6 +2826,151 @@ select.input-field option {
 }
 
 /* ============================================
+   GREEN-BLUE THEME (ONLY GREEN, BLUE, WHITE, BLACK)
+   ============================================ */
+[data-theme='green-blue'] {
+  --bg-base: #000000;
+  --bg-surface: #000a1a;
+  --bg-subtle: #00122e;
+
+  --color-primary: #10b981; /* Emerald Green */
+  --color-primary-hover: #34d399; /* Light Green */
+  --color-primary-light: #064e3b; /* Dark Green */
+
+  --color-accent: #3b82f6; /* Royal Blue */
+  --color-accent-hover: #60a5fa; /* Light Blue */
+  --color-accent-light: #1e3a8a; /* Dark Blue */
+
+  --color-secondary: #00c853; /* Bright Green */
+
+  --color-success: #10b981; /* Green */
+  --color-success-bg: rgba(16, 185, 129, 0.15);
+  
+  --color-warning: #3b82f6; /* Blue */
+  --color-warning-bg: rgba(59, 130, 246, 0.15);
+  
+  --color-error: #2563eb; /* Cobalt Blue */
+  --color-error-bg: rgba(37, 99, 235, 0.15);
+
+  --text-primary: #ffffff; /* White */
+  --text-secondary: #93c5fd; /* Light Blue */
+  --text-muted: rgba(255, 255, 255, 0.5); /* Transparent White */
+
+  --border-default: #002244; /* Dark Blue Border */
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.9);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 1.0);
+
+  --gradient-brand: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+
+  /* --- Map values to existing variables --- */
+  --color-bg-primary: var(--bg-base);
+  --color-bg-secondary: var(--bg-surface);
+  --color-bg-tertiary: var(--bg-subtle);
+  --color-bg-card: var(--bg-surface);
+  --color-bg-card-hover: var(--bg-subtle);
+  --color-bg-glass: rgba(0, 10, 26, 0.4);
+  --color-bg-glass-heavy: rgba(0, 10, 26, 0.85);
+  --color-bg-input: var(--bg-base);
+  --color-bg-input-focus: var(--bg-subtle);
+
+  /* Accent Colors */
+  --color-accent-indigo: var(--color-primary);
+  --color-accent-violet: var(--color-accent);
+  --color-accent-purple: var(--color-secondary);
+  --color-accent-blue: var(--color-accent);
+  --color-accent-cyan: var(--color-primary-hover);
+
+  /* Semantic Colors */
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-error: var(--color-error);
+  --color-error-bg: var(--color-error-bg);
+  --color-info: var(--color-accent);
+  --color-info-bg: rgba(59, 130, 246, 0.15);
+
+  /* Text Colors */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-muted);
+  --color-text-muted: var(--text-muted);
+  --color-text-accent: var(--color-accent);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-accent-hover) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
+  --gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary-hover) 100%);
+  --gradient-warning: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
+  
+  --gradient-bg-mesh: radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                       radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                       radial-gradient(ellipse at 50% 80%, rgba(6, 78, 59, 0.05) 0%, transparent 50%);
+  --gradient-card-border: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
+  --gradient-text: var(--gradient-brand);
+  --gradient-hero-mesh: linear-gradient(135deg, 
+    rgba(16, 185, 129, 0.1) 0%, 
+    rgba(59, 130, 246, 0.1) 50%, 
+    #000000 100%);
+
+  /* Borders */
+  --border-subtle: 1px solid var(--border-default);
+  --border-light: 1px solid var(--border-default);
+  --border-accent: 1px solid var(--color-primary);
+  --border-success: 1px solid var(--color-success);
+  --border-error: 1px solid var(--color-error);
+
+  /* Shadows */
+  --shadow-glow-indigo: 0 0 20px rgba(16, 185, 129, 0.25);
+  --shadow-glow-purple: 0 0 20px rgba(59, 130, 246, 0.25);
+  --shadow-glow-success: 0 0 15px rgba(16, 185, 129, 0.25);
+  --shadow-glow-error: 0 0 15px rgba(59, 130, 246, 0.25);
+  --shadow-input-focus: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 0 20px rgba(59, 130, 246, 0.15);
+  --color-circle-track: rgba(255, 255, 255, 0.06);
+}
+
+/* Green-Blue theme mobile menu overrides */
+[data-theme='green-blue'] .mobile-menu {
+  background: rgba(0, 0, 0, 0.98) !important;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+[data-theme='green-blue'] .mobile-menu .nav-link {
+  background: rgba(0, 18, 32, 0.4) !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  color: #ffffff !important;
+}
+
+[data-theme='green-blue'] .mobile-menu .nav-link:hover,
+[data-theme='green-blue'] .mobile-menu .nav-link:focus {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: var(--color-primary) !important;
+}
+
+[data-theme='green-blue'] .mobile-menu .nav-link.nav-logout {
+  background: rgba(37, 99, 235, 0.05) !important;
+  border: 1px solid rgba(37, 99, 235, 0.2) !important;
+  color: #60a5fa !important;
+}
+
+[data-theme='green-blue'] .mobile-menu .nav-link.nav-logout:hover {
+  background: rgba(37, 99, 235, 0.1) !important;
+}
+
+[data-theme='green-blue'] .mobile-menu .nav-link.nav-admin {
+  background: rgba(16, 185, 129, 0.05) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+}
+
+[data-theme='green-blue'] .mobile-menu .nav-link.nav-admin:hover {
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* ============================================
    RESPONSIVE SCALING & MOBILE OPTIMIZATIONS
    ============================================ */
 
