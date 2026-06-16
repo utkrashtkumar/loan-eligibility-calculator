@@ -162,17 +162,32 @@ function SignupContent() {
         <p className="form-step-subtitle">Sign up to check loan eligibility and save checks</p>
 
         {error && (
-          <div className="input-error-text" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', margin: '16px 0' }}>
-            ⚠ {error}
-            {error.includes('already registered') && (
-              <span style={{ display: 'block', marginTop: '6px' }}>
-                If you already have an account,{' '}
-                <Link href={`/login?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>
-                  Log In here
-                </Link>
-                .
-              </span>
-            )}
+          <div style={{
+            padding: '12px 16px',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '8px',
+            margin: '16px 0',
+            color: '#ef4444',
+            fontSize: 'var(--text-sm)',
+            textAlign: 'left',
+            lineHeight: '1.5'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={{ marginTop: '2px' }}>⚠</span>
+              <div>
+                <span>{error}</span>
+                {error.includes('already registered') && (
+                  <div style={{ marginTop: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                    If you already have an account,{' '}
+                    <Link href={`/login?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>
+                      Log In here
+                    </Link>
+                    .
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
         {success && <div style={{ color: 'var(--color-success)', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', margin: '16px 0' }}>✓ {success}</div>}

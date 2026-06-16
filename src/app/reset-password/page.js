@@ -91,7 +91,24 @@ function ResetPasswordContent() {
       <h2 className="form-step-title">Reset Your Password</h2>
       <p className="form-step-subtitle">Enter your new secure password below</p>
 
-      {error && <div className="input-error-text" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', margin: '16px 0' }}>⚠ {error}</div>}
+      {error && (
+        <div style={{
+          padding: '12px 16px',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          borderRadius: '8px',
+          margin: '16px 0',
+          color: '#ef4444',
+          fontSize: 'var(--text-sm)',
+          textAlign: 'left',
+          lineHeight: '1.5'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <span style={{ marginTop: '2px' }}>⚠</span>
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
       {success && <div style={{ color: 'var(--color-success)', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', margin: '16px 0' }}>✓ {success}</div>}
 
       <form onSubmit={handleResetPassword} style={{ textAlign: 'left', marginTop: '24px' }}>
