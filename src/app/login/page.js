@@ -60,7 +60,7 @@ function LoginContent() {
         // Fetch approval status and role from profiles table
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role, approved')
+          .select('role, approved, profile_update_message')
           .eq('id', user.id)
           .single();
 
@@ -74,7 +74,15 @@ function LoginContent() {
 
         if (profile.role === 'agent' && !profile.approved) {
           await supabase.auth.signOut();
-          setError('Your agent account is pending approval by the admin. Contact this number (8171261318) for approval of your agent id.');
+          
+          const isRejected = profile.profile_update_message && profile.profile_update_message.startsWith('REJECTED:');
+          if (isRejected) {
+            const reason = profile.profile_update_message.replace('REJECTED:', '').trim();
+            setError(`Your agent registration request has been rejected by the admin. Reason: ${reason}`);
+          } else {
+            setError('Your agent account is pending approval by the admin. Contact this number (+91 8171261318) for approval of your agent id.');
+          }
+          
           setLoading(false);
           return;
         }

@@ -143,7 +143,20 @@ function SignupContent() {
         <h2 className="form-step-title">Create Account</h2>
         <p className="form-step-subtitle">Sign up to check loan eligibility and save checks</p>
 
-        {error && <div className="input-error-text" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', margin: '16px 0' }}>⚠ {error}</div>}
+        {error && (
+          <div className="input-error-text" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', margin: '16px 0' }}>
+            ⚠ {error}
+            {error.includes('already registered') && (
+              <span style={{ display: 'block', marginTop: '6px' }}>
+                If you already have an account,{' '}
+                <Link href={`/login?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>
+                  Log In here
+                </Link>
+                .
+              </span>
+            )}
+          </div>
+        )}
         {success && <div style={{ color: 'var(--color-success)', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', margin: '16px 0' }}>✓ {success}</div>}
 
         <form onSubmit={handleSignup} style={{ textAlign: 'left', marginTop: '24px' }}>

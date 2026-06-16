@@ -482,12 +482,39 @@ export default function AdminDashboard() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ approved: true, demoted_at: null })
+        .update({ approved: true, demoted_at: null, profile_update_message: null })
         .eq('id', agentId);
 
       if (error) {
         alert('Approval failed: ' + error.message);
       } else {
+        await fetchAgentsData();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAgentActionLoading(null);
+    }
+  };
+
+  const handleRejectAgent = async (agentId) => {
+    const reason = prompt('Enter reason for rejecting this agent (this will be shown to the user upon login):', 'Your document details were invalid.');
+    if (reason === null) return; // user cancelled prompt
+    
+    setAgentActionLoading(agentId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          approved: false, 
+          profile_update_message: 'REJECTED: ' + (reason.trim() || 'No specific reason provided.') 
+        })
+        .eq('id', agentId);
+
+      if (error) {
+        alert('Rejection failed: ' + error.message);
+      } else {
+        alert('Agent registration rejected.');
         await fetchAgentsData();
       }
     } catch (err) {
@@ -785,8 +812,9 @@ export default function AdminDashboard() {
     }).filter(item => item.outstandingBalance > 0);
   };
 
+  const actualPendingAgents = pendingAgents.filter(sa => !(sa.profile_update_message && sa.profile_update_message.startsWith('REJECTED:')));
   const demotedBalances = getDemotedOutstandingBalances();
-  const totalNotifications = pendingAgents.length + 
+  const totalNotifications = actualPendingAgents.length + 
                              payoutRequests.filter(r => r.status === 'Pending').length + 
                              applications.filter(a => a.status === 'Applied').length + 
                              demotedBalances.length;
@@ -849,7 +877,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="form-card" style={{ padding: '20px 24px', backdropFilter: 'blur(20px)' }}>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Approvals</div>
-                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-warning)', marginTop: '8px' }}>{pendingAgents.length}</div>
+                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-warning)', marginTop: '8px' }}>{actualPendingAgents.length}</div>
                   </div>
                   <div className="form-card" style={{ padding: '20px 24px', backdropFilter: 'blur(20px)' }}>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Payouts</div>
@@ -989,9 +1017,9 @@ export default function AdminDashboard() {
                      <div>
                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                          ⏳ Pending Agent Registrations
-                         <span className="badge badge-warning" style={{ fontSize: '10px' }}>{pendingAgents.length}</span>
+                         <span className="badge badge-warning" style={{ fontSize: '10px' }}>{actualPendingAgents.length}</span>
                        </h3>
-                       {pendingAgents.length === 0 ? (
+                       {actualPendingAgents.length === 0 ? (
                          <div className="form-card text-center" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
                            <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No pending agent registrations.</p>
                          </div>
@@ -1008,20 +1036,32 @@ export default function AdminDashboard() {
                                  </tr>
                                </thead>
                                <tbody>
-                                 {pendingAgents.map((sa) => (
+                                 {actualPendingAgents.map((sa) => (
                                    <tr key={sa.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                      <td style={{ padding: '16px 24px', fontWeight: 500 }}>{sa.full_name}</td>
                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.email}</td>
                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN')}</td>
                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                       <button
-                                         onClick={() => handleApproveAgent(sa.id)}
-                                         disabled={agentActionLoading === sa.id}
-                                         className="btn btn-primary btn-sm"
-                                         style={{ margin: 0 }}
-                                       >
-                                         {agentActionLoading === sa.id ? 'Approving...' : '✓ Approve Agent'}
-                                       </button>
+                                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                         <button
+                                           onClick={() => handleApproveAgent(sa.id)}
+                                           disabled={agentActionLoading === sa.id}
+                                           className="btn btn-primary btn-sm"
+                                           style={{ margin: 0 }}
+                                         >
+                                           {agentActionLoading === sa.id ? 'Approving...' : '✓ Approve'}
+                                         </button>
+                                         <button
+                                           onClick={() => handleRejectAgent(sa.id)}
+                                           disabled={agentActionLoading === sa.id}
+                                           className="btn btn-secondary btn-sm"
+                                           style={{ margin: 0, backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
+                                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
+                                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                         >
+                                           {agentActionLoading === sa.id ? 'Rejecting...' : '✗ Reject'}
+                                         </button>
+                                       </div>
                                      </td>
                                    </tr>
                                  ))}
@@ -1667,41 +1707,74 @@ export default function AdminDashboard() {
                           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                             <thead>
                               <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
-                                <th style={{ padding: '16px 24px' }}>Agent Name</th>
-                                <th style={{ padding: '16px 24px' }}>Email</th>
-                                <th style={{ padding: '16px 24px' }}>Phone Number</th>
-                                <th style={{ padding: '16px 24px' }}>Referrer</th>
-                                <th style={{ padding: '16px 24px' }}>Registered Date</th>
-                                <th style={{ padding: '16px 24px', textAlign: 'right' }}>Action</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Agent Name</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Email</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Phone Number</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Referrer</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Registered Date</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Action</th>
                               </tr>
                             </thead>
                             <tbody>
                               {pendingAgents.length === 0 ? (
                                 <tr>
-                                  <td colSpan={6} style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                  <td colSpan={7} style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
                                     No pending agent approvals.
                                   </td>
                                 </tr>
                               ) : (
-                                pendingAgents.map((sa) => (
-                                  <tr key={sa.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                    <td style={{ padding: '16px 24px', fontWeight: 500 }}>{sa.full_name}</td>
-                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.email}</td>
-                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.phone || 'N/A'}</td>
-                                    <td style={{ padding: '16px 24px' }}>{sa.referred_by || 'None'}</td>
-                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN')}</td>
-                                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                      <button
-                                        onClick={() => handleApproveAgent(sa.id)}
-                                        disabled={agentActionLoading === sa.id}
-                                        className="btn btn-primary btn-sm"
-                                        style={{ margin: 0 }}
-                                      >
-                                        {agentActionLoading === sa.id ? 'Approving...' : '✓ Approve Agent'}
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))
+                                pendingAgents.map((sa) => {
+                                  const isRejected = sa.profile_update_message && sa.profile_update_message.startsWith('REJECTED:');
+                                  const rejectReason = isRejected ? sa.profile_update_message.replace('REJECTED:', '').trim() : '';
+                                  return (
+                                    <tr key={sa.id} style={{ borderBottom: 'var(--border-subtle)' }}>
+                                      <td style={{ padding: '16px 24px', fontWeight: 500 }}>
+                                        {sa.full_name}
+                                        {isRejected && (
+                                          <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 400, marginTop: '4px' }}>
+                                            Reason: {rejectReason}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.email}</td>
+                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.phone || 'N/A'}</td>
+                                      <td style={{ padding: '16px 24px' }}>
+                                        {isRejected ? (
+                                          <span className="badge badge-danger" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '2.5px 6px', borderRadius: '4px', fontSize: '11px' }}>Rejected</span>
+                                        ) : (
+                                          <span className="badge badge-warning" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '2.5px 6px', borderRadius: '4px', fontSize: '11px' }}>Pending</span>
+                                        )}
+                                      </td>
+                                      <td style={{ padding: '16px 24px' }}>{sa.referred_by || 'None'}</td>
+                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN')}</td>
+                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                          <button
+                                            onClick={() => handleApproveAgent(sa.id)}
+                                            disabled={agentActionLoading === sa.id}
+                                            className="btn btn-primary btn-sm"
+                                            style={{ margin: 0 }}
+                                          >
+                                            {agentActionLoading === sa.id ? 'Approving...' : '✓ Approve'}
+                                          </button>
+                                          {!isRejected && (
+                                            <button
+                                              onClick={() => handleRejectAgent(sa.id)}
+                                              disabled={agentActionLoading === sa.id}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ margin: 0, backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
+                                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
+                                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                            >
+                                              {agentActionLoading === sa.id ? 'Rejecting...' : '✗ Reject'}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
                               )}
                             </tbody>
                           </table>
