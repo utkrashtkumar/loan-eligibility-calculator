@@ -18,13 +18,27 @@ function ResetPasswordContent() {
 
   // Check if session exists (Supabase automatically establishes session from the recovery link hash)
   useEffect(() => {
-    async function checkSession() {
+    // 1. Listen for active auth state changes (triggers once SDK parses url hash)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setError('');
+      }
+    });
+
+    // 2. Fallback deferred check to give SDK enough time to process and set local state
+    const timer = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setError('Session expired or invalid reset link. Please request a new password reset link.');
+      } else {
+        setError('');
       }
-    }
-    checkSession();
+    }, 2000);
+
+    return () => {
+      subscription?.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleResetPassword = async (e) => {
