@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BankLogo from '@/components/BankLogo';
+import EmiCalculator from '@/components/EmiCalculator';
 
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
@@ -837,233 +838,211 @@ export default function UserDashboard() {
                 {/* Main Content Grid */}
                 {profile?.role === 'user' ? (
                   /* ========================================================
-                     CUSTOMER DASHBOARD VIEW / DEMOTED DASHBOARD VIEW
+                     CUSTOMER DASHBOARD VIEW
                      ======================================================== */
-                  profile?.demoted_at ? (
-                    <div className="tabs-container">
-                      {/* MOBILE TABS MENU for Demoted User */}
-                      <div className="mobile-tabs-menu" style={{ marginBottom: '20px', position: 'relative' }}>
-                        <button
-                          onClick={() => setIsMobileTabSelectOpen(!isMobileTabSelectOpen)}
-                          className="btn btn-secondary"
-                          style={{
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '14px 18px',
-                            background: 'var(--color-bg-glass)',
-                            border: 'var(--border-light)',
-                            borderRadius: 'var(--border-radius-lg)',
-                            fontSize: 'var(--text-sm)',
-                            fontWeight: 600,
-                            color: 'var(--color-text-primary)'
-                          }}
-                        >
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {activeTab === 'inquiries' ? '📁 Inquiries' : '💸 Payments & Balance'}
-                          </span>
-                          <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
-                        </button>
+                  (() => {
+                    const userTabs = [
+                      { id: 'inquiries', label: '📁 Inquiries' },
+                    ];
+                    if (profile?.demoted_at) {
+                      userTabs.push({ id: 'payments', label: '💸 Payments & Balance' });
+                    }
+                    userTabs.push({ id: 'emi', label: '🧮 EMI Calculator' });
 
-                        {isMobileTabSelectOpen && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              marginTop: '8px',
-                              background: 'rgba(17, 24, 39, 0.95)',
-                              backdropFilter: 'blur(30px)',
-                              WebkitBackdropFilter: 'blur(30px)',
-                              border: 'var(--border-accent)',
-                              borderRadius: 'var(--border-radius-lg)',
-                              padding: '8px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '6px',
-                              boxShadow: 'var(--shadow-lg)',
-                              zIndex: 99999
-                            }}
-                          >
-                            <button
-                              onClick={() => {
-                                setActiveTab('inquiries');
-                                setIsMobileTabSelectOpen(false);
-                              }}
-                              className={`btn ${activeTab === 'inquiries' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{
-                                width: '100%',
-                                textAlign: 'left',
-                                padding: '12px 16px',
-                                fontSize: 'var(--text-sm)',
-                                background: activeTab === 'inquiries' ? 'var(--gradient-primary)' : 'transparent',
-                                border: 'none',
-                                color: activeTab === 'inquiries' ? '#ffffff' : 'var(--color-text-secondary)',
-                                justifyContent: 'flex-start'
-                              }}
-                            >
-                              📁 Inquiries
-                            </button>
-                            <button
-                              onClick={() => {
-                                setActiveTab('payments');
-                                setIsMobileTabSelectOpen(false);
-                              }}
-                              className={`btn ${activeTab === 'payments' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{
-                                width: '100%',
-                                textAlign: 'left',
-                                padding: '12px 16px',
-                                fontSize: 'var(--text-sm)',
-                                background: activeTab === 'payments' ? 'var(--gradient-primary)' : 'transparent',
-                                border: 'none',
-                                color: activeTab === 'payments' ? '#ffffff' : 'var(--color-text-secondary)',
-                                justifyContent: 'flex-start'
-                              }}
-                            >
-                              💸 Payments & Balance
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                    const currentTabLabel = userTabs.find(t => t.id === activeTab)?.label || '📁 Inquiries';
 
-                      {/* DESKTOP TABS SIDEBAR for Demoted User */}
-                      <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
-                        {[
-                          { 
-                            id: 'inquiries', 
-                            label: 'Inquiries',
-                            icon: (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                              </svg>
-                            )
-                          },
-                          { 
-                            id: 'payments', 
-                            label: 'Payments & Balance',
-                            icon: (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                              </svg>
-                            )
-                          },
-                        ].map((tab) => (
+                    return (
+                      <div className="tabs-container">
+                        {/* MOBILE TABS MENU for Customer */}
+                        <div className="mobile-tabs-menu" style={{ marginBottom: '20px', position: 'relative' }}>
                           <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'} tabs-sidebar-button`}
+                            onClick={() => setIsMobileTabSelectOpen(!isMobileTabSelectOpen)}
+                            className="btn btn-secondary"
                             style={{
-                              padding: '10px 20px',
+                              width: '100%',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '14px 18px',
+                              background: 'var(--color-bg-glass)',
+                              border: 'var(--border-light)',
+                              borderRadius: 'var(--border-radius-lg)',
                               fontSize: 'var(--text-sm)',
-                              whiteSpace: 'nowrap',
-                              background: activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-bg-card)',
-                              display: 'inline-flex',
-                              alignItems: 'center'
+                              fontWeight: 600,
+                              color: 'var(--color-text-primary)'
                             }}
                           >
-                            {tab.icon}
-                            {tab.label}
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {currentTabLabel}
+                            </span>
+                            <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
                           </button>
-                        ))}
-                      </div>
 
-                      <div className="tabs-content">
-                        {activeTab === 'inquiries' && renderInquiriesHistory()}
-
-                        {activeTab === 'payments' && (
-                          <div style={{ display: 'grid', gap: '32px' }}>
-                            {/* Metrics Header */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>TOTAL COMMISSION EARNED</div>
-                                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-                                  â‚¹{totalEarnings.toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>AVAILABLE BALANCE</div>
-                                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>â‚¹{availableBalance.toLocaleString('en-IN')}</span>
-                                  {availableBalance > 0 && (
-                                    <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
-                                      Request Payout
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PAID PAYOUTS</div>
-                                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-primary)', marginTop: '8px' }}>
-                                  â‚¹{totalPaid.toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                              <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PENDING PAYOUTS</div>
-                                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
-                                  â‚¹{totalPending.toLocaleString('en-IN')}
-                                </div>
-                              </div>
+                          {isMobileTabSelectOpen && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                right: 0,
+                                marginTop: '8px',
+                                background: 'rgba(17, 24, 39, 0.95)',
+                                backdropFilter: 'blur(30px)',
+                                WebkitBackdropFilter: 'blur(30px)',
+                                border: 'var(--border-accent)',
+                                borderRadius: 'var(--border-radius-lg)',
+                                padding: '8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                                boxShadow: 'var(--shadow-lg)',
+                                zIndex: 99999
+                              }}
+                            >
+                              {userTabs.map((tab) => (
+                                <button
+                                  key={tab.id}
+                                  onClick={() => {
+                                    setActiveTab(tab.id);
+                                    setIsMobileTabSelectOpen(false);
+                                  }}
+                                  className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    padding: '12px 16px',
+                                    fontSize: 'var(--text-sm)',
+                                    background: activeTab === tab.id ? 'var(--gradient-primary)' : 'transparent',
+                                    border: 'none',
+                                    color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary)',
+                                    justifyContent: 'flex-start'
+                                  }}
+                                >
+                                  {tab.label}
+                                </button>
+                              ))}
                             </div>
+                          )}
+                        </div>
 
-                            {/* Payout Status Ledger */}
-                            <div>
-                              <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: '20px' }}>
-                                Payout Status Ledger
-                              </h2>
+                        {/* DESKTOP TABS SIDEBAR for Customer */}
+                        <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
+                          {userTabs.map((tab) => (
+                            <button
+                              key={tab.id}
+                              onClick={() => setActiveTab(tab.id)}
+                              className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'} tabs-sidebar-button`}
+                              style={{
+                                padding: '10px 20px',
+                                fontSize: 'var(--text-sm)',
+                                whiteSpace: 'nowrap',
+                                background: activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-bg-card)',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                            >
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
 
-                              {payoutRequests.length === 0 ? (
-                                <div className="form-card text-center" style={{ padding: '32px', backdropFilter: 'blur(20px)' }}>
-                                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>No payout requests logged yet.</p>
-                                </div>
-                              ) : (
-                                <div className="form-card" style={{ padding: 0, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
-                                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                  <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
-                                    <thead>
-                                      <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
-                                        <th style={{ padding: '12px 16px' }}>Date Requested</th>
-                                        <th style={{ padding: '12px 16px' }}>Amount Requested</th>
-                                        <th style={{ padding: '12px 16px' }}>Payment Method</th>
-                                        <th style={{ padding: '12px 16px' }}>Details</th>
-                                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {payoutRequests.map((req) => (
-                                        <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                          <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>â‚¹{Number(req.amount).toLocaleString('en-IN')}</td>
-                                          <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
-                                          <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                                            {req.upi_id ? (
-                                              <span>UPI ID: {req.upi_id}</span>
-                                            ) : (
-                                              <span>Bank: {req.bank_name} | Acc: {req.account_no}</span>
-                                            )}
-                                          </td>
-                                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                            <span className="badge" style={{ ...getStatusBadgeStyle(req.status), fontSize: '10px' }}>
-                                              {req.status}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                        <div className="tabs-content">
+                          {activeTab === 'inquiries' && renderInquiriesHistory()}
+
+                          {activeTab === 'emi' && (
+                            <EmiCalculator />
+                          )}
+
+                          {activeTab === 'payments' && profile?.demoted_at && (
+                            <div style={{ display: 'grid', gap: '32px' }}>
+                              {/* Metrics Header */}
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                                <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+                                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>TOTAL COMMISSION EARNED</div>
+                                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
+                                    ₹{totalEarnings.toLocaleString('en-IN')}
                                   </div>
                                 </div>
-                              )}
+                                <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
+                                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>AVAILABLE BALANCE</div>
+                                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>₹{availableBalance.toLocaleString('en-IN')}</span>
+                                    {availableBalance > 0 && (
+                                      <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
+                                        Request Payout
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
+                                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PAID PAYOUTS</div>
+                                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-primary)', marginTop: '8px' }}>
+                                    ₹{totalPaid.toLocaleString('en-IN')}
+                                  </div>
+                                </div>
+                                <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
+                                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PENDING PAYOUTS</div>
+                                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
+                                    ₹{totalPending.toLocaleString('en-IN')}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Payout Status Ledger */}
+                              <div>
+                                <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: '20px' }}>
+                                  Payout Status Ledger
+                                </h2>
+
+                                {payoutRequests.length === 0 ? (
+                                  <div className="form-card text-center" style={{ padding: '32px', backdropFilter: 'blur(20px)' }}>
+                                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>No payout requests logged yet.</p>
+                                  </div>
+                                ) : (
+                                  <div className="form-card" style={{ padding: 0, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
+                                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                    <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                                      <thead>
+                                        <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
+                                          <th style={{ padding: '12px 16px' }}>Date Requested</th>
+                                          <th style={{ padding: '12px 16px' }}>Amount Requested</th>
+                                          <th style={{ padding: '12px 16px' }}>Payment Method</th>
+                                          <th style={{ padding: '12px 16px' }}>Details</th>
+                                          <th style={{ padding: '12px 16px', textAlign: 'right' }}>Status</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {payoutRequests.map((req) => (
+                                          <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
+                                            <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
+                                            <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
+                                            <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
+                                            <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                                              {req.upi_id ? (
+                                                <span>UPI ID: {req.upi_id}</span>
+                                              ) : (
+                                                <span>Bank: {req.bank_name} | Acc: {req.account_no}</span>
+                                              )}
+                                            </td>
+                                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                              <span className="badge" style={{ ...getStatusBadgeStyle(req.status), fontSize: '10px' }}>
+                                                {req.status}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    renderInquiriesHistory()
-                  )
+                    );
+                  })()
                 ) : (
                   /* ========================================================
                      AGENT PARTNER DASHBOARD VIEW (GLASS TABS)
@@ -1093,6 +1072,7 @@ export default function UserDashboard() {
                           {activeTab === 'applications' && '📝 Client Applications'}
                           {activeTab === 'earnings' && '💸 Earning & Referral'}
                           {activeTab === 'subagents' && '👥 Sub-agents'}
+                          {activeTab === 'emi' && '🧮 EMI Calculator'}
                         </span>
                         <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
                       </button>
@@ -1123,6 +1103,7 @@ export default function UserDashboard() {
                             { id: 'applications', label: '📝 Client Applications' },
                             { id: 'earnings', label: '💸 Earning & Referral' },
                             { id: 'subagents', label: '👥 Sub-agents' },
+                            { id: 'emi', label: '🧮 EMI Calculator' },
                           ].map((tab) => (
                             <button
                               key={tab.id}
@@ -1185,6 +1166,15 @@ export default function UserDashboard() {
                           icon: (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          id: 'emi', 
+                          label: 'EMI Calculator',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="15" y2="17" />
                             </svg>
                           )
                         },
@@ -1255,7 +1245,7 @@ export default function UserDashboard() {
                                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent Invitation Link</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
                                   <button onClick={handleCopyLink} className="btn btn-secondary btn-sm" style={{ gap: '8px' }}>
-                                    ðŸ”— {copied ? 'Copied Link!' : 'Copy Referral Link'}
+                                    🔗 {copied ? 'Copied Link!' : 'Copy Referral Link'}
                                   </button>
                                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                                     Invite sub-agents & earn 0.5% commission override.
@@ -1264,8 +1254,8 @@ export default function UserDashboard() {
                               </div>
                             </div>
 
-                            {profileSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>âœ“ {profileSuccess}</div>}
-                            {profileError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>âš  {profileError}</div>}
+                            {profileSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {profileSuccess}</div>}
+                            {profileError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠️ {profileError}</div>}
                             
                             {profile?.profile_locked && (
                               <div style={{
@@ -1282,7 +1272,7 @@ export default function UserDashboard() {
                                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
                                 marginBottom: '16px'
                               }}>
-                                <span>ðŸ”’ Profile Verified & Locked: Your profile details have been locked by the administrator. Contact support if you need to update them. Note: You can still update your Profile Picture (Avatar).</span>
+                                <span>🔒 Profile Verified & Locked: Your profile details have been locked by the administrator. Contact support if you need to update them. Note: You can still update your Profile Picture (Avatar).</span>
                               </div>
                             )}
 
@@ -1609,14 +1599,14 @@ export default function UserDashboard() {
                                   <div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Amount</div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                                      â‚¹{Number(app.loan_amount).toLocaleString('en-IN')}
+                                      ₹{Number(app.loan_amount).toLocaleString('en-IN')}
                                     </div>
                                   </div>
 
                                   <div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Est. Commission (2.0%)</div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-accent-violet)' }}>
-                                      â‚¹{Number(app.commission_amount).toLocaleString('en-IN')}
+                                      ₹{Number(app.commission_amount).toLocaleString('en-IN')}
                                     </div>
                                   </div>
 
@@ -1645,13 +1635,13 @@ export default function UserDashboard() {
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>TOTAL COMMISSION EARNED</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-                                â‚¹{totalEarnings.toLocaleString('en-IN')}
+                                ₹{totalEarnings.toLocaleString('en-IN')}
                               </div>
                             </div>
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>AVAILABLE BALANCE</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>â‚¹{availableBalance.toLocaleString('en-IN')}</span>
+                                <span>₹{availableBalance.toLocaleString('en-IN')}</span>
                                 {availableBalance > 0 && (
                                   <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
                                     Request Payout
@@ -1662,13 +1652,13 @@ export default function UserDashboard() {
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PAID PAYOUTS</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-accent)', marginTop: '8px' }}>
-                                â‚¹{totalPaid.toLocaleString('en-IN')}
+                                ₹{totalPaid.toLocaleString('en-IN')}
                               </div>
                             </div>
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PENDING PAYOUTS</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
-                                â‚¹{totalPending.toLocaleString('en-IN')}
+                                ₹{totalPending.toLocaleString('en-IN')}
                               </div>
                             </div>
                           </div>
@@ -1700,7 +1690,7 @@ export default function UserDashboard() {
                                     {payoutRequests.map((req) => (
                                       <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                         <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>â‚¹{Number(req.amount).toLocaleString('en-IN')}</td>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
                                         <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                         <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                           {req.upi_id ? (
@@ -1764,9 +1754,9 @@ export default function UserDashboard() {
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-success)', fontWeight: 500 }}>Direct (2%)</span></td>
                                           <td style={{ padding: '16px' }}>{app.client_name}</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
-                                          <td style={{ padding: '16px' }}>â‚¹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: 'var(--color-success)' }}>
-                                            +â‚¹{Number(app.commission_amount).toLocaleString('en-IN')}
+                                            +₹{Number(app.commission_amount).toLocaleString('en-IN')}
                                           </td>
                                         </tr>
                                       ))}
@@ -1778,9 +1768,9 @@ export default function UserDashboard() {
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-info)', fontWeight: 500 }}>Referral (0.5%)</span></td>
                                           <td style={{ padding: '16px' }}>Agent Referral client ({app.client_name})</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
-                                          <td style={{ padding: '16px' }}>â‚¹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: 'var(--color-info)' }}>
-                                            +â‚¹{(Number(app.loan_amount) * 0.005).toLocaleString('en-IN')}
+                                            +₹{(Number(app.loan_amount) * 0.005).toLocaleString('en-IN')}
                                           </td>
                                         </tr>
                                       ))}
