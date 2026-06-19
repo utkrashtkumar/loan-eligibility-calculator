@@ -493,15 +493,15 @@ p {
   right: 0 !important;
   bottom: 0 !important;
   height: 100vh !important;
-  width: 320px !important;
-  max-width: 85vw !important;
-  background: rgba(10, 15, 30, 0.98) !important; /* Rich heavy dark base */
-  backdrop-filter: blur(30px) !important;
-  -webkit-backdrop-filter: blur(30px) !important;
-  padding: calc(var(--header-height) + 40px) 24px 40px 24px !important;
+  width: 280px !important;
+  max-width: 75vw !important;
+  background: rgba(10, 15, 30, 0.95) !important; /* Heavy glass background */
+  backdrop-filter: blur(25px) !important;
+  -webkit-backdrop-filter: blur(25px) !important;
+  padding: calc(var(--header-height) + 40px) 20px 40px 20px !important;
   z-index: var(--z-overlay);
   border-left: var(--border-accent) !important;
-  box-shadow: var(--shadow-xl);
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5) !important;
   overflow-y: auto !important; /* Allow vertical scroll if elements overflow screen height */
   overflow-x: hidden !important; /* Lock horizontal scrolling completely */
   
@@ -509,9 +509,27 @@ p {
   opacity: 0;
   visibility: hidden;
   transform: translateX(100%) !important;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              opacity 0.35s ease,
-              visibility 0.35s ease !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.3s ease,
+              visibility 0.3s ease !important;
+}
+
+.mobile-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 299 !important; /* Positioned just behind the mobile menu drawer */
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .mobile-menu * {
