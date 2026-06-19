@@ -199,11 +199,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu Backdrop */}
-      {menuOpen && (
-        <div className="mobile-menu-backdrop" onClick={closeMenu} />
-      )}
-
       {/* Mobile Menu */}
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`} onClick={closeMenu}>

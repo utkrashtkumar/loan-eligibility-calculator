@@ -183,6 +183,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden !important;
 }
 
 body {
@@ -290,6 +291,8 @@ p {
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden !important;
+  max-width: 100% !important;
 }
 
 .app-wrapper::before {
@@ -495,17 +498,18 @@ p {
   height: 100vh !important;
   width: 280px !important;
   max-width: 75vw !important;
-  background: rgba(10, 15, 30, 0.95) !important; /* Heavy glass background */
-  backdrop-filter: blur(25px) !important;
-  -webkit-backdrop-filter: blur(25px) !important;
+  background: transparent !important; /* Fully transparent background panel */
+  backdrop-filter: none !important; /* No blur background */
+  -webkit-backdrop-filter: none !important;
   padding: calc(var(--header-height) + 40px) 20px 40px 20px !important;
   z-index: var(--z-overlay);
-  border-left: var(--border-accent) !important;
-  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5) !important;
-  overflow-y: auto !important; /* Allow vertical scroll if elements overflow screen height */
-  overflow-x: hidden !important; /* Lock horizontal scrolling completely */
+  border-left: none !important; /* No panel border */
+  box-shadow: none !important; /* No panel shadow */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  pointer-events: none !important; /* Click through empty spaces */
   
-  /* Smooth transition for slide in from right in one go */
+  /* Smooth transition for slide in from right */
   opacity: 0;
   visibility: hidden;
   transform: translateX(100%) !important;
@@ -514,26 +518,9 @@ p {
               visibility 0.3s ease !important;
 }
 
-.mobile-menu-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  z-index: 299 !important; /* Positioned just behind the mobile menu drawer */
-  animation: fadeIn 0.25s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .mobile-menu * {
   box-sizing: border-box !important;
+  pointer-events: auto !important; /* Buttons remain clickable */
 }
 
 .mobile-menu.open {
@@ -550,7 +537,7 @@ p {
   text-align: center !important;
   padding: 14px 20px !important;
   border: var(--border-light) !important;
-  background: rgba(255, 255, 255, 0.03) !important;
+  background: rgba(15, 23, 42, 0.95) !important; /* Solid dark glass for legibility */
   border-radius: 12px !important;
   color: var(--color-text-primary) !important;
   transition: all var(--transition-base) !important;
@@ -560,7 +547,7 @@ p {
   justify-content: center !important;
   gap: 10px !important;
   width: 100% !important; /* Stretch buttons to full width */
-  border-bottom: var(--border-light) !important; /* Override standard bottom line */
+  box-shadow: var(--shadow-lg) !important;
 }
 
 /* Active tab style */
@@ -2805,50 +2792,56 @@ select.input-field option {
 
 /* ---------- Light Theme Mobile Menu Overrides ---------- */
 [data-theme='light'] .mobile-menu {
-  background: rgba(245, 247, 246, 0.98) !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.1) !important;
+  background: transparent !important;
+  border-left: none !important;
+  box-shadow: none !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link {
-  background: rgba(15, 23, 42, 0.03) !important;
-  border: 1px solid rgba(15, 23, 42, 0.08) !important;
-  color: var(--color-text-primary) !important;
+  background: #ffffff !important; /* Solid white background for contrast */
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  color: #0f172a !important; /* Dark slate text */
+  box-shadow: var(--shadow-md) !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link:hover,
 [data-theme='light'] .mobile-menu .nav-link:focus {
-  background: rgba(15, 23, 42, 0.06) !important;
+  background: #f8fafc !important;
   border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
 }
 
 [data-theme='light'] .mobile-menu-theme-row {
-  background: rgba(15, 23, 42, 0.03) !important;
-  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 [data-theme='light'] .mobile-menu-theme-row:hover {
-  background: rgba(15, 23, 42, 0.06) !important;
+  background: #f8fafc !important;
   border-color: var(--color-primary) !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-logout {
-  background: rgba(220, 38, 38, 0.05) !important;
-  border: 1px solid rgba(220, 38, 38, 0.2) !important;
-  color: var(--color-error) !important;
+  background: #fef2f2 !important; /* Opaque soft red */
+  border: 1px solid rgba(220, 38, 38, 0.25) !important;
+  color: #dc2626 !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-logout:hover {
-  background: rgba(220, 38, 38, 0.1) !important;
+  background: #fee2e2 !important;
+  border-color: #dc2626 !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-admin {
-  background: rgba(22, 163, 74, 0.05) !important;
-  border: 1px solid rgba(22, 163, 74, 0.2) !important;
-  color: var(--color-success) !important;
+  background: #f0fdf4 !important; /* Opaque soft green */
+  border: 1px solid rgba(22, 163, 74, 0.25) !important;
+  color: #16a34a !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-admin:hover {
-  background: rgba(22, 163, 74, 0.1) !important;
+  background: #dcfce7 !important;
+  border-color: #16a34a !important;
 }
 
 /* ============================================
@@ -2961,40 +2954,42 @@ select.input-field option {
 
 /* Green-Blue theme mobile menu overrides */
 [data-theme='green-blue'] .mobile-menu {
-  background: rgba(0, 0, 0, 0.98) !important;
-  border-left: 1px solid rgba(16, 185, 129, 0.2) !important;
+  background: transparent !important;
+  border-left: none !important;
+  box-shadow: none !important;
 }
 
 [data-theme='green-blue'] .mobile-menu .nav-link {
-  background: rgba(0, 18, 32, 0.4) !important;
-  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  background: rgba(0, 10, 20, 0.95) !important; /* Solid dark blue glass */
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
   color: #ffffff !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 
 [data-theme='green-blue'] .mobile-menu .nav-link:hover,
 [data-theme='green-blue'] .mobile-menu .nav-link:focus {
-  background: rgba(16, 185, 129, 0.08) !important;
+  background: rgba(16, 185, 129, 0.15) !important;
   border-color: var(--color-primary) !important;
 }
 
 [data-theme='green-blue'] .mobile-menu .nav-link.nav-logout {
-  background: rgba(37, 99, 235, 0.05) !important;
-  border: 1px solid rgba(37, 99, 235, 0.2) !important;
+  background: rgba(59, 130, 246, 0.1) !important; /* Soft royal blue */
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
   color: #60a5fa !important;
 }
 
 [data-theme='green-blue'] .mobile-menu .nav-link.nav-logout:hover {
-  background: rgba(37, 99, 235, 0.1) !important;
+  background: rgba(59, 130, 246, 0.2) !important;
 }
 
 [data-theme='green-blue'] .mobile-menu .nav-link.nav-admin {
-  background: rgba(16, 185, 129, 0.05) !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  background: rgba(16, 185, 129, 0.1) !important; /* Soft emerald green */
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
   color: #34d399 !important;
 }
 
 [data-theme='green-blue'] .mobile-menu .nav-link.nav-admin:hover {
-  background: rgba(16, 185, 129, 0.1) !important;
+  background: rgba(16, 185, 129, 0.2) !important;
 }
 
 /* ============================================
