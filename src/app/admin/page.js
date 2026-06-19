@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BankLogo from '@/components/BankLogo';
-import EmiCalculator from '@/components/EmiCalculator';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -964,7 +963,6 @@ export default function AdminDashboard() {
                           { id: 'applications', label: `📝 Client Applications (${applications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
-                          { id: 'emi', label: '🧮 EMI Calculator' },
                         ].find(t => t.id === activeTab)?.label || 'Select Menu Option'}
                       </span>
                       <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
@@ -1001,7 +999,6 @@ export default function AdminDashboard() {
                           { id: 'applications', label: `📝 Client Applications (${applications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
-                          { id: 'emi', label: '🧮 EMI Calculator' },
                         ].map((tab) => (
                           <button
                             key={tab.id}
@@ -1040,7 +1037,6 @@ export default function AdminDashboard() {
                       { id: 'applications', label: `📝 Client Applications (${applications.length})` },
                       { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                       { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
-                      { id: 'emi', label: '🧮 EMI Calculator' },
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -2297,10 +2293,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {/* PANEL 7: EMI CALCULATOR */}
-                {activeTab === 'emi' && (
-                  <EmiCalculator />
-                )}
+
               </div>
             </div>
           </>

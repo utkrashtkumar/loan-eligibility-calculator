@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BankLogo from '@/components/BankLogo';
-import EmiCalculator from '@/components/EmiCalculator';
 
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
@@ -390,7 +389,7 @@ export default function UserDashboard() {
         } else {
           setProfileSuccess('Profile picture updated successfully!');
           setProfile(prev => ({ ...prev, avatar: base64 }));
-          showToast('âœ… Profile picture updated successfully!');
+          showToast('✅ Profile picture updated successfully!');
         }
       }
     } catch (err) {
@@ -456,7 +455,7 @@ export default function UserDashboard() {
           ...prev,
           ...profileFormData
         }));
-        showToast('âœ… All details updated successfully!');
+        showToast('✅ All details updated successfully!');
 
         // Auto-clear profile update request when profile is 100% complete
         const fields = [
@@ -477,7 +476,7 @@ export default function UserDashboard() {
             profile_update_message: null
           }));
           setShowProfileUpdatePopup(false);
-          showToast('ðŸŽ‰ Profile 100% complete! Update request cleared.');
+          showToast('🎉 Profile 100% complete! Update request cleared.');
         }
       }
     } catch (err) {
@@ -551,7 +550,7 @@ export default function UserDashboard() {
       return;
     }
     if (amt > availableBalance) {
-      setPayoutError(`Insufficient balance. Maximum request amount is â‚¹${availableBalance.toLocaleString('en-IN')}`);
+      setPayoutError(`Insufficient balance. Maximum request amount is ₹${availableBalance.toLocaleString('en-IN')}`);
       return;
     }
 
@@ -665,13 +664,13 @@ export default function UserDashboard() {
                       <div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Monthly Salary</div>
                         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          â‚¹{Number(inq.salary).toLocaleString('en-IN')}
+                          ₹{Number(inq.salary).toLocaleString('en-IN')}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Running EMIs</div>
                         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          â‚¹{Number(inq.existing_emi).toLocaleString('en-IN')}
+                          ₹{Number(inq.existing_emi).toLocaleString('en-IN')}
                         </div>
                       </div>
                       <div>
@@ -760,7 +759,7 @@ export default function UserDashboard() {
           onClick={() => setToastMessage('')}
         >
           <span>{toastMessage}</span>
-          <span style={{ opacity: 0.6, fontSize: 'var(--text-xs)' }}>âœ•</span>
+          <span style={{ opacity: 0.6, fontSize: 'var(--text-xs)' }}>✖</span>
         </div>
       )}
 
@@ -821,13 +820,13 @@ export default function UserDashboard() {
                         )}
                       </h1>
                       <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-                        {profile?.email} {profile?.role === 'agent' && `â€¢ Agent Code: ${profile?.agent_code}`}
+                        {profile?.email} {profile?.role === 'agent' && `• Agent Code: ${profile?.agent_code}`}
                       </p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     <Link href="/check" className="btn btn-primary">
-                      {profile?.role === 'agent' ? 'ðŸ” Check Client Eligibility' : '+ Check New Eligibility'}
+                      {profile?.role === 'agent' ? '🔗 Check Client Eligibility' : '+ Check New Eligibility'}
                     </Link>
                     <button onClick={handleSignOut} className="btn btn-secondary">
                       Sign Out
@@ -847,7 +846,6 @@ export default function UserDashboard() {
                     if (profile?.demoted_at) {
                       userTabs.push({ id: 'payments', label: '💸 Payments & Balance' });
                     }
-                    userTabs.push({ id: 'emi', label: '🧮 EMI Calculator' });
 
                     const currentTabLabel = userTabs.find(t => t.id === activeTab)?.label || '📁 Inquiries';
 
@@ -948,10 +946,6 @@ export default function UserDashboard() {
 
                         <div className="tabs-content">
                           {activeTab === 'inquiries' && renderInquiriesHistory()}
-
-                          {activeTab === 'emi' && (
-                            <EmiCalculator />
-                          )}
 
                           {activeTab === 'payments' && profile?.demoted_at && (
                             <div style={{ display: 'grid', gap: '32px' }}>
@@ -1072,7 +1066,6 @@ export default function UserDashboard() {
                           {activeTab === 'applications' && '📝 Client Applications'}
                           {activeTab === 'earnings' && '💸 Earning & Referral'}
                           {activeTab === 'subagents' && '👥 Sub-agents'}
-                          {activeTab === 'emi' && '🧮 EMI Calculator'}
                         </span>
                         <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
                       </button>
@@ -1103,7 +1096,6 @@ export default function UserDashboard() {
                             { id: 'applications', label: '📝 Client Applications' },
                             { id: 'earnings', label: '💸 Earning & Referral' },
                             { id: 'subagents', label: '👥 Sub-agents' },
-                            { id: 'emi', label: '🧮 EMI Calculator' },
                           ].map((tab) => (
                             <button
                               key={tab.id}
@@ -1166,15 +1158,6 @@ export default function UserDashboard() {
                           icon: (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                          )
-                        },
-                        { 
-                          id: 'emi', 
-                          label: 'EMI Calculator',
-                          icon: (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="15" y2="17" />
                             </svg>
                           )
                         },
