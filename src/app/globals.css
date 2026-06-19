@@ -536,8 +536,10 @@ p {
   font-weight: 600 !important;
   text-align: center !important;
   padding: 14px 20px !important;
-  border: var(--border-light) !important;
-  background: rgba(15, 23, 42, 0.95) !important; /* Solid dark glass for legibility */
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.05) !important; /* Semi-transparent background */
+  backdrop-filter: blur(16px) !important; /* Blur behind */
+  -webkit-backdrop-filter: blur(16px) !important;
   border-radius: 12px !important;
   color: var(--color-text-primary) !important;
   transition: all var(--transition-base) !important;
@@ -556,6 +558,8 @@ p {
   border-color: rgba(45, 212, 191, 0.4) !important;
   color: #ffffff !important;
   box-shadow: 0 0 15px rgba(45, 212, 191, 0.2) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
 }
 
 /* Special CTA buttons in mobile menu (like Sign In / Logout / Admin) */
@@ -563,33 +567,39 @@ p {
   background: var(--gradient-primary) !important;
   border-color: rgba(45, 212, 191, 0.4) !important;
   color: #ffffff !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
 }
 
 .mobile-menu .nav-link.nav-logout {
-  background: rgba(239, 68, 68, 0.08) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   color: var(--color-error) !important;
 }
 
 .mobile-menu .nav-link.nav-admin {
   border-color: rgba(16, 185, 129, 0.3) !important;
   color: var(--color-success) !important;
-  background: rgba(16, 185, 129, 0.05) !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
 }
 
 .mobile-menu .nav-link:hover,
 .mobile-menu .nav-link:focus {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   border-color: var(--color-primary) !important;
   transform: translateY(-2px) !important;
 }
 
 .mobile-menu .nav-link.nav-logout:hover {
-  background: rgba(239, 68, 68, 0.15) !important;
+  background: rgba(239, 68, 68, 0.25) !important;
 }
 
 .mobile-menu .nav-link.nav-admin:hover {
-  background: rgba(16, 185, 129, 0.12) !important;
+  background: rgba(16, 185, 129, 0.25) !important;
   border-color: var(--color-success) !important;
 }
 
@@ -601,8 +611,10 @@ p {
   gap: 12px !important;
   margin-top: 12px !important;
   padding: 14px 20px !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: var(--border-light) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 12px !important;
   cursor: pointer !important;
   transition: all var(--transition-base) !important;
@@ -611,7 +623,7 @@ p {
 }
 
 .mobile-menu-theme-row:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   border-color: var(--color-primary) !important;
 }
 
@@ -2798,49 +2810,57 @@ select.input-field option {
 }
 
 [data-theme='light'] .mobile-menu .nav-link {
-  background: #ffffff !important; /* Solid white background for contrast */
-  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  background: rgba(255, 255, 255, 0.75) !important; /* Frosted white glass */
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
   color: #0f172a !important; /* Dark slate text */
   box-shadow: var(--shadow-md) !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link:hover,
 [data-theme='light'] .mobile-menu .nav-link:focus {
-  background: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   border-color: var(--color-primary) !important;
   color: var(--color-primary) !important;
 }
 
 [data-theme='light'] .mobile-menu-theme-row {
-  background: #ffffff !important;
-  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
   box-shadow: var(--shadow-md) !important;
 }
 
 [data-theme='light'] .mobile-menu-theme-row:hover {
-  background: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   border-color: var(--color-primary) !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-logout {
-  background: #fef2f2 !important; /* Opaque soft red */
+  background: rgba(254, 242, 242, 0.75) !important; /* Frosted red glass */
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border: 1px solid rgba(220, 38, 38, 0.25) !important;
   color: #dc2626 !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-logout:hover {
-  background: #fee2e2 !important;
+  background: rgba(254, 242, 242, 0.95) !important;
   border-color: #dc2626 !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-admin {
-  background: #f0fdf4 !important; /* Opaque soft green */
+  background: rgba(240, 253, 244, 0.75) !important; /* Frosted green glass */
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border: 1px solid rgba(22, 163, 74, 0.25) !important;
   color: #16a34a !important;
 }
 
 [data-theme='light'] .mobile-menu .nav-link.nav-admin:hover {
-  background: #dcfce7 !important;
+  background: rgba(240, 253, 244, 0.95) !important;
   border-color: #16a34a !important;
 }
 
