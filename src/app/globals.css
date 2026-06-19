@@ -841,16 +841,24 @@ p {
 
 .btn-secondary {
   background: transparent;
-  color: var(--color-primary);
-  border: 2px solid var(--color-primary);
+  color: var(--color-primary) !important;
+  border: 2px solid var(--color-primary) !important;
 }
 
 .btn-secondary:hover {
-  background: var(--color-primary);
+  background: var(--color-primary) !important;
   color: var(--bg-surface) !important;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary) !important;
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.btn-secondary:focus,
+.btn-secondary:active {
+  background: transparent !important;
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  outline: none;
 }
 
 .btn-lg {
@@ -2167,7 +2175,6 @@ textarea.input-field {
   margin-bottom: var(--space-3xl);
   animation: fadeInUp 0.6s ease 0.3s both;
   text-decoration: none;
-  color: #fff;
 }
 
 .hero-cta svg {
@@ -2651,15 +2658,8 @@ textarea.input-field {
 .btn-primary:hover,
 .btn-primary:focus,
 .nav-cta:hover,
-.nav-cta:focus,
-.hero-cta:hover,
-.hero-cta:focus {
+.nav-cta:focus {
   color: #ffffff !important;
-}
-
-.btn-secondary:hover,
-.btn-secondary:focus {
-  color: var(--color-text-primary) !important;
 }
 
 /* ---------- Sidebar-style Glass Tabs ---------- */
