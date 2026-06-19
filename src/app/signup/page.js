@@ -17,7 +17,10 @@ function SignupContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('user'); // 'user' or 'agent'
+  const [role, setRole] = useState(() => {
+    const roleParam = searchParams.get('role');
+    return roleParam === 'agent' ? 'agent' : 'user';
+  });
   const [referredBy, setReferredBy] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

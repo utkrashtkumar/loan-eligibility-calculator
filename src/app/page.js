@@ -91,21 +91,29 @@ export default function Home() {
           </div>
 
           <h1 className="hero-title">
-            Check Your Loan Eligibility
-            <span className="hero-title-gradient"> in 60 Seconds</span>
+            Empowering DSA Agents
+            <span className="hero-title-gradient"> &amp; Borrowers</span>
           </h1>
 
-          <p className="hero-subtitle">
-            Compare 10+ banks &amp; NBFCs instantly. Find the best personal loan 
-            match for your profile — completely free.
+          <p className="hero-subtitle" style={{ maxWidth: '750px' }}>
+            Join India&apos;s fastest-growing fintech distribution ecosystem. Sign up as a DSA Partner to check eligibility, submit files, and earn high commissions, or check your eligibility instantly.
           </p>
 
-          <Link href="/check" className="btn-primary hero-cta">
-            Check Eligibility Now
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </Link>
+          <div className="hero-cta-wrapper" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '48px' }}>
+            <Link href="/signup?role=agent" className="btn btn-primary hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--gradient-primary)', boxShadow: 'var(--shadow-glow-purple)', color: '#ffffff', border: 'none' }}>
+              Become a DSA Partner
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+            </Link>
+            <Link href="/check" className="btn btn-secondary hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.05)', border: 'var(--border-light)' }}>
+              Check Eligibility
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </Link>
+          </div>
 
           {/* Floating Stats */}
           <div className="hero-stats" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -145,6 +153,171 @@ export default function Home() {
               </span>
               <span className="hero-stat-value">100%</span>
               <span className="hero-stat-label">Free Forever</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Become a DSA Partner Section */}
+      <section className="section dsa-partner-section" style={{ borderBottom: 'var(--border-subtle)', background: 'rgba(0, 10, 26, 0.1)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 className="section-title">
+              Become a <span className="text-gradient">DSA Partner</span>
+            </h2>
+            <p className="section-subtitle" style={{ maxWidth: '600px', margin: '8px auto 0' }}>
+              Join India&apos;s fastest-growing fintech distribution ecosystem.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
+            gap: '24px'
+          }}>
+            {/* High Commission */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                High Commission
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                Earn smart payouts with automated tracking systems.
+              </p>
+            </div>
+
+            {/* Growth Platform */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18" />
+                  <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Growth Platform
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                Scale your loan business with AI-driven infrastructure.
+              </p>
+            </div>
+
+            {/* Training System */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                  <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Training System
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                Learn advanced fintech sales and banking processes.
+              </p>
+            </div>
+
+            {/* Pan India Access */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Pan India Access
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                Access multiple lenders across India instantly.
+              </p>
             </div>
           </div>
         </div>
