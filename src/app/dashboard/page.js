@@ -72,6 +72,57 @@ const processPdf = (file) => {
   });
 };
 
+const BANK_AFFILIATE_LINKS = {
+  'POONAWALLA': 'https://instant-pocket-loan.poonawallafincorp.com/?utm_DSA_Code=PKA00192&UTM_Partner_Name=BuddyLoan&UTM_Partner_Medium=hand2handloans_bl_dsa',
+  'UNITY BANK': 'https://loans.theunitybank.com/unity-pl-ui/page/exclusion/login/logindetails?utm_source=buddyloan&utm_medium=hand2handloans_bl_dsa&utm_campaign=DSA',
+  'PREFR': 'https://marketplace.prefr.com/buddyloan/GetStarted?startPage=base',
+  'HERO': 'https://loans.apps.herofincorp.com/en/personal-loan?utm_campaign=buddyloan_rdf_26&utm_content=hand2handloans_bl_dsa&af_xp=custom&pid=partnership_bdl&is_retargeting=true&af_reengagement_window=30d&c=buddyloan_rdf_26&utm_source=partnership_bdl',
+  'BHARATPE': 'https://consumer-credit.bharatpe.in/creditHome.html?utm_campaign=trillionloan&utm_campaign=trillionloans&utm_partner=BLTL&utm_content=DSA&utm_medium=swiftloans_dsa_Hand2Handloans',
+  'CREDIT SEA': 'https://www.creditsea.com/onboarding/sign-up/enter-mobile?source=31697402&medium=DSA&campaign=ELDSA_dsa_Hand2Handloans',
+  'DMI': 'https://play.google.com/store/apps/details?id=in.dmifinance.app&referrer=utm_source%3DMymoneymantra%26utm_medium%3DHandtohandloan%26utm_term%3D1100110011%26utm_campaign%3DEARNTRA',
+  'L&T': 'https://www.moneycontrolpay.com/?utm_source=ILB&utm_campaign=RohanGupta',
+  'FIBE': 'https://portal.fibe.in/easy-loan?utm_medium=hand2handloans_bl_dsa&campaignid=dsa&utm_source=BUDDYLOANPA',
+  'MUTHOOT DAILY BL': 'https://creditlink.finbox.in/?partnerCode=LS_NUSHZC&agentCode=sc113356&productType=business_loan_edi&agentId=hand2handloans_bl_dsa',
+  'MUTHOOT MONTHLY BL': 'https://creditlink.finbox.in/?partnerCode=LS_POIOUY&agentCode=sc113356&productType=business_loan_emi&agentId=hand2handloans_bl_dsa',
+  'MUTHOOT MONTHLY PL': 'https://creditlink.finbox.in/?partnerCode=LS_POIOUY&agentCode=sc113356&productType=business_loan_emi&agentId=hand2handloans_bl_dsa',
+  'INCRED PL': 'https://pl.incred.com/open-market-sales/login',
+  'FINNABLE': 'https://partner.finnable.com/auth/login'
+};
+
+const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily') => {
+  if (!bankName) return null;
+  const normalized = bankName.toUpperCase();
+  
+  if (normalized.includes('MUTHOOT')) {
+    if (loanType === 'BL') {
+      if (muthootSubType === 'monthly') {
+        return BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY BL'];
+      }
+      return BANK_AFFILIATE_LINKS['MUTHOOT DAILY BL'];
+    }
+    return BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY PL'];
+  }
+  
+  if (normalized.includes('INCRED')) {
+    return BANK_AFFILIATE_LINKS['INCRED PL'];
+  }
+  
+  if (normalized.includes('FINNABLE')) {
+    return BANK_AFFILIATE_LINKS['FINNABLE'];
+  }
+
+  if (normalized.includes('POONAWALLA') || normalized.includes('POONWALA')) return BANK_AFFILIATE_LINKS['POONAWALLA'];
+  if (normalized.includes('UNITY')) return BANK_AFFILIATE_LINKS['UNITY BANK'];
+  if (normalized.includes('PREFR')) return BANK_AFFILIATE_LINKS['PREFR'];
+  if (normalized.includes('HERO')) return BANK_AFFILIATE_LINKS['HERO'];
+  if (normalized.includes('BHARATPE') || normalized.includes('BHARAT PE')) return BANK_AFFILIATE_LINKS['BHARATPE'];
+  if (normalized.includes('CREDIT SEA') || normalized.includes('CREDITSEA')) return BANK_AFFILIATE_LINKS['CREDIT SEA'];
+  if (normalized.includes('DMI')) return BANK_AFFILIATE_LINKS['DMI'];
+  if (normalized.includes('L&T') || normalized.includes('L & T') || normalized.includes('LANDT')) return BANK_AFFILIATE_LINKS['L&T'];
+  if (normalized.includes('FIBE')) return BANK_AFFILIATE_LINKS['FIBE'];
+  return null;
+};
+
 export default function UserDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -90,6 +141,18 @@ export default function UserDashboard() {
   const [subAgents, setSubAgents] = useState([]);
   const [subAgentDisbursedApps, setSubAgentDisbursedApps] = useState([]);
   const [copied, setCopied] = useState(false);
+
+  // Affiliate link pending status update modal state
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState(null);
+  const [updatingStatusState, setUpdatingStatusState] = useState(false);
+  const [newStatusValue, setNewStatusValue] = useState('applied');
+  const [statusProblemText, setStatusProblemText] = useState('');
+
+  // Application details modal state
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [updatingAppDetailsState, setUpdatingAppDetailsState] = useState(false);
+  const [appDetailsStatusValue, setAppDetailsStatusValue] = useState('applied');
+  const [appDetailsProblemText, setAppDetailsProblemText] = useState('');
 
   // Profile Form State
   const [profileFormData, setProfileFormData] = useState({
@@ -138,7 +201,16 @@ export default function UserDashboard() {
     if (error) {
       console.error('Error fetching inquiries:', error);
     } else {
-      setInquiries(data || []);
+      // Keep only the latest enquiry per mobile number
+      const seen = new Set();
+      const deduped = (data || []).filter(inq => {
+        if (!inq.mobile) return true;
+        const mob = inq.mobile.trim();
+        if (seen.has(mob)) return false;
+        seen.add(mob);
+        return true;
+      });
+      setInquiries(deduped);
     }
   };
 
@@ -182,13 +254,102 @@ export default function UserDashboard() {
             .from('applications')
             .select('*')
             .in('agent_id', saIds)
-            .eq('status', 'Disbursed')
+            .or('status.eq.Disbursed,status.eq.disbursed')
             .order('created_at', { ascending: false });
 
           if (saAppsErr) console.error('Error fetching subagent applications:', saAppsErr);
           else setSubAgentDisbursedApps(saApps || []);
         }
       }
+    }
+  };
+
+  // Effect to check if there is a pending application status update from an affiliate link check
+  useEffect(() => {
+    const checkPendingUpdate = () => {
+      const stored = localStorage.getItem('pending_status_update');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setPendingStatusUpdate(parsed);
+          setNewStatusValue('applied');
+          setStatusProblemText('');
+        } catch (e) {
+          console.error('Error parsing pending status update:', e);
+        }
+      }
+    };
+
+    // Check on mount and also when tab is refocused
+    checkPendingUpdate();
+    window.addEventListener('focus', checkPendingUpdate);
+    return () => {
+      window.removeEventListener('focus', checkPendingUpdate);
+    };
+  }, []);
+
+  const handleUpdateStatusSubmit = async (e) => {
+    e.preventDefault();
+    if (!pendingStatusUpdate) return;
+    setUpdatingStatusState(true);
+
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status: newStatusValue,
+          problem: statusProblemText.trim() || null
+        })
+        .eq('id', pendingStatusUpdate.appId);
+
+      if (error) {
+        alert('Failed to update application status: ' + error.message);
+      } else {
+        alert('Application status successfully updated!');
+        localStorage.removeItem('pending_status_update');
+        setPendingStatusUpdate(null);
+        // Refresh applications list
+        if (user) {
+          fetchAgentData(user.id, profile?.agent_code);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred.');
+    } finally {
+      setUpdatingStatusState(false);
+    }
+  };
+
+  const handleUpdateAppDetailsSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedApplication) return;
+    setUpdatingAppDetailsState(true);
+
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status: appDetailsStatusValue,
+          problem: appDetailsProblemText.trim() || null
+        })
+        .eq('id', selectedApplication.id);
+
+      if (error) {
+        alert('Failed to update application details: ' + error.message);
+      } else {
+        alert('Application details updated successfully!');
+        setSelectedApplication(null);
+        // Refresh applications list
+        if (user) {
+          fetchAgentData(user.id, profile?.agent_code);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred.');
+    } finally {
+      setUpdatingAppDetailsState(false);
     }
   };
 
@@ -245,6 +406,28 @@ export default function UserDashboard() {
           if (prof.role === 'agent') {
             // Agent data fetching
             await fetchAgentData(session.user.id, prof.agent_code);
+            
+            // Check if profile is complete (less than 100%)
+            const fieldsVal = [
+              prof.full_name,
+              prof.email,
+              prof.phone,
+              prof.dob,
+              prof.fathers_name,
+              prof.current_address,
+              prof.permanent_address,
+              prof.pincode,
+              prof.marital_status,
+              prof.avatar,
+              prof.id_type,
+              prof.id_number,
+              prof.id_file
+            ];
+            const filled = fieldsVal.filter(f => f && f.toString().trim() !== '').length;
+            const pct = Math.round((filled / fieldsVal.length) * 100);
+            if (pct < 100) {
+              setShowProfileUpdatePopup(true);
+            }
           } else {
             // Customer data fetching
             await fetchInquiries(session.user.id);
@@ -296,29 +479,33 @@ export default function UserDashboard() {
 
   // Helper status styling for applications
   const getStatusBadgeStyle = (status) => {
-    switch (status) {
-      case 'Applied':
-      case 'Pending':
+    if (!status) return {};
+    const s = status.toLowerCase();
+    switch (s) {
+      case 'applied':
+      case 'pending':
         return { color: 'var(--color-text-secondary)', background: 'var(--color-bg-card)', border: 'var(--border-light)' };
-      case 'In Progress':
+      case 'in progress':
+      case 'in process':
+      case 'kyc verification':
         return { color: 'var(--color-warning)', background: 'var(--color-warning-bg)', border: 'var(--border-warning)' };
-      case 'Approved':
+      case 'approved':
         return { color: 'var(--color-info)', background: 'var(--color-info-bg)', border: 'var(--border-accent)' };
-      case 'Disbursed':
-      case 'Paid':
+      case 'disbursed':
+      case 'paid':
         return { color: 'var(--color-success)', background: 'var(--color-success-bg)', border: 'var(--border-success)', boxShadow: 'var(--shadow-glow-success)' };
-      case 'Rejected':
+      case 'rejected':
         return { color: 'var(--color-error)', background: 'var(--color-error-bg)', border: 'var(--border-error)' };
       default:
-        return {};
+        return { color: 'var(--color-text-secondary)', background: 'var(--color-bg-card)', border: 'var(--border-light)' };
     }
   };
 
   // Calculate earnings for Agent Dashboard
-  const disbursedApps = applications.filter(app => app.status === 'Disbursed');
+  const disbursedApps = applications.filter(app => app.status && app.status.toLowerCase() === 'disbursed');
   const totalDisbursedAmount = disbursedApps.reduce((acc, app) => acc + Number(app.loan_amount), 0);
   const directCommission = disbursedApps.reduce((acc, app) => acc + Number(app.commission_amount), 0);
-  const referralBonus = subAgentDisbursedApps.reduce((acc, app) => acc + (Number(app.loan_amount) * 0.005), 0);
+  const referralBonus = subAgentDisbursedApps.filter(app => app.status && app.status.toLowerCase() === 'disbursed').reduce((acc, app) => acc + (Number(app.loan_amount) * 0.005), 0);
   const totalEarnings = directCommission + referralBonus;
 
   // Calculate Payout Metrics
@@ -685,6 +872,31 @@ export default function UserDashboard() {
                           {inq.salary > 0 ? ((inq.existing_emi / inq.salary) * 100).toFixed(1) : 0}%
                         </div>
                       </div>
+                      {inq.dob && (
+                        <>
+                          <div>
+                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
+                            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                              {inq.dob}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated Age</div>
+                            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                              {(() => {
+                                const today = new Date();
+                                const birthDate = new Date(inq.dob);
+                                let age = today.getFullYear() - birthDate.getFullYear();
+                                const m = today.getMonth() - birthDate.getMonth();
+                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                                  age--;
+                                }
+                                return `${age} yrs`;
+                              })()}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div style={{ paddingTop: '12px', borderTop: 'var(--border-subtle)' }}>
@@ -760,6 +972,110 @@ export default function UserDashboard() {
         >
           <span>{toastMessage}</span>
           <span style={{ opacity: 0.6, fontSize: 'var(--text-xs)' }}>✖</span>
+        </div>
+      )}
+
+      {/* Pending Affiliate Link Status Update Modal */}
+      {pendingStatusUpdate && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(15px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div className="form-card" style={{
+            maxWidth: '500px',
+            width: '100%',
+            margin: '0 auto',
+            display: 'grid',
+            gap: '20px',
+            border: 'var(--border-accent)',
+            background: 'var(--color-bg-tertiary)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '16px',
+            padding: '32px 24px',
+            boxShadow: 'var(--shadow-xl)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Update Application Status</h3>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('pending_status_update');
+                  setPendingStatusUpdate(null);
+                }} 
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '8px', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+              You recently opened an application for <strong>{pendingStatusUpdate.clientName}</strong> at <strong>{pendingStatusUpdate.bankName}</strong>. Please report the current status and any problems faced:
+            </div>
+
+            <form onSubmit={handleUpdateStatusSubmit} style={{ display: 'grid', gap: '16px' }}>
+              <div className="input-group">
+                <label className="input-label">Application Status <span className="required">*</span></label>
+                <select
+                  className="input-field"
+                  value={newStatusValue}
+                  onChange={(e) => setNewStatusValue(e.target.value)}
+                  required
+                  style={{
+                    background: 'var(--color-bg-input)',
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  <option value="applied" style={{ background: '#111827', color: '#f3f4f6' }}>Applied</option>
+                  <option value="in process" style={{ background: '#111827', color: '#f3f4f6' }}>In Process</option>
+                  <option value="kyc verification" style={{ background: '#111827', color: '#f3f4f6' }}>KYC Verification</option>
+                  <option value="disbursed" style={{ background: '#111827', color: '#f3f4f6' }}>Disbursed</option>
+                  <option value="rejected" style={{ background: '#111827', color: '#f3f4f6' }}>Rejected</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Issues / Problems Faced (Optional)</label>
+                <textarea
+                  className="input-field"
+                  placeholder="Specify if you faced any issues while submitting the application, so the admin is notified."
+                  value={statusProblemText}
+                  onChange={(e) => setStatusProblemText(e.target.value)}
+                  rows={3}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => {
+                    localStorage.removeItem('pending_status_update');
+                    setPendingStatusUpdate(null);
+                  }}
+                >
+                  Skip
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  style={{ justifyContent: 'center' }} 
+                  disabled={updatingStatusState}
+                >
+                  {updatingStatusState ? 'Updating...' : 'Update Status'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -1191,9 +1507,67 @@ export default function UserDashboard() {
                         
                         return (
                           <div className="form-card" style={{ display: 'grid', gap: '24px', backdropFilter: 'blur(20px)', border: 'var(--border-light)' }}>
-                            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700, borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+                            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700, borderBottom: 'var(--border-subtle)', paddingBottom: '12px', marginBottom: 0 }}>
                               Agent Profile Management
                             </h2>
+
+                            {/* WhatsApp Community Join Banner */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '16px',
+                              background: 'rgba(37, 211, 102, 0.08)',
+                              border: '1px solid rgba(37, 211, 102, 0.3)',
+                              padding: '16px 20px',
+                              borderRadius: 'var(--border-radius-md)',
+                              marginTop: '-8px'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+                                <div style={{
+                                  background: '#25D366',
+                                  borderRadius: '50%',
+                                  width: '36px',
+                                  height: '36px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}>
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" style={{ display: 'block' }}>
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.464L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.086-2.885-6.948C16.572 2.015 14.117 1 11.514 1 6.079 1 1.656 5.37 1.652 10.8c-.001 1.716.467 3.39 1.353 4.887l-1.008 3.684 3.77-.988z" />
+                                    <path d="M17.473 14.382c-.301-.151-1.787-.882-2.063-.982-.277-.1-.478-.151-.68.151-.202.3-.779.982-.955 1.182-.176.2-.352.226-.653.076-1.355-.68-2.61-1.24-3.528-2.82-.24-.41-.04-.548.1-.735.158-.21.3-.408.4-.558.1-.15.05-.282-.025-.432-.075-.15-.68-1.637-.932-2.242-.246-.588-.497-.507-.679-.516-.174-.008-.37-.01-.568-.01-.2 0-.523.074-.797.371-.273.297-1.045 1.016-1.045 2.479 0 1.462 1.067 2.873 1.218 3.071.15.2 2.1 3.2 5.088 4.49.711.307 1.267.49 1.701.628.714.227 1.365.195 1.88.117.573-.086 1.787-.73 2.039-1.436.252-.706.252-1.312.176-1.436-.076-.124-.277-.202-.578-.352z"/>
+                                  </svg>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: '#25D366' }}>Join WhatsApp Community</div>
+                                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>Join the official Hand to Hand Fintech agent group for updates</div>
+                                </div>
+                              </div>
+                              <a
+                                href="https://chat.whatsapp.com/HxAz1nhORjM7oPcS3o3njl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn"
+                                style={{
+                                  background: '#25D366',
+                                  color: '#fff',
+                                  fontWeight: 600,
+                                  fontSize: 'var(--text-xs)',
+                                  border: 'none',
+                                  padding: '10px 16px',
+                                  borderRadius: 'var(--border-radius-md)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  textDecoration: 'none',
+                                  margin: 0
+                                }}
+                              >
+                                Join Group 💬
+                              </a>
+                            </div>
 
                             {/* Completion Tracker */}
                             <div style={{ marginBottom: '8px', padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)' }}>
@@ -1548,17 +1922,28 @@ export default function UserDashboard() {
                           ) : (
                             <div style={{ display: 'grid', gap: '16px' }}>
                               {applications.map((app) => (
-                                <div key={app.id} className="result-card" style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                                  gap: '16px',
-                                  background: 'var(--color-bg-card)',
-                                  border: 'var(--border-light)',
-                                  borderRadius: 'var(--border-radius-md)',
-                                  padding: '20px 24px',
-                                  backdropFilter: 'blur(20px)',
-                                  alignItems: 'center'
-                                }}>
+                                <div 
+                                  key={app.id} 
+                                  className="result-card" 
+                                  onClick={() => {
+                                    setSelectedApplication(app);
+                                    setAppDetailsStatusValue(['disbursed', 'rejected'].includes(app.status?.toLowerCase()) ? app.status.toLowerCase() : (app.status ? app.status.toLowerCase() : 'applied'));
+                                    setAppDetailsProblemText(app.problem || '');
+                                  }}
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                    gap: '16px',
+                                    background: 'var(--color-bg-card)',
+                                    border: 'var(--border-light)',
+                                    borderRadius: 'var(--border-radius-md)',
+                                    padding: '20px 24px',
+                                    backdropFilter: 'blur(20px)',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
                                   <div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)' }}>{app.client_name}</div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -2046,6 +2431,62 @@ export default function UserDashboard() {
                 </p>
               </div>
 
+              {/* WhatsApp Community Mandatory Join Link */}
+              <div style={{
+                background: 'rgba(37, 211, 102, 0.08)',
+                border: '1px solid rgba(37, 211, 102, 0.3)',
+                padding: '16px',
+                borderRadius: 'var(--border-radius-md)',
+                marginTop: '-8px',
+                marginBottom: '4px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: 'var(--text-xs)',
+                  color: '#25D366',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '6px'
+                }}>
+                  <span>💬 MANDATORY: JOIN WHATSAPP COMMUNITY</span>
+                </div>
+                <p style={{
+                  fontSize: 'var(--text-xs)',
+                  lineHeight: '1.5',
+                  color: 'var(--color-text-secondary)',
+                  marginBottom: '12px'
+                }}>
+                  It is mandatory for all active agents to join our official WhatsApp Community to receive real-time payouts support and platform updates.
+                </p>
+                <a
+                  href="https://chat.whatsapp.com/HxAz1nhORjM7oPcS3o3njl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{
+                    background: '#25D366',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: 'var(--text-xs)',
+                    border: 'none',
+                    padding: '10px 16px',
+                    borderRadius: 'var(--border-radius-md)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    justifyContent: 'center',
+                    width: '100%',
+                    margin: 0
+                  }}
+                >
+                  Join Official WhatsApp Group 💬
+                </a>
+              </div>
+
               {profile?.profile_update_message && (
                 <div style={{
                   padding: '16px',
@@ -2278,6 +2719,403 @@ export default function UserDashboard() {
             </div>
           </div>
         )}
+
+        {/* Selected Application Details & Lead Process Update Modal */}
+        {selectedApplication && (() => {
+          const appLink = getAffiliateLink(selectedApplication.bank_name, selectedApplication.loan_type);
+          const isFinalStatus = ['disbursed', 'rejected'].includes(selectedApplication.status?.toLowerCase());
+
+          return (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(20px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: '24px'
+            }}>
+              <div className="form-card" style={{
+                maxWidth: '540px',
+                width: '95vw',
+                margin: '0 auto',
+                display: 'grid',
+                gap: '20px',
+                background: 'rgba(20, 20, 20, 0.85)',
+                backdropFilter: 'blur(25px)',
+                border: 'var(--border-light)',
+                boxShadow: 'var(--shadow-xl)',
+                borderRadius: 'var(--border-radius-lg)',
+                padding: '28px',
+                color: '#fff',
+                maxHeight: '90vh',
+                overflowY: 'auto'
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <BankLogo bankName={selectedApplication.bank_name} size={24} />
+                    <div>
+                      <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>Application Details</h3>
+                      <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>Update progress & access affiliate links</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedApplication(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      lineHeight: 1
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Client & Loan Details Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: 'var(--border-subtle)' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Client Name</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.client_name}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Client Mobile</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.client_mobile}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Bank Partner</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.bank_name}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Loan Type</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.loan_type === 'PL' ? 'Personal Loan' : 'Business Loan'}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Loan Amount</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-text-primary)' }}>₹{Number(selectedApplication.loan_amount).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Est. Commission (2%)</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-accent-violet)' }}>₹{Number(selectedApplication.commission_amount).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Submission Date</label>
+                    <div style={{ fontSize: 'var(--text-xs)', marginTop: '2px' }}>{new Date(selectedApplication.created_at).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+
+                {/* Affiliate Link / Portal Section */}
+                {(() => {
+                  const isMuthoot = selectedApplication.bank_name?.toUpperCase()?.includes('MUTHOOT');
+                  const isMuthootBL = isMuthoot && selectedApplication.loan_type === 'BL';
+                  const isMuthootPL = isMuthoot && selectedApplication.loan_type === 'PL';
+                  const isIncred = selectedApplication.bank_name?.toUpperCase()?.includes('INCRED');
+                  const isFinnable = selectedApplication.bank_name?.toUpperCase()?.includes('FINNABLE');
+                  
+                  if (isMuthootBL) {
+                    return (
+                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Muthoot Business Loan Portals</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                          Select the appropriate affiliate link to verify client status or complete the application steps:
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
+                          <a
+                            href={BANK_AFFILIATE_LINKS['MUTHOOT DAILY BL']}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary btn-sm"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              textDecoration: 'none',
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 600,
+                              padding: '10px'
+                            }}
+                          >
+                            🚀 Open Daily EMI Link
+                          </a>
+                          <a
+                            href={BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY BL']}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-accent btn-sm"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              textDecoration: 'none',
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 600,
+                              padding: '10px',
+                              background: 'var(--gradient-accent)',
+                              border: 'none'
+                            }}
+                          >
+                            🚀 Open Monthly EMI Link
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (isMuthootPL) {
+                    return (
+                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Muthoot Salary Loan Portal</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                          Log in through the affiliate link to verify client status or complete the application steps:
+                        </div>
+                        <a
+                          href={BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY PL']}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                            marginTop: '4px',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            padding: '10px 16px'
+                          }}
+                        >
+                          🚀 Open Affiliate Apply Link
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  if (isIncred) {
+                    return (
+                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 InCred Personal Loan Portal</div>
+                        
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: 'var(--border-subtle)',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--color-text-secondary)',
+                          display: 'grid',
+                          gap: '6px'
+                        }}>
+                          <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>• <strong>Login E-mail:</strong> incredhtoh@gmail.com</span>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText('incredhtoh@gmail.com'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>• <strong>OTP Support:</strong> Call & Message on WhatsApp to <strong>9389119399</strong></span>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          </div>
+                        </div>
+
+                        <a
+                          href={BANK_AFFILIATE_LINKS['INCRED PL']}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                            marginTop: '4px',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            padding: '10px 16px'
+                          }}
+                        >
+                          🚀 Open InCred Portal ↗
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  if (isFinnable) {
+                    return (
+                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Finnable DSA Portal</div>
+                        
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: 'var(--border-subtle)',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--color-text-secondary)',
+                          display: 'grid',
+                          gap: '6px'
+                        }}>
+                          <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>• <strong>Login Mobile:</strong> 9389119399</span>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>• <strong>OTP Support:</strong> Call <strong>9389119399</strong></span>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          </div>
+                        </div>
+
+                        <a
+                          href={BANK_AFFILIATE_LINKS['FINNABLE']}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                            marginTop: '4px',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            padding: '10px 16px'
+                          }}
+                        >
+                          🚀 Open Finnable Portal ↗
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  if (appLink) {
+                    return (
+                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Affiliate Lending Portal</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                          Log in through the affiliate link to verify client status or complete the application steps:
+                        </div>
+                        <a
+                          href={appLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                            marginTop: '4px',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            padding: '10px 16px'
+                          }}
+                        >
+                          🚀 Open Affiliate Apply Link
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: 'var(--border-subtle)', padding: '12px 16px', borderRadius: '8px', fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                      ℹ️ No direct affiliate apply link configured for this bank.
+                    </div>
+                  );
+                })()}
+
+                {/* Update Process Status Form */}
+                <form onSubmit={handleUpdateAppDetailsSubmit} style={{ display: 'grid', gap: '16px' }}>
+                  <div>
+                    <h4 style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Update Lead Progress</h4>
+                    
+                    {isFinalStatus ? (
+                      <div style={{ 
+                        background: selectedApplication.status?.toLowerCase() === 'disbursed' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                        border: selectedApplication.status?.toLowerCase() === 'disbursed' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        fontSize: 'var(--text-xs)',
+                        color: selectedApplication.status?.toLowerCase() === 'disbursed' ? 'var(--color-success)' : 'var(--color-error)',
+                        fontWeight: 500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        🔒 Status locked as <strong>{selectedApplication.status?.toUpperCase()}</strong> by Admin.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gap: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Lead Status</label>
+                          <select
+                            value={appDetailsStatusValue}
+                            onChange={(e) => setAppDetailsStatusValue(e.target.value)}
+                            className="input-field"
+                            style={{ marginTop: '4px' }}
+                          >
+                            <option value="applied">Applied</option>
+                            <option value="in process">In Process</option>
+                            <option value="kyc verification">KYC Verification</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Notes / Reported Issue to Admin</label>
+                          <textarea
+                            value={appDetailsProblemText}
+                            onChange={(e) => setAppDetailsProblemText(e.target.value)}
+                            placeholder="Describe any issues faced or leave a note about status updates..."
+                            className="input-field"
+                            style={{
+                              marginTop: '4px',
+                              height: '80px',
+                              resize: 'none',
+                              padding: '10px'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'var(--border-subtle)', paddingTop: '16px', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedApplication(null)}
+                      className="btn btn-secondary"
+                      style={{ margin: 0 }}
+                    >
+                      Cancel
+                    </button>
+                    {!isFinalStatus && (
+                      <button
+                        type="submit"
+                        disabled={updatingAppDetailsState}
+                        className="btn btn-primary"
+                        style={{ margin: 0, background: 'var(--gradient-primary)', border: 'none' }}
+                      >
+                        {updatingAppDetailsState ? 'Saving...' : 'Update Lead'}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+          );
+        })()}
       </main>
       <Footer />
     </>

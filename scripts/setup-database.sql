@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS bank_policies (
   all_pincodes BOOLEAN DEFAULT false,
   special_notes TEXT,
   logo_url TEXT,
+  employment_type TEXT DEFAULT 'salaried',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -50,6 +51,8 @@ CREATE TABLE IF NOT EXISTS user_inquiries (
   existing_emi INTEGER DEFAULT 0,
   credit_score INTEGER NOT NULL,
   eligible_banks TEXT[],
+  employment_type TEXT DEFAULT 'salaried',
+  dob TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -96,3 +99,9 @@ CREATE POLICY "Allow public delete on bank_policies"
 CREATE POLICY "Allow public delete on bank_pincodes"
   ON bank_pincodes FOR DELETE
   USING (true);
+
+-- Allow admin to delete user inquiries
+CREATE POLICY "Allow admin to delete inquiries"
+  ON user_inquiries FOR DELETE
+  TO authenticated
+  USING (auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com');

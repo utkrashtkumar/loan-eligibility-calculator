@@ -8,9 +8,73 @@ import Footer from '@/components/Footer';
 import { checkEligibility, saveInquiry } from '@/lib/eligibility';
 import BankLogo from '@/components/BankLogo';
 
+const calculateAge = (dobString) => {
+  if (!dobString) return null;
+  const today = new Date();
+  const birthDate = new Date(dobString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+const BANK_AFFILIATE_LINKS = {
+  'POONAWALLA': 'https://instant-pocket-loan.poonawallafincorp.com/?utm_DSA_Code=PKA00192&UTM_Partner_Name=BuddyLoan&UTM_Partner_Medium=hand2handloans_bl_dsa',
+  'UNITY BANK': 'https://loans.theunitybank.com/unity-pl-ui/page/exclusion/login/logindetails?utm_source=buddyloan&utm_medium=hand2handloans_bl_dsa&utm_campaign=DSA',
+  'PREFR': 'https://marketplace.prefr.com/buddyloan/GetStarted?startPage=base',
+  'HERO': 'https://loans.apps.herofincorp.com/en/personal-loan?utm_campaign=buddyloan_rdf_26&utm_content=hand2handloans_bl_dsa&af_xp=custom&pid=partnership_bdl&is_retargeting=true&af_reengagement_window=30d&c=buddyloan_rdf_26&utm_source=partnership_bdl',
+  'BHARATPE': 'https://consumer-credit.bharatpe.in/creditHome.html?utm_campaign=trillionloan&utm_campaign=trillionloans&utm_partner=BLTL&utm_content=DSA&utm_medium=swiftloans_dsa_Hand2Handloans',
+  'CREDIT SEA': 'https://www.creditsea.com/onboarding/sign-up/enter-mobile?source=31697402&medium=DSA&campaign=ELDSA_dsa_Hand2Handloans',
+  'DMI': 'https://play.google.com/store/apps/details?id=in.dmifinance.app&referrer=utm_source%3DMymoneymantra%26utm_medium%3DHandtohandloan%26utm_term%3D1100110011%26utm_campaign%3DEARNTRA',
+  'L&T': 'https://www.moneycontrolpay.com/?utm_source=ILB&utm_campaign=RohanGupta',
+  'FIBE': 'https://portal.fibe.in/easy-loan?utm_medium=hand2handloans_bl_dsa&campaignid=dsa&utm_source=BUDDYLOANPA',
+  'MUTHOOT DAILY BL': 'https://creditlink.finbox.in/?partnerCode=LS_NUSHZC&agentCode=sc113356&productType=business_loan_edi&agentId=hand2handloans_bl_dsa',
+  'MUTHOOT MONTHLY BL': 'https://creditlink.finbox.in/?partnerCode=LS_POIOUY&agentCode=sc113356&productType=business_loan_emi&agentId=hand2handloans_bl_dsa',
+  'MUTHOOT MONTHLY PL': 'https://creditlink.finbox.in/?partnerCode=LS_POIOUY&agentCode=sc113356&productType=business_loan_emi&agentId=hand2handloans_bl_dsa',
+  'INCRED PL': 'https://pl.incred.com/open-market-sales/login',
+  'FINNABLE': 'https://partner.finnable.com/auth/login'
+};
+
+const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily') => {
+  if (!bankName) return null;
+  const normalized = bankName.toUpperCase();
+  
+  if (normalized.includes('MUTHOOT')) {
+    if (loanType === 'BL') {
+      if (muthootSubType === 'monthly') {
+        return BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY BL'];
+      }
+      return BANK_AFFILIATE_LINKS['MUTHOOT DAILY BL'];
+    }
+    return BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY PL'];
+  }
+  
+  if (normalized.includes('INCRED')) {
+    return BANK_AFFILIATE_LINKS['INCRED PL'];
+  }
+  
+  if (normalized.includes('FINNABLE')) {
+    return BANK_AFFILIATE_LINKS['FINNABLE'];
+  }
+
+  if (normalized.includes('POONAWALLA') || normalized.includes('POONWALA')) return BANK_AFFILIATE_LINKS['POONAWALLA'];
+  if (normalized.includes('UNITY')) return BANK_AFFILIATE_LINKS['UNITY BANK'];
+  if (normalized.includes('PREFR')) return BANK_AFFILIATE_LINKS['PREFR'];
+  if (normalized.includes('HERO')) return BANK_AFFILIATE_LINKS['HERO'];
+  if (normalized.includes('BHARATPE') || normalized.includes('BHARAT PE')) return BANK_AFFILIATE_LINKS['BHARATPE'];
+  if (normalized.includes('CREDIT SEA') || normalized.includes('CREDITSEA')) return BANK_AFFILIATE_LINKS['CREDIT SEA'];
+  if (normalized.includes('DMI')) return BANK_AFFILIATE_LINKS['DMI'];
+  if (normalized.includes('L&T') || normalized.includes('L & T') || normalized.includes('LANDT')) return BANK_AFFILIATE_LINKS['L&T'];
+  if (normalized.includes('FIBE')) return BANK_AFFILIATE_LINKS['FIBE'];
+  return null;
+};
+
 const INITIAL_FORM = {
   name: '',
   mobile: '',
+  dob: '',
   currentAddress: '',
   permanentAddress: '',
   sameAddress: false,
@@ -19,6 +83,7 @@ const INITIAL_FORM = {
   existingEmi: '',
   creditScore: '',
   loanType: 'ALL',
+  employmentType: 'salaried',
 };
 
 export default function CheckPage() {
@@ -43,6 +108,7 @@ export default function CheckPage() {
   const [applying, setApplying] = useState(false);
   const [applySuccess, setApplySuccess] = useState('');
   const [applyError, setApplyError] = useState('');
+  const [muthootSubType, setMuthootSubType] = useState('daily');
 
   // Ensure user is authenticated
   useEffect(() => {
@@ -112,6 +178,14 @@ export default function CheckPage() {
     } else if (!/^\d{10}$/.test(formData.mobile.trim())) {
       newErrors.mobile = 'Enter a valid 10-digit mobile number';
     }
+    if (!formData.dob) {
+      newErrors.dob = 'Date of birth is required';
+    } else {
+      const age = calculateAge(formData.dob);
+      if (age === null || age < 18) {
+        newErrors.dob = 'You must be at least 18 years old';
+      }
+    }
 
     // Address Validation
     if (!formData.currentAddress.trim())
@@ -123,8 +197,9 @@ export default function CheckPage() {
     }
 
     // Financial Validation
-    if (!formData.salary || Number(formData.salary) <= 0)
+    if (formData.employmentType === 'salaried' && (!formData.salary || Number(formData.salary) <= 0))
       newErrors.salary = 'Monthly salary is required';
+    // Self-employed/instant loans: no salary required
     if (!formData.creditScore) {
       newErrors.creditScore = 'Credit score is required';
     } else if (
@@ -169,7 +244,9 @@ export default function CheckPage() {
     setApplySuccess('');
 
     try {
-      const { error } = await supabase.from('applications').insert({
+      const affiliateLink = getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType);
+
+      const { data: insertData, error } = await supabase.from('applications').insert({
         agent_id: user.id,
         client_name: clientName.trim(),
         client_mobile: clientMobile.trim(),
@@ -178,12 +255,26 @@ export default function CheckPage() {
         loan_type: selectedBank.loan_type,
         commission_rate: 2.00,
         commission_amount: Number(loanAmount) * 0.02,
-      });
+        status: affiliateLink ? 'applied' : 'Applied'
+      }).select('id');
 
       if (error) {
         setApplyError(error.message);
       } else {
-        setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);
+        if (affiliateLink) {
+          const insertedId = insertData && insertData[0]?.id;
+          if (insertedId) {
+            localStorage.setItem('pending_status_update', JSON.stringify({
+              appId: insertedId,
+              bankName: selectedBank.bank_name,
+              clientName: clientName.trim()
+            }));
+          }
+          setApplySuccess(`Application recorded! Opening affiliate link in a new tab...`);
+          window.open(affiliateLink, '_blank');
+        } else {
+          setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);
+        }
         setTimeout(() => {
           setApplyModalOpen(false);
         }, 2000);
@@ -215,6 +306,7 @@ export default function CheckPage() {
       const salary = Number(formData.salary);
       const existingEmi = Number(formData.existingEmi) || 0;
       const creditScore = Number(formData.creditScore);
+      const age = calculateAge(formData.dob);
 
       const eligible = await checkEligibility({
         pincode: formData.pincode.trim(),
@@ -222,6 +314,8 @@ export default function CheckPage() {
         creditScore,
         existingEmi,
         loanType: formData.loanType,
+        employmentType: formData.employmentType,
+        age,
       });
 
       setResults(eligible);
@@ -231,6 +325,7 @@ export default function CheckPage() {
       await saveInquiry({
         name: formData.name.trim(),
         mobile: formData.mobile.trim(),
+        dob: formData.dob || null,
         currentAddress: formData.currentAddress.trim(),
         permanentAddress: formData.permanentAddress.trim() || formData.currentAddress.trim(),
         pincode: formData.pincode.trim(),
@@ -239,6 +334,7 @@ export default function CheckPage() {
         creditScore,
         eligibleBanks: eligible.map((b) => b.bank_name),
         userId: user?.id || null,
+        employmentType: formData.employmentType,
       });
     } catch (err) {
       console.error('Eligibility check failed:', err);
@@ -260,9 +356,9 @@ export default function CheckPage() {
 
   /* ---------- computed values ---------- */
   const userFoir =
-    formData.salary && Number(formData.salary) > 0
+    formData.employmentType === 'salaried' && formData.salary && Number(formData.salary) > 0
       ? (((Number(formData.existingEmi) || 0) / Number(formData.salary)) * 100).toFixed(1)
-      : '0';
+      : formData.employmentType === 'self_employed' ? 'N/A' : '0';
 
   if (checkingAuth) {
     return (
@@ -312,7 +408,9 @@ export default function CheckPage() {
                       : 'No Matching Banks Found'}
                   </h2>
                   <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px' }}>
-                    Based on pincode availability, minimum salary, CIBIL, and FOIR ratio.
+                    {formData.employmentType === 'salaried'
+                      ? 'Based on pincode availability, minimum salary, CIBIL, and FOIR ratio.'
+                      : 'Based on pincode availability and CIBIL score (Instant Loans).'}
                   </p>
                 </div>
 
@@ -328,12 +426,16 @@ export default function CheckPage() {
                   marginBottom: '32px',
                   backdropFilter: 'blur(20px)'
                 }}>
+                  {formData.employmentType === 'salaried' && (
                   <div className="profile-item">
-                    <div className="profile-item-label">Monthly Salary</div>
+                    <div className="profile-item-label">
+                      Monthly Salary
+                    </div>
                     <div className="profile-item-value">
                       ₹{Number(formData.salary).toLocaleString('en-IN')}
                     </div>
                   </div>
+                  )}
                   <div className="profile-item">
                     <div className="profile-item-label">CIBIL Score</div>
                     <div className="profile-item-value" style={{ color: 'var(--color-success)' }}>
@@ -344,10 +446,18 @@ export default function CheckPage() {
                     <div className="profile-item-label">Input Pincode</div>
                     <div className="profile-item-value">{formData.pincode}</div>
                   </div>
+                  {formData.employmentType === 'salaried' && (
                   <div className="profile-item">
                     <div className="profile-item-label">Calculated FOIR</div>
                     <div className="profile-item-value" style={{ color: Number(userFoir) > 50 ? 'var(--color-warning)' : 'var(--color-text-primary)' }}>
                       {userFoir}%
+                    </div>
+                  </div>
+                  )}
+                  <div className="profile-item">
+                    <div className="profile-item-label">Loan Category</div>
+                    <div className="profile-item-value" style={{ color: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-accent)' }}>
+                      {formData.employmentType === 'salaried' ? '💼 Salary Loan' : '⚡ Instant Loan'}
                     </div>
                   </div>
                 </div>
@@ -457,6 +567,36 @@ export default function CheckPage() {
                       {errors.mobile && <p className="input-error-text">⚠ {errors.mobile}</p>}
                       <p className="input-hint">Will be shared only with matching lenders</p>
                     </div>
+
+                    <div className="input-group">
+                      <label className="input-label">Date of Birth <span className="required">*</span></label>
+                      <input
+                        type="date"
+                        name="dob"
+                        className={inputClass('dob')}
+                        value={formData.dob}
+                        onChange={(e) => updateField('dob', e.target.value)}
+                      />
+                      {errors.dob && <p className="input-error-text">⚠ {errors.dob}</p>}
+                    </div>
+
+                    <div className="input-group">
+                      <label className="input-label">Age (Years)</label>
+                      <input
+                        type="text"
+                        name="calculated_age"
+                        className="input-field"
+                        value={formData.dob ? (calculateAge(formData.dob) ?? '') : ''}
+                        readOnly
+                        placeholder="Automatically calculated from DOB"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          cursor: 'not-allowed',
+                          color: 'var(--color-text-secondary)',
+                          opacity: 0.8
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* Card 2: Address Details */}
@@ -527,6 +667,62 @@ export default function CheckPage() {
                       <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyText: 'center', justifyContent: 'center', fontWeight: 600 }}>3</span>
                       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Financial profile</h2>
                     </div>
+                    {/* Employment Type Toggle */}
+                    <div className="input-group">
+                      <label className="input-label">Employment Type <span className="required">*</span></label>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '12px',
+                        marginTop: '4px'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => updateField('employmentType', 'salaried')}
+                          style={{
+                            padding: '14px 16px',
+                            borderRadius: 'var(--border-radius-md)',
+                            border: formData.employmentType === 'salaried' ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                            background: formData.employmentType === 'salaried' ? 'rgba(99, 102, 241, 0.1)' : 'var(--color-bg-input)',
+                            color: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: 'var(--text-sm)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          💼 Salary Loan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateField('employmentType', 'self_employed')}
+                          style={{
+                            padding: '14px 16px',
+                            borderRadius: 'var(--border-radius-md)',
+                            border: formData.employmentType === 'self_employed' ? '2px solid var(--color-accent)' : 'var(--border-light)',
+                            background: formData.employmentType === 'self_employed' ? 'rgba(16, 185, 129, 0.1)' : 'var(--color-bg-input)',
+                            color: formData.employmentType === 'self_employed' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: 'var(--text-sm)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          ⚡ Instant Loan
+                        </button>
+                      </div>
+                    </div>
+
+                    {formData.employmentType === 'salaried' && (
+                    <>
                     <div className="input-group">
                       <label className="input-label">Monthly Salary (Net) <span className="required">*</span></label>
                       <div className="input-wrapper">
@@ -559,6 +755,26 @@ export default function CheckPage() {
                         />
                       </div>
                     </div>
+                    </>
+                    )}
+
+                    {formData.employmentType === 'self_employed' && (
+                      <div style={{
+                        background: 'rgba(251, 146, 60, 0.08)',
+                        border: '1px solid rgba(251, 146, 60, 0.2)',
+                        borderRadius: 'var(--border-radius-md)',
+                        padding: '14px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--color-accent)',
+                        lineHeight: 1.5
+                      }}>
+                        <span style={{ fontSize: '16px' }}>⚡</span>
+                        Instant loans do not require salary information. Eligibility is based on your pincode and CIBIL score.
+                      </div>
+                    )}
 
                     <div className="input-group">
                       <label className="input-label">CIBIL / Credit Score <span className="required">*</span></label>
@@ -665,10 +881,86 @@ export default function CheckPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                {selectedBank?.bank_name?.toUpperCase()?.includes('MUTHOOT') && selectedBank?.loan_type === 'BL' && (
+                  <div className="input-group" style={{ marginTop: '16px' }}>
+                    <label className="input-label">Muthoot Business Loan Product <span className="required">*</span></label>
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                        <input 
+                          type="radio" 
+                          name="muthoot_type" 
+                          checked={muthootSubType === 'daily'} 
+                          onChange={() => setMuthootSubType('daily')} 
+                          style={{ accentColor: 'var(--color-primary)' }}
+                        />
+                        Daily EMI
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                        <input 
+                          type="radio" 
+                          name="muthoot_type" 
+                          checked={muthootSubType === 'monthly'} 
+                          onChange={() => setMuthootSubType('monthly')} 
+                          style={{ accentColor: 'var(--color-primary)' }}
+                        />
+                        Monthly EMI
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {selectedBank?.bank_name?.toUpperCase()?.includes('INCRED') && (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: 'var(--border-subtle)',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    marginTop: '16px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-secondary)',
+                    display: 'grid',
+                    gap: '6px'
+                  }}>
+                    <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 InCred Partner Login Details:</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>• <strong>Login E-mail:</strong> incredhtoh@gmail.com</span>
+                      <button type="button" onClick={() => { navigator.clipboard.writeText('incredhtoh@gmail.com'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>• <strong>OTP Support:</strong> Call & Message on WhatsApp to <strong>9389119399</strong></span>
+                      <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE') && (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: 'var(--border-subtle)',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    marginTop: '16px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-secondary)',
+                    display: 'grid',
+                    gap: '6px'
+                  }}>
+                    <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Finnable Partner Login Details:</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>• <strong>Login Mobile:</strong> 9389119399</span>
+                      <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>• <strong>OTP Support:</strong> Call <strong>9389119399</strong></span>
+                      <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setApplyModalOpen(false)}>Cancel</button>
                   <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
-                    {applying ? 'Submitting...' : 'Submit Application'}
+                    {applying ? 'Submitting...' : getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType) ? 'Submit & Open Link ↗' : 'Submit Application'}
                   </button>
                 </div>
               </form>

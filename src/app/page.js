@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -9,9 +9,34 @@ import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [activeFaq, setActiveFaq] = useState(null);
-  const [formState, setFormState] = useState({ name: '', email: '', subject: '', message: '' });
+  const [formState, setFormState] = useState({ name: '', email: '', mobile: '', subject: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [visitorCount, setVisitorCount] = useState(null);
+
+  useEffect(() => {
+    const trackVisitor = async () => {
+      try {
+        const alreadyCounted = sessionStorage.getItem('h2h_visitor_counted');
+        if (!alreadyCounted) {
+          const { data, error } = await supabase.rpc('increment_visitor_count');
+          if (!error && data) {
+            setVisitorCount(data);
+            sessionStorage.setItem('h2h_visitor_counted', '1');
+          } else {
+            const { data: stats } = await supabase.from('site_stats').select('visitor_count').eq('id', 'main').single();
+            if (stats) setVisitorCount(stats.visitor_count);
+          }
+        } else {
+          const { data: stats } = await supabase.from('site_stats').select('visitor_count').eq('id', 'main').single();
+          if (stats) setVisitorCount(stats.visitor_count);
+        }
+      } catch (err) {
+        console.error('Visitor counter error:', err);
+      }
+    };
+    trackVisitor();
+  }, []);
 
   const handleFaqToggle = (index) => {
     setActiveFaq(activeFaq === index ? null : index);
@@ -19,12 +44,23 @@ export default function Home() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
+    if (name === 'mobile') {
+      setFormState((prev) => ({ ...prev, [name]: value.replace(/\D/g, '') }));
+    } else {
+      setFormState((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!formState.name || !formState.email || !formState.message) return;
+    if (!formState.name || !formState.email || !formState.mobile || !formState.message) {
+      alert('Please fill in all mandatory fields.');
+      return;
+    }
+    if (!/^\d{10}$/.test(formState.mobile)) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -32,6 +68,7 @@ export default function Home() {
         .insert([{
           name: formState.name,
           email: formState.email,
+          mobile: formState.mobile,
           subject: formState.subject || null,
           message: formState.message
         }]);
@@ -39,7 +76,7 @@ export default function Home() {
       if (error) throw error;
       
       setIsSubmitted(true);
-      setFormState({ name: '', email: '', subject: '', message: '' });
+      setFormState({ name: '', email: '', mobile: '', subject: '', message: '' });
     } catch (err) {
       console.error('Error submitting contact form:', err);
       alert('Failed to send message: ' + (err.message || 'Unknown network error. Make sure migrations are run.'));
@@ -884,7 +921,7 @@ export default function Home() {
                 <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="responsive-grid-2">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Name</label>
+                      <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
                       <input 
                         type="text" 
                         name="name" 
@@ -896,7 +933,7 @@ export default function Home() {
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Email</label>
+                      <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Email <span style={{ color: 'var(--color-error)' }}>*</span></label>
                       <input 
                         type="email" 
                         name="email" 
@@ -907,6 +944,20 @@ export default function Home() {
                         onChange={handleInputChange} 
                       />
                     </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Mobile Number <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                    <input 
+                      type="tel" 
+                      name="mobile" 
+                      className="input-field" 
+                      placeholder="Enter your 10-digit mobile number" 
+                      required 
+                      maxLength={10}
+                      value={formState.mobile} 
+                      onChange={handleInputChange} 
+                    />
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -951,6 +1002,13 @@ export default function Home() {
       </section>
 
       <Footer />
+
+      {/* Visitor Counter */}
+      {visitorCount !== null && (
+        <div style={{ textAlign: 'center', padding: '12px 16px 16px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+          Visitors: {Number(visitorCount).toLocaleString('en-IN')}
+        </div>
+      )}
     </>
   );
 }

@@ -18,7 +18,7 @@ import { supabase } from '@/lib/supabase';
  * @param {string} params.loanType - 'PL' or 'BL' or 'ALL'
  * @returns {Promise<Array>} Eligible banks sorted by match score
  */
-export async function checkEligibility({ pincode, salary, creditScore, existingEmi, loanType = 'ALL' }) {
+export async function checkEligibility({ pincode, salary, creditScore, existingEmi, loanType = 'ALL', employmentType = 'salaried', age }) {
   // Step 1a: Find banks serving this pincode
   const { data: pincodeData, error: pincodeError } = await supabase
     .from('bank_pincodes')
@@ -67,12 +67,26 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
     return [];
   }
 
+  // Filter policies by employmentType in JS
+  // Salaried users ONLY see salary-based loans (employment_type = 'salaried')
+  // Self-employed/instant users ONLY see instant loans (employment_type = 'self_employed' or 'both')
+  const filteredPolicies = policies ? policies.filter(policy => {
+    const policyEmpType = policy.employment_type || 'salaried';
+    if (employmentType === 'salaried') {
+      // Strict: only salary-based policies, never instant/both
+      return policyEmpType === 'salaried';
+    } else {
+      // Instant loans: self_employed or both (never salaried)
+      return policyEmpType === 'self_employed' || policyEmpType === 'both';
+    }
+  }) : [];
+
   const userFoir = salary > 0 ? (existingEmi / salary) * 100 : 0;
   const eligibleBanks = [];
 
   // Step 3: Process each pincode-serving bank
   for (const bankName of combinedBankNames) {
-    const policy = policies ? policies.find((p) => p.bank_name === bankName) : null;
+    const policy = filteredPolicies.find((p) => p.bank_name === bankName);
 
     if (policy) {
       // If policy is available, perform strict policy checks
@@ -83,31 +97,55 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
       }
 
       // 2. Check Salary & CIBIL
-      if (salary < policy.min_salary || creditScore < policy.min_cibil) {
-        continue;
+      if (employmentType === 'salaried') {
+        if (salary < policy.min_salary || creditScore < policy.min_cibil) {
+          continue;
+        }
+      } else {
+        // self_employed: match on CIBIL only, skip salary/turnover check
+        if (creditScore < policy.min_cibil) {
+          continue;
+        }
       }
 
       // 3. Check FOIR
-      if (userFoir > (policy.foir_max || 100)) {
-        continue;
+      if (employmentType === 'salaried') {
+        if (userFoir > (policy.foir_max || 100)) {
+          continue;
+        }
+      }
+
+      // 4. Check Age Range
+      if (age !== undefined && age !== null) {
+        const userAge = Number(age);
+        if (userAge < (policy.min_age || 21) || userAge > (policy.max_age || 60)) {
+          continue;
+        }
       }
 
       // Calculate match score
-      const salaryScore =
-        policy.min_salary > 0
-          ? Math.min(((salary - policy.min_salary) / policy.min_salary) * 50, 50)
-          : 50;
+      let salaryScore, foirScore;
+      if (employmentType === 'salaried') {
+        salaryScore =
+          policy.min_salary > 0
+            ? Math.min(((salary - policy.min_salary) / policy.min_salary) * 50, 50)
+            : 50;
+
+        const foirMax = policy.foir_max || 100;
+        foirScore =
+          foirMax > 0
+            ? Math.min(((foirMax - userFoir) / foirMax) * 20, 20)
+            : 20;
+      } else {
+        // self_employed defaults
+        salaryScore = 40;
+        foirScore = 15;
+      }
 
       const cibilScore =
         policy.min_cibil > 0
           ? Math.min(((creditScore - policy.min_cibil) / policy.min_cibil) * 30, 30)
           : 30;
-
-      const foirMax = policy.foir_max || 100;
-      const foirScore =
-        foirMax > 0
-          ? Math.min(((foirMax - userFoir) / foirMax) * 20, 20)
-          : 20;
 
       let totalScore = Math.round(salaryScore + cibilScore + foirScore);
       totalScore = Math.max(60, Math.min(99, totalScore));
@@ -115,7 +153,7 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
       eligibleBanks.push({
         ...policy,
         match_score: totalScore,
-        user_foir: Math.round(userFoir * 10) / 10,
+        user_foir: employmentType === 'salaried' ? Math.round(userFoir * 10) / 10 : 0,
       });
     } else {
       // If no policy is available, match purely on the basis of pincode (ignore policy requirements)
@@ -126,6 +164,14 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
 
       if (loanType && loanType !== 'ALL' && inferredLoanType !== loanType) {
         continue;
+      }
+
+      // 2. Check Age Range (default 21-60 for inferred policy)
+      if (age !== undefined && age !== null) {
+        const userAge = Number(age);
+        if (userAge < 21 || userAge > 60) {
+          continue;
+        }
       }
 
       eligibleBanks.push({
@@ -145,7 +191,7 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
         special_notes: 'Matched based on pincode serviceability',
         logo_url: null,
         match_score: 75, // Default neutral matching score for pincode match
-        user_foir: Math.round(userFoir * 10) / 10,
+        user_foir: employmentType === 'salaried' ? Math.round(userFoir * 10) / 10 : 0,
       });
     }
   }
@@ -179,6 +225,8 @@ export async function saveInquiry(data) {
       credit_score: data.creditScore,
       eligible_banks: data.eligibleBanks || [],
       user_id: data.userId || null,
+      employment_type: data.employmentType || 'salaried',
+      dob: data.dob || null,
       created_at: new Date().toISOString(),
     },
   ]);

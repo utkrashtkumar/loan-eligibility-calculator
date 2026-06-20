@@ -194,6 +194,7 @@ body {
   background-color: var(--color-bg-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  padding-top: var(--header-height);
 }
 
 /* ---------- Custom Scrollbar ---------- */
@@ -317,8 +318,10 @@ p {
    HEADER
    ============================================ */
 .header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: var(--z-sticky);
   background: var(--color-bg-glass-heavy);
   backdrop-filter: blur(20px);
@@ -3552,3 +3555,41 @@ main, article, aside {
     transform: scale(1) translateY(0);
   }
 }
+
+/* Scroll To Top Button */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-bg-glass-heavy);
+  border: var(--border-subtle);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md), 0 0 15px rgba(45, 212, 191, 0.1);
+  z-index: 9999;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  padding: 0;
+  animation: fadeInScale 0.3s ease-out;
+}
+
+.scroll-to-top-btn:hover {
+  background: var(--gradient-primary);
+  color: #ffffff;
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: var(--shadow-lg), 0 0 20px rgba(45, 212, 191, 0.4);
+  border-color: transparent;
+}
+
+.scroll-to-top-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+

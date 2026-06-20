@@ -428,11 +428,11 @@ function SignupContent() {
             </div>
 
             <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
-              Approval Required
+              Email Verification & Approval Required
             </h3>
             
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
-              Your agent registration request has been submitted successfully! To activate your agent ID, you must require approval from the admin.
+              Your agent registration request has been submitted successfully! 📧 <strong>Please confirm your email address by clicking on the link received in your inbox.</strong> Once verified, your agent account will be reviewed and approved by the administrator.
             </p>
 
             <div style={{
@@ -446,7 +446,7 @@ function SignupContent() {
                 Click on the number to contact admin
               </span>
               <a 
-                href="tel:+918171261318" 
+                href="tel:+919389119399" 
                 onClick={handleModalClick}
                 style={{
                   fontSize: 'var(--text-xl)',
@@ -464,7 +464,7 @@ function SignupContent() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
-                +91 8171261318
+                +91 9389119399
               </a>
             </div>
 

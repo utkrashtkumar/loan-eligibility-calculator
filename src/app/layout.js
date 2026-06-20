@@ -1,6 +1,7 @@
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import CookieConsent from '@/components/CookieConsent';
+import ScrollToTop from '@/components/ScrollToTop';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -50,6 +51,7 @@ export default function RootLayout({ children }) {
         <div className="app-wrapper">
           {children}
           <CookieConsent />
+          <ScrollToTop />
         </div>
       </body>
     </html>

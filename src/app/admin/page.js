@@ -64,13 +64,16 @@ export default function AdminDashboard() {
     min_residence_stability: '1 Year',
     all_pincodes: true,
     special_notes: '',
-    logo_url: ''
+    logo_url: '',
+    employment_type: 'salaried'
   });
 
   // Pincode management state
   const [bankPincodes, setBankPincodes] = useState([]);
   const [newPincodeText, setNewPincodeText] = useState('');
   const [pincodeActionLoading, setPincodeActionLoading] = useState(null);
+  const [pincodeSearchTerm, setPincodeSearchTerm] = useState('');
+  const [selectedPincodeIds, setSelectedPincodeIds] = useState([]);
 
   const handleSelectAgent = (agent) => {
     setSelectedAgent(agent);
@@ -95,6 +98,7 @@ export default function AdminDashboard() {
   const fetchBankPincodes = async (bankName) => {
     if (!bankName) return;
     try {
+      setSelectedPincodeIds([]);
       const { data, error } = await supabase
         .from('bank_pincodes')
         .select('*')
@@ -246,9 +250,12 @@ export default function AdminDashboard() {
       min_residence_stability: '1 Year',
       all_pincodes: true,
       special_notes: '',
-      logo_url: ''
+      logo_url: '',
+      employment_type: 'salaried'
     });
     setBankPincodes([]);
+    setPincodeSearchTerm('');
+    setSelectedPincodeIds([]);
     setIsPolicyModalOpen(true);
   };
 
@@ -268,8 +275,11 @@ export default function AdminDashboard() {
       min_residence_stability: policy.min_residence_stability || '1 Year',
       all_pincodes: policy.all_pincodes !== false,
       special_notes: policy.special_notes || '',
-      logo_url: policy.logo_url || ''
+      logo_url: policy.logo_url || '',
+      employment_type: policy.employment_type || 'salaried'
     });
+    setPincodeSearchTerm('');
+    setSelectedPincodeIds([]);
     setIsPolicyModalOpen(true);
     
     if (policy.all_pincodes === false) {
@@ -300,7 +310,27 @@ export default function AdminDashboard() {
     }
     
     try {
-      const rows = pincodesToAdd.map(pin => ({
+      // Check for duplicates
+      const { data: existingPins } = await supabase
+        .from('bank_pincodes')
+        .select('pincode')
+        .eq('bank_name', bankName)
+        .in('pincode', pincodesToAdd);
+      
+      const existingSet = new Set((existingPins || []).map(p => p.pincode));
+      const newPins = pincodesToAdd.filter(p => !existingSet.has(p));
+      const duplicates = pincodesToAdd.filter(p => existingSet.has(p));
+      
+      if (duplicates.length > 0) {
+        alert(`⚠️ ${duplicates.length} pincode(s) already exist for ${bankName}: ${duplicates.slice(0, 10).join(', ')}${duplicates.length > 10 ? '...' : ''}`);
+      }
+      
+      if (newPins.length === 0) {
+        setPincodeActionLoading(null);
+        return;
+      }
+      
+      const rows = newPins.map(pin => ({
         bank_name: bankName,
         pincode: pin,
         is_active: true
@@ -344,6 +374,31 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleBulkDeletePincodes = async () => {
+    if (selectedPincodeIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedPincodeIds.length} selected pincode(s)?`)) return;
+    
+    const bankName = policyForm.bank_name || selectedPolicy?.bank_name;
+    setPincodeActionLoading('bulk-deleting');
+    try {
+      const { error } = await supabase
+        .from('bank_pincodes')
+        .delete()
+        .in('id', selectedPincodeIds);
+        
+      if (error) {
+        alert('Error deleting pincodes: ' + error.message);
+      } else {
+        setSelectedPincodeIds([]);
+        await fetchBankPincodes(bankName);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPincodeActionLoading(null);
+    }
+  };
+
   const fetchInquiries = async () => {
     try {
       // Fetch user inquiries and join profiles to identify role (agent vs customer)
@@ -352,8 +407,20 @@ export default function AdminDashboard() {
         .select('*, agent:profiles(full_name, email, agent_code, role)')
         .order('created_at', { ascending: false });
 
-      if (error) console.error('Error fetching inquiries:', error.message);
-      else setInquiries(data || []);
+      if (error) {
+        console.error('Error fetching inquiries:', error.message);
+      } else {
+        // Keep only the latest enquiry per mobile number
+        const seen = new Set();
+        const deduped = (data || []).filter(inq => {
+          if (!inq.mobile) return true;
+          const mob = inq.mobile.trim();
+          if (seen.has(mob)) return false;
+          seen.add(mob);
+          return true;
+        });
+        setInquiries(deduped);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -791,18 +858,21 @@ export default function AdminDashboard() {
   const filteredAgentInquiries = getFilteredInquiries(agentInquiries);
 
   const getStatusBadgeStyle = (status) => {
-    switch (status) {
-      case 'Applied':
-      case 'Pending':
+    if (!status) return {};
+    switch (status.toLowerCase()) {
+      case 'applied':
+      case 'pending':
         return { color: 'var(--color-text-secondary)', background: 'var(--color-bg-card)', border: 'var(--border-light)' };
-      case 'In Progress':
+      case 'in progress':
+      case 'in process':
         return { color: 'var(--color-warning)', background: 'var(--color-warning-bg)', border: 'var(--border-warning)' };
-      case 'Approved':
+      case 'approved':
+      case 'kyc verification':
         return { color: 'var(--color-info)', background: 'var(--color-info-bg)', border: 'var(--border-accent)' };
-      case 'Disbursed':
-      case 'Paid':
+      case 'disbursed':
+      case 'paid':
         return { color: 'var(--color-success)', background: 'var(--color-success-bg)', border: 'var(--border-success)', boxShadow: 'var(--shadow-glow-success)' };
-      case 'Rejected':
+      case 'rejected':
         return { color: 'var(--color-error)', background: 'var(--color-error-bg)', border: 'var(--border-error)' };
       default:
         return {};
@@ -822,24 +892,24 @@ export default function AdminDashboard() {
   const selectedAgentPayouts = selectedAgent ? payoutRequests.filter(req => req.agent_id === selectedAgent.id) : [];
   
   // Calculate selected agent earnings
-  const selectedAgentDisbursedApps = selectedAgentApps.filter(app => app.status === 'Disbursed');
+  const selectedAgentDisbursedApps = selectedAgentApps.filter(app => app.status && app.status.toLowerCase() === 'disbursed');
   const selectedAgentDirectComm = selectedAgentDisbursedApps.reduce((acc, app) => acc + Number(app.commission_amount), 0);
   
   // Find sub-agents of selected agent to fetch referral commissions
   const selectedAgentSubAgents = selectedAgent ? activeAgents.filter(sa => sa.referred_by === selectedAgent.agent_code) : [];
   const selectedAgentSubAgentIds = selectedAgentSubAgents.map(sa => sa.id);
-  const selectedAgentReferralApps = applications.filter(app => selectedAgentSubAgentIds.includes(app.agent_id) && app.status === 'Disbursed');
+  const selectedAgentReferralApps = applications.filter(app => selectedAgentSubAgentIds.includes(app.agent_id) && app.status && app.status.toLowerCase() === 'disbursed');
   const selectedAgentReferralBonus = selectedAgentReferralApps.reduce((acc, app) => acc + (Number(app.loan_amount) * 0.005), 0);
   const selectedAgentTotalEarnings = selectedAgentDirectComm + selectedAgentReferralBonus;
 
   const getDemotedOutstandingBalances = () => {
     return demotedUsers.map(du => {
       const duApps = applications.filter(app => app.agent_id === du.id);
-      const duDisbursed = duApps.filter(app => app.status === 'Disbursed');
+      const duDisbursed = duApps.filter(app => app.status && app.status.toLowerCase() === 'disbursed');
       const directComm = duDisbursed.reduce((acc, app) => acc + Number(app.commission_amount), 0);
       
       const saIds = activeAgents.filter(sa => sa.referred_by === du.agent_code).map(sa => sa.id);
-      const referralApps = applications.filter(app => saIds.includes(app.agent_id) && app.status === 'Disbursed');
+      const referralApps = applications.filter(app => saIds.includes(app.agent_id) && app.status && app.status.toLowerCase() === 'disbursed');
       const referralBonus = referralApps.reduce((acc, app) => acc + (Number(app.loan_amount) * 0.005), 0);
       
       const totalEarnings = directComm + referralBonus;
@@ -861,7 +931,7 @@ export default function AdminDashboard() {
   const demotedBalances = getDemotedOutstandingBalances();
   const totalNotifications = actualPendingAgents.length + 
                              payoutRequests.filter(r => r.status === 'Pending').length + 
-                             applications.filter(a => a.status === 'Applied').length + 
+                             applications.filter(a => a.status && a.status.toLowerCase() === 'applied').length + 
                              demotedBalances.length;
 
   return (
@@ -1215,11 +1285,27 @@ export default function AdminDashboard() {
                                  </tr>
                                </thead>
                                <tbody>
-                                 {applications.filter(a => a.status === 'Applied').map((app) => (
+                                 {applications.filter(a => a.status && a.status.toLowerCase() === 'applied').map((app) => (
                                    <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                      <td style={{ padding: '16px 24px' }}>
                                        <div style={{ fontWeight: 500 }}>{app.client_name}</div>
                                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                       {app.problem && (
+                                         <div style={{ 
+                                           fontSize: '11px', 
+                                           color: 'var(--color-error)', 
+                                           marginTop: '6px',
+                                           background: 'rgba(239, 68, 68, 0.08)',
+                                           padding: '6px 8px',
+                                           borderRadius: '4px',
+                                           borderLeft: '2px solid var(--color-error)',
+                                           maxWidth: '280px',
+                                           wordBreak: 'break-word',
+                                           textAlign: 'left'
+                                         }}>
+                                           ⚠️ <strong>Issue:</strong> {app.problem}
+                                         </div>
+                                       )}
                                      </td>
                                      <td style={{ padding: '16px 24px' }}>
                                        {app.agent ? (
@@ -1242,7 +1328,7 @@ export default function AdminDashboard() {
                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                        <select
                                          disabled={updatingAppId === app.id}
-                                         value={app.status}
+                                         value={app.status ? app.status.toLowerCase() : 'applied'}
                                          onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
                                          style={{
                                            background: 'var(--color-bg-secondary)',
@@ -1255,11 +1341,11 @@ export default function AdminDashboard() {
                                            cursor: 'pointer'
                                          }}
                                        >
-                                         <option value="Applied">Applied</option>
-                                         <option value="In Progress">In Progress</option>
-                                         <option value="Approved">Approved</option>
-                                         <option value="Disbursed">Disbursed</option>
-                                         <option value="Rejected">Rejected</option>
+                                         <option value="applied">Applied</option>
+                                         <option value="in process">In Progress</option>
+                                         <option value="kyc verification">KYC Verification</option>
+                                         <option value="disbursed">Disbursed</option>
+                                         <option value="rejected">Rejected</option>
                                        </select>
                                      </td>
                                    </tr>
@@ -2013,6 +2099,22 @@ export default function AdminDashboard() {
                                 <td style={{ padding: '16px 24px' }}>
                                   <div style={{ fontWeight: 500 }}>{app.client_name}</div>
                                   <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                  {app.problem && (
+                                    <div style={{ 
+                                      fontSize: '11px', 
+                                      color: 'var(--color-error)', 
+                                      marginTop: '6px',
+                                      background: 'rgba(239, 68, 68, 0.08)',
+                                      padding: '6px 8px',
+                                      borderRadius: '4px',
+                                      borderLeft: '2px solid var(--color-error)',
+                                      maxWidth: '280px',
+                                      wordBreak: 'break-word',
+                                      textAlign: 'left'
+                                    }}>
+                                      ⚠️ <strong>Issue:</strong> {app.problem}
+                                    </div>
+                                  )}
                                 </td>
                                 <td style={{ padding: '16px 24px' }}>
                                   {app.agent ? (
@@ -2047,7 +2149,7 @@ export default function AdminDashboard() {
                                     </span>
                                     <select
                                       disabled={updatingAppId === app.id}
-                                      value={app.status}
+                                      value={app.status ? app.status.toLowerCase() : 'applied'}
                                       onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
                                       style={{
                                         background: 'var(--color-bg-secondary)',
@@ -2060,11 +2162,11 @@ export default function AdminDashboard() {
                                         cursor: 'pointer'
                                       }}
                                     >
-                                      <option value="Applied">Applied</option>
-                                      <option value="In Progress">In Progress</option>
-                                      <option value="Approved">Approved</option>
-                                      <option value="Disbursed">Disbursed</option>
-                                      <option value="Rejected">Rejected</option>
+                                      <option value="applied">Applied</option>
+                                      <option value="in process">In Progress</option>
+                                      <option value="kyc verification">KYC Verification</option>
+                                      <option value="disbursed">Disbursed</option>
+                                      <option value="rejected">Rejected</option>
                                     </select>
                                   </div>
                                 </td>
@@ -2113,6 +2215,7 @@ export default function AdminDashboard() {
                               <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
                                 <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Bank / NBFC</th>
                                 <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Type</th>
+                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Emp. Type</th>
                                 <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min Salary (₹)</th>
                                 <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min CIBIL</th>
                                 <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Max FOIR %</th>
@@ -2136,6 +2239,19 @@ export default function AdminDashboard() {
                                   <td style={{ padding: '12px 10px' }}>
                                     <span className={`badge ${policy.loan_type === 'PL' ? 'badge-primary' : 'badge-info'}`}>
                                       {policy.loan_type === 'PL' ? '💳 Personal' : '💼 Business'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '12px 10px' }}>
+                                    <span className="badge" style={{
+                                      background: policy.employment_type === 'self_employed' ? 'rgba(16, 185, 129, 0.15)' : policy.employment_type === 'both' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                                      color: policy.employment_type === 'self_employed' ? '#10b981' : policy.employment_type === 'both' ? '#f59e0b' : '#6366f1',
+                                      border: 'none',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      fontWeight: 600,
+                                      fontSize: '10px'
+                                    }}>
+                                      {policy.employment_type === 'self_employed' ? '🏢 Self Emp' : policy.employment_type === 'both' ? '🔄 Both' : '💼 Salaried'}
                                     </span>
                                   </td>
                                   <td style={{ padding: '12px 10px', fontWeight: 500 }}>
@@ -2240,6 +2356,7 @@ export default function AdminDashboard() {
                               return (
                                 msg.name?.toLowerCase().includes(query) ||
                                 msg.email?.toLowerCase().includes(query) ||
+                                msg.mobile?.toLowerCase().includes(query) ||
                                 msg.subject?.toLowerCase().includes(query) ||
                                 msg.message?.toLowerCase().includes(query)
                               );
@@ -2247,7 +2364,10 @@ export default function AdminDashboard() {
                               <tr key={msg.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--color-text-primary)' }}>
                                 <td style={{ padding: '16px' }}>
                                   <div style={{ fontWeight: 600 }}>{msg.name}</div>
-                                  <a href={`mailto:${msg.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{msg.email}</a>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                                    <a href={`mailto:${msg.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontSize: 'var(--text-xs)' }}>{msg.email}</a>
+                                    {msg.mobile && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>📱 {msg.mobile}</span>}
+                                  </div>
                                 </td>
                                 <td style={{ padding: '16px', fontWeight: 500 }}>
                                   {msg.subject || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No Subject</span>}
@@ -2359,7 +2479,7 @@ export default function AdminDashboard() {
 
             {/* Content Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
                 <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-light)' }}>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: '4px' }}>{selectedMessage.name}</div>
@@ -2372,6 +2492,16 @@ export default function AdminDashboard() {
                     </a>
                   </div>
                 </div>
+                {selectedMessage.mobile && (
+                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-light)' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mobile Number</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: '4px' }}>
+                      <a href={`tel:+91${selectedMessage.mobile}`} style={{ textDecoration: 'none', color: 'var(--color-text-primary)' }}>
+                        {selectedMessage.mobile}
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-light)' }}>
@@ -2490,6 +2620,25 @@ export default function AdminDashboard() {
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Credit Score (CIBIL)</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-success)' }}>{selectedInquiry.credit_score}</div>
                 </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedInquiry.dob || 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated Age</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+                    {selectedInquiry.dob ? (() => {
+                      const today = new Date();
+                      const birthDate = new Date(selectedInquiry.dob);
+                      let age = today.getFullYear() - birthDate.getFullYear();
+                      const m = today.getMonth() - birthDate.getMonth();
+                      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                      }
+                      return `${age} years`;
+                    })() : 'N/A'}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2556,6 +2705,64 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ marginTop: '12px', paddingTop: '24px', borderTop: 'var(--border-subtle)' }}>
+              <button
+                onClick={async () => {
+                  if (confirm(`Are you sure you want to delete the inquiry for "${selectedInquiry.name}"? This action cannot be undone.`)) {
+                    try {
+                      const { error } = await supabase
+                        .from('user_inquiries')
+                        .delete()
+                        .eq('id', selectedInquiry.id);
+                      if (error) {
+                        alert('Error deleting inquiry: ' + error.message);
+                      } else {
+                        alert('Inquiry deleted successfully!');
+                        setSelectedInquiry(null);
+                        fetchInquiries();
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert('An unexpected error occurred.');
+                    }
+                  }
+                }}
+                className="btn"
+                style={{
+                  width: '100%',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--color-error)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--border-radius-md)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-error)';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.color = 'var(--color-error)';
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                Delete Inquiry
+              </button>
             </div>
 
           </div>
@@ -2654,6 +2861,22 @@ export default function AdminDashboard() {
                       <option value="BL">Business Loan (BL)</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Employment Type</label>
+                    <select
+                      className="input-field"
+                      value={policyForm.employment_type || 'salaried'}
+                      onChange={(e) => setPolicyForm({ ...policyForm, employment_type: e.target.value })}
+                    >
+                      <option value="salaried">💼 Salaried Only</option>
+                      <option value="self_employed">🏢 Self Employed Only</option>
+                      <option value="both">🔄 Both (Salaried & Self Employed)</option>
+                    </select>
+                  </div>
+                  <div></div>
                 </div>
 
                 <div className="responsive-grid-2" style={{ gap: '16px' }}>
@@ -2821,98 +3044,164 @@ export default function AdminDashboard() {
               </form>
 
               {/* Right Column: Pincode Management (Only when all_pincodes is false) */}
-              {!policyForm.all_pincodes && (
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '16px',
-                  background: 'var(--color-bg-card)',
-                  border: 'var(--border-light)',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  height: '100%',
-                  maxHeight: '680px'
-                }}>
-                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    📍 Serviced Pincodes ({bankPincodes.length})
-                  </h4>
+              {!policyForm.all_pincodes && (() => {
+                const filteredPincodes = bankPincodes.filter(pin => 
+                  pin.pincode.includes(pincodeSearchTerm.trim())
+                );
+                return (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '16px',
+                    background: 'var(--color-bg-card)',
+                    border: 'var(--border-light)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    height: '100%',
+                    maxHeight: '680px',
+                    minWidth: '320px'
+                  }}>
+                    <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      📍 Serviced Pincodes ({filteredPincodes.length} / {bankPincodes.length})
+                    </h4>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input 
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="text"
+                        className="input-field"
+                        placeholder="Enter pincode (e.g. 110001) or comma separated"
+                        value={newPincodeText}
+                        onChange={(e) => setNewPincodeText(e.target.value)}
+                      />
+                      <button
+                        className="btn btn-primary btn-sm"
+                        type="button"
+                        onClick={handleAddBankPincodes}
+                        disabled={pincodeActionLoading === 'adding'}
+                        style={{ padding: '0 16px' }}
+                      >
+                        {pincodeActionLoading === 'adding' ? 'Adding...' : 'Add'}
+                      </button>
+                    </div>
+
+                    <input
                       type="text"
                       className="input-field"
-                      placeholder="Enter pincode (e.g. 110001) or comma separated"
-                      value={newPincodeText}
-                      onChange={(e) => setNewPincodeText(e.target.value)}
+                      placeholder="🔍 Search mapped pincodes..."
+                      value={pincodeSearchTerm}
+                      onChange={(e) => setPincodeSearchTerm(e.target.value)}
+                      style={{ fontSize: 'var(--text-xs)', padding: '8px 12px' }}
                     />
-                    <button
-                      className="btn btn-primary btn-sm"
-                      type="button"
-                      onClick={handleAddBankPincodes}
-                      disabled={pincodeActionLoading === 'adding'}
-                      style={{ padding: '0 16px' }}
-                    >
-                      {pincodeActionLoading === 'adding' ? 'Adding...' : 'Add'}
-                    </button>
-                  </div>
 
-                  <div style={{ 
-                    overflowY: 'auto', 
-                    flex: 1, 
-                    border: 'var(--border-subtle)', 
-                    borderRadius: '12px',
-                    background: 'var(--color-bg-input)',
-                    padding: '8px',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                    gap: '8px',
-                    alignContent: 'start',
-                    minHeight: '200px',
-                    maxHeight: '400px'
-                  }}>
-                    {bankPincodes.length === 0 ? (
-                      <div style={{ 
-                        gridColumn: '1 / -1', 
-                        padding: '32px 16px', 
-                        textAlign: 'center', 
-                        color: 'var(--color-text-muted)',
-                        fontSize: 'var(--text-xs)'
-                      }}>
-                        No pincodes mapped. This bank will not appear in any match results.
-                      </div>
-                    ) : (
-                      bankPincodes.map((pin) => (
-                        <div 
-                          key={pin.id} 
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '6px 10px',
-                            background: 'var(--color-bg-card)',
-                            border: 'var(--border-light)',
-                            borderRadius: '8px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600
-                          }}
-                        >
-                          <span>{pin.pincode}</span>
+                    {filteredPincodes.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
+                          <input
+                            type="checkbox"
+                            checked={filteredPincodes.length > 0 && filteredPincodes.every(pin => selectedPincodeIds.includes(pin.id))}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                const allFilteredIds = filteredPincodes.map(pin => pin.id);
+                                setSelectedPincodeIds(prev => [...new Set([...prev, ...allFilteredIds])]);
+                              } else {
+                                const filteredIdsSet = new Set(filteredPincodes.map(pin => pin.id));
+                                setSelectedPincodeIds(prev => prev.filter(id => !filteredIdsSet.has(id)));
+                              }
+                            }}
+                          />
+                          Select All
+                        </label>
+                        {selectedPincodeIds.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteBankPincode(pin.id)}
-                            disabled={pincodeActionLoading === pin.id}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--color-error)',
-                              cursor: 'pointer',
-                              fontWeight: 'bold',
-                              padding: '0 2px'
+                            onClick={handleBulkDeletePincodes}
+                            className="btn btn-sm"
+                            style={{ 
+                              background: 'rgba(239, 68, 68, 0.1)', 
+                              color: 'var(--color-error)', 
+                              border: '1px solid rgba(239, 68, 68, 0.25)', 
+                              padding: '2px 8px', 
+                              fontSize: '10px', 
+                              fontWeight: 600,
+                              borderRadius: '4px'
                             }}
-                            title="Remove pincode serviceability"
+                            disabled={pincodeActionLoading === 'bulk-deleting'}
                           >
-                            ✕
+                            🗑️ Delete Selected ({selectedPincodeIds.length})
                           </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ 
+                      overflowY: 'auto', 
+                      flex: 1, 
+                      border: 'var(--border-subtle)', 
+                      borderRadius: '12px',
+                      background: 'var(--color-bg-input)',
+                      padding: '8px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                      gap: '8px',
+                      alignContent: 'start',
+                      minHeight: '200px',
+                      maxHeight: '400px'
+                    }}>
+                      {filteredPincodes.length === 0 ? (
+                        <div style={{ 
+                          gridColumn: '1 / -1', 
+                          padding: '32px 16px', 
+                          textAlign: 'center', 
+                          color: 'var(--color-text-muted)',
+                          fontSize: 'var(--text-xs)'
+                        }}>
+                          {bankPincodes.length === 0 ? 'No pincodes mapped.' : 'No matching pincodes found.'}
+                        </div>
+                      ) : (
+                        filteredPincodes.map((pin) => (
+                          <div 
+                            key={pin.id} 
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 8px',
+                              background: 'var(--color-bg-card)',
+                              border: selectedPincodeIds.includes(pin.id) ? '1px solid rgba(239, 68, 68, 0.5)' : 'var(--border-light)',
+                              borderRadius: '8px',
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 600
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedPincodeIds.includes(pin.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedPincodeIds(prev => [...prev, pin.id]);
+                                } else {
+                                  setSelectedPincodeIds(prev => prev.filter(id => id !== pin.id));
+                                }
+                              }}
+                              style={{ cursor: 'pointer', width: '12px', height: '12px' }}
+                            />
+                            <span style={{ flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>{pin.pincode}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBankPincode(pin.id)}
+                              disabled={pincodeActionLoading === pin.id}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--color-error)',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                padding: '0 2px'
+                              }}
+                              title="Remove pincode serviceability"
+                            >
+                              ✕
+                            </button>
                         </div>
                       ))
                     )}
@@ -2921,7 +3210,7 @@ export default function AdminDashboard() {
                     * Pincodes added here map mapping links directly in the serviceable regions list for eligibility matching.
                   </p>
                 </div>
-              )}
+              )})()}
 
             </div>
           </div>
@@ -3432,11 +3721,25 @@ export default function AdminDashboard() {
                 <div style={{ display: 'grid', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
                   {selectedAgentApps.map(app => (
                     <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-bg-card)', padding: '10px 14px', borderRadius: '6px', border: 'var(--border-subtle)' }}>
-                      <div>
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
                         <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>{app.client_name}</div>
                         <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>{app.bank_name} | ₹{Number(app.loan_amount).toLocaleString('en-IN')}</div>
+                        {app.problem && (
+                          <div style={{ 
+                            fontSize: '9px', 
+                            color: 'var(--color-error)', 
+                            marginTop: '4px',
+                            background: 'rgba(239, 68, 68, 0.05)',
+                            padding: '4px 6px',
+                            borderRadius: '4px',
+                            borderLeft: '2px solid var(--color-error)',
+                            wordBreak: 'break-word'
+                          }}>
+                            ⚠️ {app.problem}
+                          </div>
+                        )}
                       </div>
-                      <span className="badge" style={{ ...getStatusBadgeStyle(app.status), fontSize: '9px', padding: '2px 6px' }}>{app.status}</span>
+                      <span className="badge" style={{ ...getStatusBadgeStyle(app.status), fontSize: '9px', padding: '2px 6px', flexShrink: 0 }}>{app.status}</span>
                     </div>
                   ))}
                 </div>
