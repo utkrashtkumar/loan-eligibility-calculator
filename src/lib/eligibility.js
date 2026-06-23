@@ -18,7 +18,7 @@ import { supabase } from '@/lib/supabase';
  * @param {string} params.loanType - 'PL' or 'BL' or 'ALL'
  * @returns {Promise<Array>} Eligible banks sorted by match score
  */
-export async function checkEligibility({ pincode, salary, creditScore, existingEmi, loanType = 'ALL', employmentType = 'salaried', age }) {
+export async function checkEligibility({ pincode, salary, creditScore, existingEmi, loanType = 'ALL', employmentType = 'salaried', age, pfDeduction = 'yes' }) {
   // Step 1a: Find banks serving this pincode
   const { data: pincodeData, error: pincodeError } = await supabase
     .from('bank_pincodes')
@@ -115,7 +115,14 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
         }
       }
 
-      // 4. Check Age Range
+      // 4. Check PF Deduction
+      // If bank requires PF and user does NOT have PF deduction, skip this bank
+      const bankRequiresPF = (policy.pf_required || '').toLowerCase() === 'yes';
+      if (bankRequiresPF && pfDeduction === 'no') {
+        continue;
+      }
+
+      // 5. Check Age Range
       if (age !== undefined && age !== null) {
         const userAge = Number(age);
         if (userAge < (policy.min_age || 21) || userAge > (policy.max_age || 60)) {

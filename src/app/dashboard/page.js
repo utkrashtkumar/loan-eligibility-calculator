@@ -154,6 +154,9 @@ export default function UserDashboard() {
   const [appDetailsStatusValue, setAppDetailsStatusValue] = useState('applied');
   const [appDetailsProblemText, setAppDetailsProblemText] = useState('');
 
+  // Sub-agent details modal state
+  const [selectedSubAgent, setSelectedSubAgent] = useState(null);
+
   // Profile Form State
   const [profileFormData, setProfileFormData] = useState({
     full_name: '',
@@ -2189,9 +2192,11 @@ export default function UserDashboard() {
                                     <tr style={{ background: 'var(--color-bg-glass)', borderBottom: 'var(--border-subtle)' }}>
                                       <th style={{ padding: '16px' }}>Partner Name</th>
                                       <th style={{ padding: '16px' }}>Email</th>
+                                      <th style={{ padding: '16px' }}>Phone</th>
                                       <th style={{ padding: '16px' }}>Sub-Agent Code</th>
                                       <th style={{ padding: '16px' }}>Referral Date</th>
                                       <th style={{ padding: '16px' }}>Status</th>
+                                      <th style={{ padding: '16px', textAlign: 'right' }}>Action</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2199,6 +2204,7 @@ export default function UserDashboard() {
                                       <tr key={sa.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                         <td style={{ padding: '16px', fontWeight: 500 }}>{sa.full_name}</td>
                                         <td style={{ padding: '16px' }}>{sa.email}</td>
+                                        <td style={{ padding: '16px' }}>{sa.phone || 'N/A'}</td>
                                         <td style={{ padding: '16px', fontFamily: 'var(--font-heading)', fontWeight: 600 }}>{sa.agent_code || 'PENDING'}</td>
                                         <td style={{ padding: '16px' }}>
                                           {new Date(sa.created_at).toLocaleDateString('en-IN')}
@@ -2207,6 +2213,15 @@ export default function UserDashboard() {
                                           <span className="badge" style={sa.approved ? { color: 'var(--color-success)', background: 'var(--color-success-bg)', border: 'var(--border-success)' } : { color: 'var(--color-warning)', background: 'var(--color-warning-bg)', border: 'var(--border-warning)' }}>
                                             {sa.approved ? 'Active' : 'Pending Approval'}
                                           </span>
+                                        </td>
+                                        <td style={{ padding: '16px', textAlign: 'right' }}>
+                                          <button 
+                                            onClick={() => setSelectedSubAgent(sa)} 
+                                            className="btn btn-secondary btn-sm"
+                                            style={{ margin: 0, padding: '6px 12px', fontSize: '11px' }}
+                                          >
+                                            View Details 👁️
+                                          </button>
                                         </td>
                                       </tr>
                                     ))}
@@ -3112,6 +3127,184 @@ export default function UserDashboard() {
                     )}
                   </div>
                 </form>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Selected Sub-Agent Details Modal */}
+        {selectedSubAgent && (() => {
+          const saApps = subAgentDisbursedApps.filter(app => app.agent_id === selectedSubAgent.id);
+          const saBonus = saApps.reduce((acc, app) => acc + (Number(app.loan_amount) * 0.005), 0);
+          const saTotalBusiness = saApps.reduce((acc, app) => acc + Number(app.loan_amount), 0);
+
+          return (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(20px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: '24px'
+            }}>
+              <div className="form-card" style={{
+                maxWidth: '600px',
+                width: '95vw',
+                margin: '0 auto',
+                display: 'grid',
+                gap: '20px',
+                background: 'rgba(20, 20, 20, 0.85)',
+                backdropFilter: 'blur(25px)',
+                border: 'var(--border-light)',
+                boxShadow: 'var(--shadow-xl)',
+                borderRadius: 'var(--border-radius-lg)',
+                padding: '28px',
+                color: '#fff',
+                maxHeight: '90vh',
+                overflowY: 'auto'
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {selectedSubAgent.avatar ? (
+                      <img 
+                        src={selectedSubAgent.avatar} 
+                        alt={selectedSubAgent.full_name} 
+                        style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--color-primary)' }} 
+                      />
+                    ) : (
+                      <div style={{ 
+                        width: '48px', 
+                        height: '48px', 
+                        borderRadius: '50%', 
+                        background: 'var(--gradient-primary)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        fontWeight: 700,
+                        fontSize: 'var(--text-lg)',
+                        color: '#fff'
+                      }}>
+                        {selectedSubAgent.full_name ? selectedSubAgent.full_name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    )}
+                    <div>
+                      <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>Sub-Agent Profile</h3>
+                      <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>Recruited partner details & performance</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedSubAgent(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      lineHeight: 1
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Performance Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', padding: '16px', background: 'var(--color-bg-glass)', borderRadius: '8px', border: 'var(--border-subtle)' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Disbursed Loans</div>
+                    <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-primary)', marginTop: '4px' }}>{saApps.length}</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Total Business</div>
+                    <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#fff', marginTop: '4px' }}>₹{saTotalBusiness.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Your Earning (0.5%)</div>
+                    <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-success)', marginTop: '4px' }}>₹{saBonus.toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+
+                {/* Profile Details */}
+                <div className="responsive-grid-2" style={{ gap: '16px 24px', fontSize: 'var(--text-sm)' }}>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Full Name</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedSubAgent.full_name}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Email Address</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedSubAgent.email}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Phone Number</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedSubAgent.phone || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Code</div>
+                    <div style={{ fontWeight: 600, fontFamily: 'var(--font-heading)', color: 'var(--color-accent)', marginTop: '2px' }}>{selectedSubAgent.agent_code || 'PENDING'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>
+                      {selectedSubAgent.dob || 'Not provided'} {selectedSubAgent.dob && `(Age: ${new Date().getFullYear() - new Date(selectedSubAgent.dob).getFullYear()})`}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Father&apos;s Name</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedSubAgent.fathers_name || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Marital Status</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedSubAgent.marital_status || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Pincode</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedSubAgent.pincode || 'Not provided'}</div>
+                  </div>
+                  <div className="span-2-desktop">
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Location</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>
+                      {selectedSubAgent.city ? `${selectedSubAgent.city}, ${selectedSubAgent.state}` : selectedSubAgent.state || 'Not provided'}
+                    </div>
+                  </div>
+                  <div className="span-2-desktop">
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Current Address</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px', fontSize: 'var(--text-xs)' }}>{selectedSubAgent.current_address || 'Not provided'}</div>
+                  </div>
+                  <div className="span-2-desktop">
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Permanent Address</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px', fontSize: 'var(--text-xs)' }}>{selectedSubAgent.permanent_address || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Joined Date</div>
+                    <div style={{ fontWeight: 600, marginTop: '2px' }}>{new Date(selectedSubAgent.created_at).toLocaleDateString('en-IN')}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Approval Status</div>
+                    <div style={{ marginTop: '4px' }}>
+                      <span className="badge" style={selectedSubAgent.approved ? { color: 'var(--color-success)', background: 'var(--color-success-bg)', border: 'var(--border-success)' } : { color: 'var(--color-warning)', background: 'var(--color-warning-bg)', border: 'var(--border-warning)' }}>
+                        {selectedSubAgent.approved ? 'Active' : 'Pending Approval'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubAgent(null)}
+                    className="btn btn-secondary"
+                    style={{ margin: 0 }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           );

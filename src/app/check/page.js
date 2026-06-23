@@ -84,6 +84,7 @@ const INITIAL_FORM = {
   creditScore: '',
   loanType: 'ALL',
   employmentType: 'salaried',
+  pfDeduction: 'yes', // 'yes' or 'no'
 };
 
 export default function CheckPage() {
@@ -316,6 +317,7 @@ export default function CheckPage() {
         loanType: formData.loanType,
         employmentType: formData.employmentType,
         age,
+        pfDeduction: formData.pfDeduction,
       });
 
       setResults(eligible);
@@ -335,6 +337,7 @@ export default function CheckPage() {
         eligibleBanks: eligible.map((b) => b.bank_name),
         userId: user?.id || null,
         employmentType: formData.employmentType,
+        pfDeduction: formData.pfDeduction,
       });
     } catch (err) {
       console.error('Eligibility check failed:', err);
@@ -755,6 +758,52 @@ export default function CheckPage() {
                         />
                       </div>
                     </div>
+
+                    {/* PF Deduction Toggle */}
+                    <div className="input-group">
+                      <label className="input-label">PF Deduction <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>(some banks require PF)</span></label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => updateField('pfDeduction', 'yes')}
+                          style={{
+                            padding: '12px 16px',
+                            borderRadius: 'var(--border-radius-md)',
+                            border: formData.pfDeduction === 'yes' ? '2px solid var(--color-success)' : 'var(--border-light)',
+                            background: formData.pfDeduction === 'yes' ? 'rgba(74,222,128,0.1)' : 'var(--color-bg-input)',
+                            color: formData.pfDeduction === 'yes' ? 'var(--color-success)' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: 'var(--text-sm)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                          }}
+                        >
+                          ✅ Yes, PF Deducted
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateField('pfDeduction', 'no')}
+                          style={{
+                            padding: '12px 16px',
+                            borderRadius: 'var(--border-radius-md)',
+                            border: formData.pfDeduction === 'no' ? '2px solid var(--color-warning)' : 'var(--border-light)',
+                            background: formData.pfDeduction === 'no' ? 'rgba(251,191,36,0.1)' : 'var(--color-bg-input)',
+                            color: formData.pfDeduction === 'no' ? 'var(--color-warning)' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: 'var(--text-sm)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                          }}
+                        >
+                          ❌ No PF Deduction
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
+                        Banks that require PF deduction will only be shown if you select &ldquo;Yes, PF Deducted&rdquo;.
+                      </p>
+                    </div>
                     </>
                     )}
 
@@ -777,7 +826,31 @@ export default function CheckPage() {
                     )}
 
                     <div className="input-group">
-                      <label className="input-label">CIBIL / Credit Score <span className="required">*</span></label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <label className="input-label" style={{ margin: 0 }}>CIBIL / Credit Score <span className="required">*</span></label>
+                        <a
+                          href="https://pnb.bank.in/Free-Credit-Report.html"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--color-primary)',
+                            background: 'rgba(45,212,191,0.08)',
+                            border: '1px solid rgba(45,212,191,0.2)',
+                            borderRadius: '99px',
+                            padding: '3px 10px',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          📈 Check CIBIL Free
+                        </a>
+                      </div>
                       <input
                         type="number"
                         name="creditScore"

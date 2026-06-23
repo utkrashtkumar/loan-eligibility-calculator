@@ -896,7 +896,7 @@ export default function AdminDashboard() {
   const selectedAgentDirectComm = selectedAgentDisbursedApps.reduce((acc, app) => acc + Number(app.commission_amount), 0);
   
   // Find sub-agents of selected agent to fetch referral commissions
-  const selectedAgentSubAgents = selectedAgent ? activeAgents.filter(sa => sa.referred_by === selectedAgent.agent_code) : [];
+  const selectedAgentSubAgents = selectedAgent ? [...activeAgents, ...pendingAgents].filter(sa => sa.referred_by === selectedAgent.agent_code) : [];
   const selectedAgentSubAgentIds = selectedAgentSubAgents.map(sa => sa.id);
   const selectedAgentReferralApps = applications.filter(app => selectedAgentSubAgentIds.includes(app.agent_id) && app.status && app.status.toLowerCase() === 'disbursed');
   const selectedAgentReferralBonus = selectedAgentReferralApps.reduce((acc, app) => acc + (Number(app.loan_amount) * 0.005), 0);
@@ -3710,6 +3710,48 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Recruited Sub-Agents */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Recruited Sub-Agents ({selectedAgentSubAgents.length})</h4>
+              {selectedAgentSubAgents.length === 0 ? (
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No sub-agents recruited.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                  {selectedAgentSubAgents.map(sa => (
+                    <div key={sa.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-bg-card)', padding: '10px 14px', borderRadius: '6px', border: 'var(--border-subtle)' }}>
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>{sa.full_name}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                          Code: {sa.agent_code || 'PENDING'} | Phone: {sa.phone || 'N/A'} | Email: {sa.email}
+                        </div>
+                        <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
+                          Joined: {new Date(sa.created_at).toLocaleDateString('en-IN')} {sa.city && sa.state ? `| Location: ${sa.city}, ${sa.state}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <span className="badge" style={{ 
+                          color: sa.approved ? 'var(--color-success)' : 'var(--color-warning)', 
+                          background: sa.approved ? 'var(--color-success-bg)' : 'var(--color-warning-bg)', 
+                          border: sa.approved ? 'var(--border-success)' : 'var(--border-warning)',
+                          fontSize: '9px', 
+                          padding: '2px 6px' 
+                        }}>
+                          {sa.approved ? 'Active' : 'Pending'}
+                        </span>
+                        <button
+                          onClick={() => handleSelectAgent(sa)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ margin: 0, padding: '4px 8px', fontSize: '9px' }}
+                        >
+                          Inspect 👁️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Client Applications submitted by this agent */}

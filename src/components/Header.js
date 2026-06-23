@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const pathname = usePathname();
   const router = useRouter();
   
@@ -51,9 +52,11 @@ export default function Header() {
         if (profile && profile.role === 'agent' && !profile.approved) {
           await supabase.auth.signOut();
           setUser(null);
+          setUserRole(null);
           router.push('/login?error=pending');
           return;
         }
+        setUserRole(profile?.role || null);
       }
       setUser(session?.user || null);
     };
@@ -126,8 +129,26 @@ export default function Header() {
                 Check Eligibility
               </Link>
             </li>
+            <li>
+              <a
+                href="https://pnb.bank.in/Free-Credit-Report.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-link"
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)', marginLeft: '4px' }}
+              >
+                📈 CIBIL Score
+              </a>
+            </li>
             {user ? (
               <>
+                {(userRole === 'agent' || userRole === 'admin') && (
+                <li>
+                  <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+                    🏦 Banks
+                  </Link>
+                </li>
+                )}
                 <li>
                   <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
                     Dashboard
@@ -212,6 +233,21 @@ export default function Header() {
         <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
           Check Eligibility
         </Link>
+        <a
+          href="https://pnb.bank.in/Free-Credit-Report.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="nav-link"
+          style={{ color: 'var(--color-primary)', fontWeight: 700 }}
+          onClick={closeMenu}
+        >
+          📈 Check CIBIL Score
+        </a>
+        {user && (userRole === 'agent' || userRole === 'admin') && (
+          <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} onClick={closeMenu}>
+            🏦 Banks
+          </Link>
+        )}
         <Link href="/#emi-calculator" className="nav-link" onClick={closeMenu}>
           EMI Calculator
         </Link>
