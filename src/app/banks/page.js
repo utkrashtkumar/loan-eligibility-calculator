@@ -330,7 +330,7 @@ export default function BanksPage() {
               🏦 All Partner Banks
             </h1>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-base)', maxWidth: '560px', lineHeight: 1.6 }}>
-              Browse all available bank policies, check pincode serviceability, and apply directly through affiliate links.
+              Browse all available bank policies, check pincode serviceability, and apply directly.
             </p>
 
             {/* Stats row */}

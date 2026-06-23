@@ -20,7 +20,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata = {
   title: 'Hand to Hand Fintech Loan Platform',
   description:
-    'Check loan eligibility instantly across 10+ banks and NBFCs, manage client applications, track agent earnings, and build your referral tree on the premium Hand to Hand Fintech platform.',
+    'Check loan eligibility instantly across 100+ banks and NBFCs, manage client applications, track agent earnings, and build your referral tree on the premium Hand to Hand Fintech platform.',
   keywords: ['fintech loan platform', 'agent portal', 'loan eligibility', 'personal loan', 'CIBIL score', 'loan checker', 'bank comparison'],
   openGraph: {
     title: 'Hand to Hand Fintech Loan Platform',

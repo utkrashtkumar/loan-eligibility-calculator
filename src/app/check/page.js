@@ -271,7 +271,7 @@ export default function CheckPage() {
               clientName: clientName.trim()
             }));
           }
-          setApplySuccess(`Application recorded! Opening affiliate link in a new tab...`);
+          setApplySuccess(`Application recorded! Opening portal link in a new tab...`);
           window.open(affiliateLink, '_blank');
         } else {
           setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);

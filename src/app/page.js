@@ -88,7 +88,7 @@ export default function Home() {
   const faqs = [
     {
       q: "What is Hand to Hand Fintech?",
-      a: "Hand to Hand Fintech is an intelligent platform that lets you check your personal loan eligibility across 10+ major Indian banks and NBFCs in under 60 seconds. We analyze your credit profile, salary, location, and existing liabilities against complex bank lending rules to find your best matches."
+      a: "Hand to Hand Fintech is an intelligent platform that lets you check your personal loan eligibility across 100+ major Indian banks and NBFCs in under 60 seconds. We analyze your credit profile, salary, location, and existing liabilities against complex bank lending rules to find your best matches."
     },
     {
       q: "Is checking my eligibility free, and does it affect my CIBIL score?",
@@ -168,7 +168,7 @@ export default function Home() {
                   <path d="M12 2L2 7h20L12 2z" />
                 </svg>
               </span>
-              <span className="hero-stat-value">10+</span>
+              <span className="hero-stat-value">100+</span>
               <span className="hero-stat-label">Banks & NBFCs</span>
             </div>
             <div className="hero-stat-card">

@@ -2777,7 +2777,7 @@ export default function UserDashboard() {
                     <BankLogo bankName={selectedApplication.bank_name} size={24} />
                     <div>
                       <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>Application Details</h3>
-                      <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>Update progress & access affiliate links</p>
+                      <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>Update progress & access apply portals</p>
                     </div>
                   </div>
                   <button 
@@ -2841,7 +2841,7 @@ export default function UserDashboard() {
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Muthoot Business Loan Portals</div>
                         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                          Select the appropriate affiliate link to verify client status or complete the application steps:
+                          Select the appropriate apply link to verify client status or complete the application steps:
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
                           <a
@@ -2892,7 +2892,7 @@ export default function UserDashboard() {
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Muthoot Salary Loan Portal</div>
                         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                          Log in through the affiliate link to verify client status or complete the application steps:
+                          Log in through the apply link to verify client status or complete the application steps:
                         </div>
                         <a
                           href={BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY PL']}
@@ -2911,7 +2911,7 @@ export default function UserDashboard() {
                             padding: '10px 16px'
                           }}
                         >
-                          🚀 Open Affiliate Apply Link
+                          🚀 Open Apply Link
                         </a>
                       </div>
                     );
@@ -3018,9 +3018,9 @@ export default function UserDashboard() {
                   if (appLink) {
                     return (
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Affiliate Lending Portal</div>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Partner Lending Portal</div>
                         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                          Log in through the affiliate link to verify client status or complete the application steps:
+                          Log in through the apply link to verify client status or complete the application steps:
                         </div>
                         <a
                           href={appLink}
@@ -3039,7 +3039,7 @@ export default function UserDashboard() {
                             padding: '10px 16px'
                           }}
                         >
-                          🚀 Open Affiliate Apply Link
+                          🚀 Open Apply Link
                         </a>
                       </div>
                     );
@@ -3047,7 +3047,7 @@ export default function UserDashboard() {
 
                   return (
                     <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: 'var(--border-subtle)', padding: '12px 16px', borderRadius: '8px', fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                      ℹ️ No direct affiliate apply link configured for this bank.
+                      ℹ️ No direct apply link configured for this bank.
                     </div>
                   );
                 })()}
