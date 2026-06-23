@@ -19,9 +19,13 @@ function SignupContent() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState(() => {
     const roleParam = searchParams.get('role');
+    const referredByParam = searchParams.get('referred_by');
+    if (referredByParam) return 'agent';
     return roleParam === 'agent' ? 'agent' : 'user';
   });
-  const [referredBy, setReferredBy] = useState('');
+  const [referredBy, setReferredBy] = useState(() => {
+    return searchParams.get('referred_by') || '';
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
