@@ -57,6 +57,18 @@ const compressImage = (file) => {
   });
 };
 
+const calculateAge = (dobString) => {
+  if (!dobString) return null;
+  const today = new Date();
+  const birthDate = new Date(dobString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 const processPdf = (file) => {
   return new Promise((resolve, reject) => {
     if (file.size > 500 * 1024) {
@@ -131,6 +143,7 @@ export default function UserDashboard() {
 
   // Normal User inquiries
   const [inquiries, setInquiries] = useState([]);
+  const [policies, setPolicies] = useState([]);
 
   // Agent Specific Data
   const [activeTab, setActiveTab] = useState('profile');
@@ -173,7 +186,16 @@ export default function UserDashboard() {
     avatar: '',
     id_type: '',
     id_number: '',
-    id_file: ''
+    id_file: '',
+    id_type_2: '',
+    id_number_2: '',
+    id_file_2: '',
+    selfie: '',
+    cancelled_cheque: '',
+    bank_holder_name: '',
+    bank_name: '',
+    bank_account_no: '',
+    bank_ifsc: ''
   });
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
@@ -193,6 +215,13 @@ export default function UserDashboard() {
   const [submittingPayout, setSubmittingPayout] = useState(false);
   const [payoutError, setPayoutError] = useState('');
   const [payoutSuccess, setPayoutSuccess] = useState('');
+
+  const getBankLogo = (bankName) => {
+    if (!bankName) return '';
+    const normName = bankName.toUpperCase().replace(/\(BL\)/g, '').trim();
+    const policy = policies.find(p => p.bank_name.toUpperCase().replace(/\(BL\)/g, '').trim() === normName);
+    return policy ? policy.logo_url : '';
+  };
 
   const fetchInquiries = async (userId) => {
     const { data, error } = await supabase
@@ -367,6 +396,10 @@ export default function UserDashboard() {
 
         setUser(session.user);
 
+        // Fetch bank policies for resolving logos in real time
+        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url');
+        if (polData) setPolicies(polData);
+
         // Fetch profile to determine role
         const { data: prof, error: profErr } = await supabase
           .from('profiles')
@@ -403,7 +436,16 @@ export default function UserDashboard() {
             avatar: prof.avatar || '',
             id_type: prof.id_type || '',
             id_number: prof.id_number || '',
-            id_file: prof.id_file || ''
+            id_file: prof.id_file || '',
+            id_type_2: prof.id_type_2 || '',
+            id_number_2: prof.id_number_2 || '',
+            id_file_2: prof.id_file_2 || '',
+            selfie: prof.selfie || '',
+            cancelled_cheque: prof.cancelled_cheque || '',
+            bank_holder_name: prof.bank_holder_name || '',
+            bank_name: prof.bank_name || '',
+            bank_account_no: prof.bank_account_no || '',
+            bank_ifsc: prof.bank_ifsc || ''
           });
 
           if (prof.role === 'agent') {
@@ -424,7 +466,16 @@ export default function UserDashboard() {
               prof.avatar,
               prof.id_type,
               prof.id_number,
-              prof.id_file
+              prof.id_file,
+              prof.id_type_2,
+              prof.id_number_2,
+              prof.id_file_2,
+              prof.selfie,
+              prof.cancelled_cheque,
+              prof.bank_holder_name,
+              prof.bank_name,
+              prof.bank_account_no,
+              prof.bank_ifsc
             ];
             const filled = fieldsVal.filter(f => f && f.toString().trim() !== '').length;
             const pct = Math.round((filled / fieldsVal.length) * 100);
@@ -434,9 +485,9 @@ export default function UserDashboard() {
           } else {
             // Customer data fetching
             await fetchInquiries(session.user.id);
+            await fetchAgentData(session.user.id, prof.agent_code);
             if (prof.demoted_at) {
               setActiveTab('inquiries');
-              await fetchAgentData(session.user.id, prof.agent_code);
               
               // Check demoted popup count
               const countKey = `demoted_popup_count_${prof.id}`;
@@ -530,7 +581,16 @@ export default function UserDashboard() {
       profileFormData.avatar,
       profileFormData.id_type,
       profileFormData.id_number,
-      profileFormData.id_file
+      profileFormData.id_file,
+      profileFormData.id_type_2,
+      profileFormData.id_number_2,
+      profileFormData.id_file_2,
+      profileFormData.selfie,
+      profileFormData.cancelled_cheque,
+      profileFormData.bank_holder_name,
+      profileFormData.bank_name,
+      profileFormData.bank_account_no,
+      profileFormData.bank_ifsc
     ];
     const completedCount = fields.filter(field => field && field.toString().trim() !== '').length;
     return Math.round((completedCount / fields.length) * 100);
@@ -569,18 +629,16 @@ export default function UserDashboard() {
       const base64 = await compressImage(file);
       setProfileFormData(prev => ({ ...prev, avatar: base64 }));
       
-      if (profile?.profile_locked) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ avatar: base64 })
-          .eq('id', profile.id);
-        if (error) {
-          setProfileError(error.message);
-        } else {
-          setProfileSuccess('Profile picture updated successfully!');
-          setProfile(prev => ({ ...prev, avatar: base64 }));
-          showToast('✅ Profile picture updated successfully!');
-        }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar: base64 })
+        .eq('id', profile.id);
+      if (error) {
+        setProfileError(error.message);
+      } else {
+        setProfileSuccess('Profile picture updated successfully!');
+        setProfile(prev => ({ ...prev, avatar: base64 }));
+        showToast('✅ Profile picture updated successfully!');
       }
     } catch (err) {
       alert(err.message);
@@ -610,11 +668,115 @@ export default function UserDashboard() {
     }
   };
 
+  const handleIdFile2Change = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setProfileSuccess('');
+      setProfileError('');
+      if (file.type === 'application/pdf') {
+        const base64 = await processPdf(file);
+        setProfileFormData(prev => ({ ...prev, id_file_2: base64 }));
+      } else if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        setProfileFormData(prev => ({ ...prev, id_file_2: base64 }));
+      } else {
+        alert('Please upload a valid JPEG/PNG image or PDF document.');
+        setProfileError('Please upload a valid JPEG/PNG image or PDF document.');
+      }
+    } catch (err) {
+      alert(err.message);
+      setProfileError(err.message);
+    }
+  };
+
+  const handleSelfieChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setProfileSuccess('');
+      setProfileError('');
+      if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        setProfileFormData(prev => ({ ...prev, selfie: base64 }));
+      } else {
+        alert('Please upload a valid JPEG/PNG image for selfie.');
+        setProfileError('Please upload a valid JPEG/PNG image for selfie.');
+      }
+    } catch (err) {
+      alert(err.message);
+      setProfileError(err.message);
+    }
+  };
+
+  const handleCancelledChequeChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setProfileSuccess('');
+      setProfileError('');
+      if (file.type === 'application/pdf') {
+        const base64 = await processPdf(file);
+        setProfileFormData(prev => ({ ...prev, cancelled_cheque: base64 }));
+      } else if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        setProfileFormData(prev => ({ ...prev, cancelled_cheque: base64 }));
+      } else {
+        alert('Please upload a valid JPEG/PNG image or PDF document.');
+        setProfileError('Please upload a valid JPEG/PNG image or PDF document.');
+      }
+    } catch (err) {
+      alert(err.message);
+      setProfileError(err.message);
+    }
+  };
+
   const handleProfileSave = async (e) => {
     e.preventDefault();
     setProfileSuccess('');
     setProfileError('');
     setSavingProfile(true);
+
+    // Validation checks for all required profile and verification fields
+    const requiredFields = {
+      full_name: 'Full Name',
+      phone: 'Phone Number',
+      dob: 'Date of Birth',
+      fathers_name: "Father's Name",
+      current_address: 'Current Address',
+      permanent_address: 'Permanent Address',
+      pincode: 'Pincode',
+      city: 'City',
+      state: 'State',
+      marital_status: 'Marital Status',
+      avatar: 'Profile Picture (Avatar)',
+      id_type: 'Identity Proof 1 Type',
+      id_number: 'Identity Proof 1 Number',
+      id_file: 'Identity Proof 1 File',
+      id_type_2: 'Identity Proof 2 Type',
+      id_number_2: 'Identity Proof 2 Number',
+      id_file_2: 'Identity Proof 2 File',
+      selfie: 'Live Selfie',
+      cancelled_cheque: 'Cancelled Cheque',
+      bank_holder_name: 'Bank Account Holder Name',
+      bank_name: 'Bank Name',
+      bank_account_no: 'Bank Account Number',
+      bank_ifsc: 'Bank IFSC Code'
+    };
+
+    for (const [key, label] of Object.entries(requiredFields)) {
+      if (!profileFormData[key] || profileFormData[key].toString().trim() === '') {
+        setProfileError(`Validation Error: ${label} is required.`);
+        setSavingProfile(false);
+        return;
+      }
+    }
+
+    if (profileFormData.id_type === profileFormData.id_type_2) {
+      setProfileError('Validation Error: Primary Identity Proof (ID 1) and Secondary Identity Proof (ID 2) must be different document types.');
+      setSavingProfile(false);
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -633,7 +795,16 @@ export default function UserDashboard() {
           avatar: profileFormData.avatar,
           id_type: profileFormData.id_type,
           id_number: profileFormData.id_number,
-          id_file: profileFormData.id_file
+          id_file: profileFormData.id_file,
+          id_type_2: profileFormData.id_type_2,
+          id_number_2: profileFormData.id_number_2,
+          id_file_2: profileFormData.id_file_2,
+          selfie: profileFormData.selfie,
+          cancelled_cheque: profileFormData.cancelled_cheque,
+          bank_holder_name: profileFormData.bank_holder_name,
+          bank_name: profileFormData.bank_name,
+          bank_account_no: profileFormData.bank_account_no,
+          bank_ifsc: profileFormData.bank_ifsc
         })
         .eq('id', profile.id);
 
@@ -652,7 +823,10 @@ export default function UserDashboard() {
           profileFormData.full_name, profileFormData.email, profileFormData.phone,
           profileFormData.dob, profileFormData.fathers_name, profileFormData.current_address,
           profileFormData.permanent_address, profileFormData.pincode, profileFormData.marital_status,
-          profileFormData.avatar, profileFormData.id_type, profileFormData.id_number, profileFormData.id_file
+          profileFormData.avatar, profileFormData.id_type, profileFormData.id_number, profileFormData.id_file,
+          profileFormData.id_type_2, profileFormData.id_number_2, profileFormData.id_file_2,
+          profileFormData.selfie, profileFormData.cancelled_cheque,
+          profileFormData.bank_holder_name, profileFormData.bank_name, profileFormData.bank_account_no, profileFormData.bank_ifsc
         ];
         const isComplete = fields.every(f => f && f.toString().trim() !== '');
         if (isComplete && profile?.profile_update_requested) {
@@ -678,12 +852,13 @@ export default function UserDashboard() {
   };
 
   // 5-minute interval popup for admin-requested profile updates
+  const profileRole = profile?.role;
+  const profileUpdateRequested = profile?.profile_update_requested;
   useEffect(() => {
-    if (!profile || profile.role !== 'agent') return;
-    if (!profile.profile_update_requested) return;
+    if (profileRole !== 'agent' || !profileUpdateRequested) return;
 
     const checkAndShow = () => {
-      if (profile.profile_update_requested) {
+      if (profileUpdateRequested) {
         setShowProfileUpdatePopup(true);
       }
     };
@@ -695,7 +870,7 @@ export default function UserDashboard() {
     const intervalId = setInterval(checkAndShow, 5 * 60 * 1000);
 
     return () => clearInterval(intervalId);
-  }, [profile?.profile_update_requested, profile?.role]);
+  }, [profileUpdateRequested, profileRole]);
 
   // Auto-inject data-label attributes to td elements based on th text content
   useEffect(() => {
@@ -786,6 +961,112 @@ export default function UserDashboard() {
     } finally {
       setSubmittingPayout(false);
     }
+  };
+
+  const renderCustomerApplications = () => {
+    return (
+      <div style={{ display: 'grid', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>
+            My Loan Applications
+          </h2>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+            Total Applications: {applications.length}
+          </span>
+        </div>
+
+        {applications.length === 0 ? (
+          <div className="form-card text-center" style={{ padding: '64px 32px', backdropFilter: 'blur(20px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+            </div>
+            <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: '8px' }}>No Submitted Applications</h3>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
+              Find your matched banks and apply for a loan. Once submitted, your applications will appear here.
+            </p>
+            <Link href="/check" className="btn btn-primary">
+              Check Eligibility Now
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {applications.map((app) => (
+              <div 
+                key={app.id} 
+                className="result-card" 
+                onClick={() => {
+                  setSelectedApplication(app);
+                  setAppDetailsStatusValue(app.status ? app.status.toLowerCase() : 'applied');
+                  setAppDetailsProblemText(app.problem || '');
+                }}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px',
+                  background: 'var(--color-bg-card)',
+                  border: 'var(--border-light)',
+                  borderRadius: 'var(--border-radius-md)',
+                  padding: '20px 24px',
+                  backdropFilter: 'blur(20px)',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 'var(--text-base)' }}>{app.client_name}</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                    {app.client_mobile}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <BankLogo bankName={app.bank_name} logoUrl={getBankLogo(app.bank_name)} size={20} />
+                    <span style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>{app.bank_name}</span>
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                    Type: {(() => {
+                      if (app.loan_type === 'BL') return 'Business';
+                      const name = (app.bank_name || '').toLowerCase();
+                      if (name.includes('instant')) return 'Instant';
+                      return 'Salary';
+                    })()}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Amount</div>
+                  <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
+                    ₹{Number(app.loan_amount).toLocaleString('en-IN')}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <span className="badge" style={{ ...getStatusBadgeStyle(app.status), display: 'inline-block' }}>
+                    {app.status}
+                  </span>
+                  {app.disbursed_at && (
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                      Disbursed: {new Date(app.disbursed_at).toLocaleDateString('en-IN')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderInquiriesHistory = () => {
@@ -886,16 +1167,7 @@ export default function UserDashboard() {
                           <div>
                             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Calculated Age</div>
                             <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                              {(() => {
-                                const today = new Date();
-                                const birthDate = new Date(inq.dob);
-                                let age = today.getFullYear() - birthDate.getFullYear();
-                                const m = today.getMonth() - birthDate.getMonth();
-                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                                  age--;
-                                }
-                                return `${age} yrs`;
-                              })()}
+                              {calculateAge(inq.dob) !== null ? `${calculateAge(inq.dob)} yrs` : 'N/A'}
                             </div>
                           </div>
                         </>
@@ -918,7 +1190,7 @@ export default function UserDashboard() {
                               textTransform: 'none',
                               fontSize: 'var(--text-xs)'
                             }}>
-                              <BankLogo bankName={bank} size={16} />
+                              <BankLogo bankName={bank} logoUrl={getBankLogo(bank)} size={16} />
                               {bank}
                             </span>
                           ))
@@ -1040,8 +1312,12 @@ export default function UserDashboard() {
                   <option value="applied" style={{ background: '#111827', color: '#f3f4f6' }}>Applied</option>
                   <option value="in process" style={{ background: '#111827', color: '#f3f4f6' }}>In Process</option>
                   <option value="kyc verification" style={{ background: '#111827', color: '#f3f4f6' }}>KYC Verification</option>
-                  <option value="disbursed" style={{ background: '#111827', color: '#f3f4f6' }}>Disbursed</option>
-                  <option value="rejected" style={{ background: '#111827', color: '#f3f4f6' }}>Rejected</option>
+                  {profile?.role === 'admin' && (
+                    <>
+                      <option value="disbursed" style={{ background: '#111827', color: '#f3f4f6' }}>Disbursed</option>
+                      <option value="rejected" style={{ background: '#111827', color: '#f3f4f6' }}>Rejected</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -1161,6 +1437,7 @@ export default function UserDashboard() {
                   (() => {
                     const userTabs = [
                       { id: 'inquiries', label: '📁 Inquiries' },
+                      { id: 'applications', label: '📝 My Applications' },
                     ];
                     if (profile?.demoted_at) {
                       userTabs.push({ id: 'payments', label: '💸 Payments & Balance' });
@@ -1265,6 +1542,7 @@ export default function UserDashboard() {
 
                         <div className="tabs-content">
                           {activeTab === 'inquiries' && renderInquiriesHistory()}
+                          {activeTab === 'applications' && renderCustomerApplications()}
 
                           {activeTab === 'payments' && profile?.demoted_at && (
                             <div style={{ display: 'grid', gap: '32px' }}>
@@ -1505,7 +1783,7 @@ export default function UserDashboard() {
                       
                       {/* TAB 1: Profile & Agent Code */}
                       {activeTab === 'profile' && (() => {
-                        const calculatedAge = profileFormData.dob ? (new Date().getFullYear() - new Date(profileFormData.dob).getFullYear()) : null;
+                        const calculatedAge = calculateAge(profileFormData.dob);
                         const completionPercentage = calculateCompletionPercentage();
                         
                         return (
@@ -1658,7 +1936,7 @@ export default function UserDashboard() {
 
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                                 <div className="input-group">
-                                  <label className="input-label">Full Name</label>
+                                  <label className="input-label">Full Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <input
                                     type="text"
                                     className="input-field"
@@ -1669,7 +1947,7 @@ export default function UserDashboard() {
                                   />
                                 </div>
                                 <div className="input-group">
-                                  <label className="input-label">Email Address</label>
+                                  <label className="input-label">Email Address <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <input
                                     type="email"
                                     className="input-field"
@@ -1680,13 +1958,14 @@ export default function UserDashboard() {
                                   />
                                 </div>
                                 <div className="input-group">
-                                  <label className="input-label">Phone Number</label>
+                                  <label className="input-label">Phone Number <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <input
                                     type="tel"
                                     className="input-field"
                                     value={profileFormData.phone}
                                     onChange={(e) => setProfileFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
                                     maxLength={10}
+                                    required
                                     disabled={profile?.profile_locked}
                                   />
                                 </div>
@@ -1695,32 +1974,35 @@ export default function UserDashboard() {
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                                 <div className="input-group">
                                   <label className="input-label">
-                                    Date of Birth {calculatedAge !== null && `(Age: ${calculatedAge} years)`}
+                                    Date of Birth <span style={{ color: 'var(--color-error)' }}>*</span>{calculatedAge !== null && <span style={{ fontWeight: 400, color: 'var(--color-text-secondary)', marginLeft: '8px' }}>(Age: {calculatedAge} yrs)</span>}
                                   </label>
                                   <input
                                     type="date"
                                     className="input-field"
                                     value={profileFormData.dob}
                                     onChange={(e) => setProfileFormData(prev => ({ ...prev, dob: e.target.value }))}
+                                    required
                                     disabled={profile?.profile_locked}
                                   />
                                 </div>
                                 <div className="input-group">
-                                  <label className="input-label">Father&apos;s Name</label>
+                                  <label className="input-label">Father&apos;s Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <input
                                     type="text"
                                     className="input-field"
                                     value={profileFormData.fathers_name}
                                     onChange={(e) => setProfileFormData(prev => ({ ...prev, fathers_name: e.target.value }))}
+                                    required
                                     disabled={profile?.profile_locked}
                                   />
                                 </div>
                                 <div className="input-group">
-                                  <label className="input-label">Marital Status</label>
+                                  <label className="input-label">Marital Status <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <select
                                     className="input-field"
                                     value={profileFormData.marital_status}
                                     onChange={(e) => setProfileFormData(prev => ({ ...prev, marital_status: e.target.value }))}
+                                    required
                                     disabled={profile?.profile_locked}
                                   >
                                     <option value="">Select status</option>
@@ -1734,19 +2016,20 @@ export default function UserDashboard() {
 
                               <div className="responsive-grid-2" style={{ gap: '20px' }}>
                                 <div className="input-group">
-                                  <label className="input-label">Current Address</label>
+                                  <label className="input-label">Current Address <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <input
                                     type="text"
                                     className="input-field"
                                     value={profileFormData.current_address}
                                     onChange={(e) => setProfileFormData(prev => ({ ...prev, current_address: e.target.value }))}
                                     placeholder="Street address, building, apartment"
+                                    required
                                     disabled={profile?.profile_locked}
                                   />
                                 </div>
                                 <div className="input-group">
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <label className="input-label">Permanent Address</label>
+                                    <label className="input-label">Permanent Address <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                       <input
                                         type="checkbox"
@@ -1767,6 +2050,7 @@ export default function UserDashboard() {
                                     value={profileFormData.permanent_address}
                                     onChange={(e) => setProfileFormData(prev => ({ ...prev, permanent_address: e.target.value }))}
                                     placeholder="As per official documents"
+                                    required
                                     disabled={profile?.profile_locked}
                                   />
                                 </div>
@@ -1774,7 +2058,7 @@ export default function UserDashboard() {
 
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
                                 <div className="input-group">
-                                  <label className="input-label">Pincode</label>
+                                  <label className="input-label">Pincode <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                   <input
                                     type="text"
                                     className="input-field"
@@ -1782,6 +2066,7 @@ export default function UserDashboard() {
                                     onChange={(e) => handlePincodeChange(e.target.value)}
                                     maxLength={6}
                                     placeholder="6-digit pincode"
+                                    required
                                     disabled={profile?.profile_locked}
                                   />
                                 </div>
@@ -1809,47 +2094,227 @@ export default function UserDashboard() {
                                 </div>
                               </div>
 
-                              <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)', display: 'grid', gap: '16px' }}>
-                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px' }}>Identity Verification Documents</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                                  <div className="input-group">
-                                    <label className="input-label">ID Type</label>
-                                    <select
-                                      className="input-field"
-                                      value={profileFormData.id_type}
-                                      onChange={(e) => setProfileFormData(prev => ({ ...prev, id_type: e.target.value }))}
-                                      disabled={profile?.profile_locked}
-                                    >
-                                      <option value="">Select ID Type</option>
-                                      <option value="Aadhaar Card">Aadhaar Card</option>
-                                      <option value="PAN Card">PAN Card</option>
-                                      <option value="Passport">Passport</option>
-                                      <option value="Voter ID Card">Voter ID Card</option>
-                                    </select>
+                              {/* Identity Verification Documents */}
+                              <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)', display: 'grid', gap: '20px' }}>
+                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>Identity Verification Documents</h3>
+                                
+                                {/* Identity Proof 1 */}
+                                <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '14px', borderRadius: 'var(--border-radius-sm)', border: 'var(--border-light)', display: 'grid', gap: '12px' }}>
+                                  <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)', margin: 0 }}>Primary Identity Proof (ID 1)</h4>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                                    <div className="input-group">
+                                      <label className="input-label">ID Type <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                      <select
+                                        className="input-field"
+                                        value={profileFormData.id_type}
+                                        onChange={(e) => setProfileFormData(prev => ({ ...prev, id_type: e.target.value }))}
+                                        disabled={profile?.profile_locked}
+                                      >
+                                        <option value="">Select ID Type</option>
+                                        <option value="Aadhaar Card">Aadhaar Card</option>
+                                        <option value="PAN Card">PAN Card</option>
+                                        <option value="Passport">Passport</option>
+                                        <option value="Voter ID Card">Voter ID Card</option>
+                                      </select>
+                                    </div>
+                                    <div className="input-group">
+                                      <label className="input-label">ID Number <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                      <input
+                                        type="text"
+                                        className="input-field"
+                                        value={profileFormData.id_number}
+                                        onChange={(e) => setProfileFormData(prev => ({ ...prev, id_number: e.target.value.replace(/[^a-zA-Z0-9]/g, '') }))}
+                                        placeholder="Identity proof number"
+                                        maxLength={12}
+                                        disabled={profile?.profile_locked}
+                                      />
+                                    </div>
                                   </div>
                                   <div className="input-group">
-                                    <label className="input-label">ID Number</label>
+                                    <label className="input-label">Identity Document File (PDF or Image) <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                    <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFileChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                    <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
+                                    {profileFormData.id_file && (
+                                      <div style={{ marginTop: '8px' }}>
+                                        {profileFormData.id_file.startsWith('data:application/pdf') || !profileFormData.id_file.startsWith('data:image/') ? (
+                                          <a
+                                            href={profileFormData.id_file}
+                                            download={`identity-document-1-${profileFormData.id_type || 'proof'}`}
+                                            className="btn btn-secondary btn-sm"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                          >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                              <polyline points="14 2 14 8 20 8" />
+                                            </svg>
+                                            Download / View Uploaded PDF
+                                          </a>
+                                        ) : (
+                                          <div style={{ display: 'grid', gap: '4px' }}>
+                                            <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
+                                            <img src={profileFormData.id_file} alt="ID Document Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Identity Proof 2 */}
+                                <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '14px', borderRadius: 'var(--border-radius-sm)', border: 'var(--border-light)', display: 'grid', gap: '12px' }}>
+                                  <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-accent)', margin: 0 }}>Secondary Identity Proof (ID 2 - Must be different type)</h4>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                                    <div className="input-group">
+                                      <label className="input-label">ID Type <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                      <select
+                                        className="input-field"
+                                        value={profileFormData.id_type_2}
+                                        onChange={(e) => setProfileFormData(prev => ({ ...prev, id_type_2: e.target.value }))}
+                                        disabled={profile?.profile_locked}
+                                      >
+                                        <option value="">Select ID Type</option>
+                                        <option value="Aadhaar Card">Aadhaar Card</option>
+                                        <option value="PAN Card">PAN Card</option>
+                                        <option value="Passport">Passport</option>
+                                        <option value="Voter ID Card">Voter ID Card</option>
+                                      </select>
+                                    </div>
+                                    <div className="input-group">
+                                      <label className="input-label">ID Number <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                      <input
+                                        type="text"
+                                        className="input-field"
+                                        value={profileFormData.id_number_2}
+                                        onChange={(e) => setProfileFormData(prev => ({ ...prev, id_number_2: e.target.value.replace(/[^a-zA-Z0-9]/g, '') }))}
+                                        placeholder="Identity proof number"
+                                        maxLength={12}
+                                        disabled={profile?.profile_locked}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="input-group">
+                                    <label className="input-label">Identity Document File (PDF or Image) <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                    <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFile2Change} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                    <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
+                                    {profileFormData.id_file_2 && (
+                                      <div style={{ marginTop: '8px' }}>
+                                        {profileFormData.id_file_2.startsWith('data:application/pdf') || !profileFormData.id_file_2.startsWith('data:image/') ? (
+                                          <a
+                                            href={profileFormData.id_file_2}
+                                            download={`identity-document-2-${profileFormData.id_type_2 || 'proof'}`}
+                                            className="btn btn-secondary btn-sm"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                          >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                              <polyline points="14 2 14 8 20 8" />
+                                            </svg>
+                                            Download / View Uploaded PDF
+                                          </a>
+                                        ) : (
+                                          <div style={{ display: 'grid', gap: '4px' }}>
+                                            <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
+                                            <img src={profileFormData.id_file_2} alt="ID Document 2 Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Live Selfie Verification */}
+                              <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)', display: 'grid', gap: '16px' }}>
+                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>📸 Live Selfie Verification</h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                                  <div style={{ width: '100px', height: '100px', borderRadius: '8px', background: 'var(--color-bg-tertiary)', border: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {profileFormData.selfie ? (
+                                      <img src={profileFormData.selfie} alt="Selfie Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                        <circle cx="12" cy="13" r="4" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="input-group" style={{ margin: 0, flex: 1 }}>
+                                    <label className="input-label">Upload Live Selfie <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg, image/png"
+                                      capture="user"
+                                      onChange={handleSelfieChange}
+                                      style={{ fontSize: 'var(--text-xs)' }}
+                                      disabled={profile?.profile_locked}
+                                    />
+                                    <p className="input-hint">On mobile devices, this opens the front camera for a live selfie. Formats: JPG, PNG.</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Bank Account Details & Payout Details */}
+                              <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)', display: 'grid', gap: '16px' }}>
+                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>🏦 Bank Account & Payout Details</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                                  <div className="input-group">
+                                    <label className="input-label">Account Holder Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
                                     <input
                                       type="text"
                                       className="input-field"
-                                      value={profileFormData.id_number}
-                                      onChange={(e) => setProfileFormData(prev => ({ ...prev, id_number: e.target.value.replace(/[^a-zA-Z0-9]/g, '') }))}
-                                      placeholder="Identity proof number"
-                                      maxLength={12}
+                                      value={profileFormData.bank_holder_name}
+                                      onChange={(e) => setProfileFormData(prev => ({ ...prev, bank_holder_name: e.target.value }))}
+                                      placeholder="Name as per bank records"
+                                      disabled={profile?.profile_locked}
+                                    />
+                                  </div>
+                                  <div className="input-group">
+                                    <label className="input-label">Bank Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                    <input
+                                      type="text"
+                                      className="input-field"
+                                      value={profileFormData.bank_name}
+                                      onChange={(e) => setProfileFormData(prev => ({ ...prev, bank_name: e.target.value }))}
+                                      placeholder="e.g. HDFC Bank, SBI"
                                       disabled={profile?.profile_locked}
                                     />
                                   </div>
                                 </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                                  <div className="input-group">
+                                    <label className="input-label">Account Number <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                    <input
+                                      type="text"
+                                      className="input-field"
+                                      value={profileFormData.bank_account_no}
+                                      onChange={(e) => setProfileFormData(prev => ({ ...prev, bank_account_no: e.target.value.replace(/\D/g, '') }))}
+                                      placeholder="Bank Account Number"
+                                      disabled={profile?.profile_locked}
+                                    />
+                                  </div>
+                                  <div className="input-group">
+                                    <label className="input-label">IFSC Code <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                    <input
+                                      type="text"
+                                      className="input-field"
+                                      value={profileFormData.bank_ifsc}
+                                      onChange={(e) => setProfileFormData(prev => ({ ...prev, bank_ifsc: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
+                                      placeholder="11-digit IFSC code"
+                                      maxLength={11}
+                                      disabled={profile?.profile_locked}
+                                    />
+                                  </div>
+                                </div>
+                                
                                 <div className="input-group">
-                                  <label className="input-label">Identity Document File (PDF or Image)</label>
-                                  <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFileChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
-                                  <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
-                                  {profileFormData.id_file && (
+                                  <label className="input-label">Cancelled Cheque Image/PDF <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                  <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleCancelledChequeChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                  <p className="input-hint">Formats: JPG, PNG, PDF. Autocompressed. Limit: 500kb.</p>
+                                  {profileFormData.cancelled_cheque && (
                                     <div style={{ marginTop: '12px' }}>
-                                      {profileFormData.id_file.startsWith('data:application/pdf') || !profileFormData.id_file.startsWith('data:image/') ? (
+                                      {profileFormData.cancelled_cheque.startsWith('data:application/pdf') || !profileFormData.cancelled_cheque.startsWith('data:image/') ? (
                                         <a
-                                          href={profileFormData.id_file}
-                                          download={`identity-document-${profileFormData.id_type || 'proof'}`}
+                                          href={profileFormData.cancelled_cheque}
+                                          download={`cancelled-cheque-${profileFormData.bank_name || 'bank'}`}
                                           className="btn btn-secondary btn-sm"
                                           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                                         >
@@ -1861,8 +2326,8 @@ export default function UserDashboard() {
                                         </a>
                                       ) : (
                                         <div style={{ display: 'grid', gap: '4px' }}>
-                                          <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
-                                          <img src={profileFormData.id_file} alt="ID Document Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                          <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Cancelled Cheque Preview:</span>
+                                          <img src={profileFormData.cancelled_cheque} alt="Cancelled Cheque Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
                                         </div>
                                       )}
                                     </div>
@@ -1959,11 +2424,16 @@ export default function UserDashboard() {
 
                                   <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <BankLogo bankName={app.bank_name} size={20} />
+                                      <BankLogo bankName={app.bank_name} logoUrl={getBankLogo(app.bank_name)} size={20} />
                                       <span style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>{app.bank_name}</span>
                                     </div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                                      Type: {app.loan_type === 'PL' ? 'Personal' : 'Business'}
+                                      Type: {(() => {
+                                        if (app.loan_type === 'BL') return 'Business';
+                                        const name = (app.bank_name || '').toLowerCase();
+                                        if (name.includes('instant')) return 'Instant';
+                                        return 'Salary';
+                                      })()}
                                     </div>
                                   </div>
 
@@ -2774,7 +3244,7 @@ export default function UserDashboard() {
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <BankLogo bankName={selectedApplication.bank_name} size={24} />
+                    <BankLogo bankName={selectedApplication.bank_name} logoUrl={getBankLogo(selectedApplication.bank_name)} size={24} />
                     <div>
                       <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>Application Details</h3>
                       <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>Update progress & access apply portals</p>
@@ -2811,17 +3281,26 @@ export default function UserDashboard() {
                     <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.bank_name}</div>
                   </div>
                   <div>
-                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Loan Type</label>
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.loan_type === 'PL' ? 'Personal Loan' : 'Business Loan'}</div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Loan Category</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>
+                      {(() => {
+                        if (selectedApplication.loan_type === 'BL') return 'Business Loan';
+                        const name = (selectedApplication.bank_name || '').toLowerCase();
+                        if (name.includes('instant')) return 'Instant Loan';
+                        return 'Salary Loan';
+                      })()}
+                    </div>
                   </div>
-                  <div>
+                  <div style={{ gridColumn: profile?.role === 'user' ? 'span 2' : 'span 1' }}>
                     <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Loan Amount</label>
                     <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-text-primary)' }}>₹{Number(selectedApplication.loan_amount).toLocaleString('en-IN')}</div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Est. Commission (2%)</label>
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-accent-violet)' }}>₹{Number(selectedApplication.commission_amount).toLocaleString('en-IN')}</div>
-                  </div>
+                  {profile?.role !== 'user' && (
+                    <div>
+                      <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Est. Commission (2%)</label>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-accent-violet)' }}>₹{Number(selectedApplication.commission_amount).toLocaleString('en-IN')}</div>
+                    </div>
+                  )}
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Submission Date</label>
                     <div style={{ fontSize: 'var(--text-xs)', marginTop: '2px' }}>{new Date(selectedApplication.created_at).toLocaleString('en-IN')}</div>
@@ -2829,7 +3308,7 @@ export default function UserDashboard() {
                 </div>
 
                 {/* Affiliate Link / Portal Section */}
-                {(() => {
+                {profile?.role !== 'user' && (() => {
                   const isMuthoot = selectedApplication.bank_name?.toUpperCase()?.includes('MUTHOOT');
                   const isMuthootBL = isMuthoot && selectedApplication.loan_type === 'BL';
                   const isMuthootPL = isMuthoot && selectedApplication.loan_type === 'PL';
@@ -2920,7 +3399,7 @@ export default function UserDashboard() {
                   if (isIncred) {
                     return (
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 InCred Personal Loan Portal</div>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 InCred Salary Loan Portal</div>
                         
                         <div style={{
                           background: 'rgba(255, 255, 255, 0.03)',
@@ -3053,7 +3532,46 @@ export default function UserDashboard() {
                 })()}
 
                 {/* Update Process Status Form */}
-                <form onSubmit={handleUpdateAppDetailsSubmit} style={{ display: 'grid', gap: '16px' }}>
+                {profile?.role === 'user' ? (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: 'var(--border-subtle)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>ℹ️ Status Info</span>
+                      <span className="badge" style={{ ...getStatusBadgeStyle(selectedApplication.status), margin: 0, fontSize: '10px' }}>
+                        {selectedApplication.status || 'Applied'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', lineHeight: 1.5 }}>
+                      Status is updated by Admin. Direct customer applications cannot be modified.
+                    </div>
+                    {selectedApplication.problem && (
+                      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '10px' }}>
+                        <span style={{ color: 'var(--color-error)', fontWeight: 600 }}>Admin Note:</span>
+                        <div style={{ marginTop: '4px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.05)', borderLeft: '2px solid var(--color-error)', borderRadius: '4px', color: '#fff', fontSize: 'var(--text-xs)' }}>
+                          {selectedApplication.problem}
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedApplication(null)}
+                      className="btn btn-secondary"
+                      style={{ margin: '8px 0 0 auto', padding: '8px 16px', fontSize: 'var(--text-xs)', width: 'auto' }}
+                    >
+                      Close Details
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleUpdateAppDetailsSubmit} style={{ display: 'grid', gap: '16px' }}>
                   <div>
                     <h4 style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Update Lead Progress</h4>
                     
@@ -3127,6 +3645,7 @@ export default function UserDashboard() {
                     )}
                   </div>
                 </form>
+              )}
               </div>
             </div>
           );
@@ -3254,7 +3773,7 @@ export default function UserDashboard() {
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
                   <div style={{ fontWeight: 600, marginTop: '2px' }}>
-                    {selectedSubAgent.dob || 'Not provided'} {selectedSubAgent.dob && `(Age: ${new Date().getFullYear() - new Date(selectedSubAgent.dob).getFullYear()})`}
+                    {selectedSubAgent.dob || 'Not provided'} {selectedSubAgent.dob && `(Age: ${calculateAge(selectedSubAgent.dob)} years)`}
                   </div>
                 </div>
                 <div>

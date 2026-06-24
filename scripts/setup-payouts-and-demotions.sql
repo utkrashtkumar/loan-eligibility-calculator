@@ -47,7 +47,7 @@ DROP POLICY IF EXISTS "Admin can manage all payout requests" ON public.payout_re
 CREATE POLICY "Admin can manage all payout requests"
   ON public.payout_requests FOR ALL
   TO authenticated
-  USING (auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com');
+  USING (auth.jwt() ->> 'email' = 'handtohandloans@gmail.com');
 
 -- 4. Adjust the existing handle_new_user function to parse phone numbers from metadata
 CREATE OR REPLACE FUNCTION public.handle_new_user()

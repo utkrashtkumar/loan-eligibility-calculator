@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('utkrashtkumar@gmail.com'); // Pre-fill admin email
+  const [email, setEmail] = useState('handtohandloans@gmail.com'); // Pre-fill admin email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     async function checkAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user.email === 'utkrashtkumar@gmail.com') {
+      if (session && session.user.email === 'handtohandloans@gmail.com') {
         router.push('/admin');
       }
     }
@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
     setError('');
     setSuccess('');
 
-    if (email.trim() !== 'utkrashtkumar@gmail.com') {
+    if (email.trim() !== 'handtohandloans@gmail.com') {
       setError('Invalid admin credentials.');
       setLoading(false);
       return;
@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
         setError(signInError.message);
       } else {
         const user = data.user;
-        if (user.email !== 'utkrashtkumar@gmail.com') {
+        if (user.email !== 'handtohandloans@gmail.com') {
           // Log out unauthorized user
           await supabase.auth.signOut();
           setError('Access Denied: You are not authorized to view the admin portal.');

@@ -5,20 +5,33 @@ import { supabase } from '@/lib/supabase';
  *
  * Steps:
  * 1. Look up banks that serve the given pincode (+ banks that serve ALL pincodes)
- * 2. Filter bank policies by salary, CIBIL, and loan type
- * 3. Calculate FOIR and filter by FOIR max
- * 4. Score each bank on salary, CIBIL, and FOIR margins
- * 5. Sort by match score descending
+ * 2. Filter bank policies by salary/employment type, CIBIL, and loan category
+ * 3. For salaried loans: calculate FOIR and filter by FOIR max
+ * 4. For business loans: validate CIBIL, age, and sector criteria
+ * 5. Score each bank on relevant margins
+ * 6. Sort by match score descending
  *
  * @param {Object} params
  * @param {string} params.pincode - 6-digit pincode
- * @param {number} params.salary - Monthly salary
- * @param {number} params.creditScore - CIBIL score (300-900)
+ * @param {number} params.salary - Monthly salary (salaried loans only)
+ * @param {number} params.creditScore - CIBIL score (300-900; -1 means no CIBIL)
  * @param {number} params.existingEmi - Total existing monthly EMI
- * @param {string} params.loanType - 'PL' or 'BL' or 'ALL'
+ * @param {string} params.loanType - 'PL', 'BL', or 'ALL'
+ * @param {string} params.employmentType - 'salaried' or 'self_employed'
+ * @param {number} params.age - Applicant age in years
+ * @param {string} params.pfDeduction - 'yes' or 'no'
+ * @param {number} params.annualTurnover - Annual business turnover in INR (business loans)
+ * @param {number} params.monthlyProfit - Monthly profit margin 0-1 fraction (business loans)
+ * @param {string} params.businessVintage - e.g. '1 year', '2 years' (business loans)
+ * @param {string} params.businessType - Sector: 'Manufacturing', 'Trading', 'Retail', or 'Service'
  * @returns {Promise<Array>} Eligible banks sorted by match score
  */
-export async function checkEligibility({ pincode, salary, creditScore, existingEmi, loanType = 'ALL', employmentType = 'salaried', age, pfDeduction = 'yes' }) {
+export async function checkEligibility({
+  pincode, salary, creditScore, existingEmi,
+  loanType = 'ALL', employmentType = 'salaried',
+  age, pfDeduction = 'yes',
+  annualTurnover = 0, monthlyProfit = 0, businessVintage = '', businessType = ''
+}) {
   // Step 1a: Find banks serving this pincode
   const { data: pincodeData, error: pincodeError } = await supabase
     .from('bank_pincodes')
@@ -67,53 +80,102 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
     return [];
   }
 
-  // Filter policies by employmentType in JS
-  // Salaried users ONLY see salary-based loans (employment_type = 'salaried')
-  // Self-employed/instant users ONLY see instant loans (employment_type = 'self_employed' or 'both')
+  // Filter policies by employmentType in JS.
+  // For BL (loanType === 'BL'): include only policy_category === 'business' (self_employed employment_type).
+  // For salaried: include only policy_category === 'salary'.
+  // For instant self_employed (PL): include only policy_category === 'instant'.
   const filteredPolicies = policies ? policies.filter(policy => {
     const policyEmpType = policy.employment_type || 'salaried';
-    if (employmentType === 'salaried') {
-      // Strict: only salary-based policies, never instant/both
-      return policyEmpType === 'salaried';
+    const policyCategory = policy.policy_category || '';
+
+    if (loanType === 'BL') {
+      // Business loan search: include only business policies
+      return policyCategory === 'business';
+    } else if (employmentType === 'salaried') {
+      // Salary loan: only salary-type policies
+      return policyEmpType === 'salaried' && policyCategory !== 'business';
     } else {
-      // Instant loans: self_employed or both (never salaried)
-      return policyEmpType === 'self_employed' || policyEmpType === 'both';
+      // Instant loan (self_employed, PL): self_employed or both but NOT business
+      return (policyEmpType === 'self_employed' || policyEmpType === 'both') && policyCategory !== 'business';
     }
   }) : [];
 
   const userFoir = salary > 0 ? (existingEmi / salary) * 100 : 0;
+
+  // For business loans: compute FOIR using monthly profit amount as the income base
+  const monthlyProfitAmount = (annualTurnover > 0 && monthlyProfit > 0)
+    ? (annualTurnover / 12) * monthlyProfit
+    : 0;
+  const businessFoir = monthlyProfitAmount > 0 ? (existingEmi / monthlyProfitAmount) * 100 : 0;
+
   const eligibleBanks = [];
 
   // Step 3: Process each pincode-serving bank
   for (const bankName of combinedBankNames) {
+    const hasAnyDbPolicy = policies ? policies.some((p) => p.bank_name === bankName) : false;
     const policy = filteredPolicies.find((p) => p.bank_name === bankName);
 
     if (policy) {
       // If policy is available, perform strict policy checks
       
-      // 1. Check Loan Type
-      if (loanType && loanType !== 'ALL' && policy.loan_type !== loanType) {
-        continue;
-      }
-
-      // 2. Check Salary & CIBIL
-      if (employmentType === 'salaried') {
-        if (salary < policy.min_salary || creditScore < policy.min_cibil) {
+      // 1. Check Loan Category
+      const expectedCategory = loanType === 'BL' ? 'business' : (employmentType === 'salaried' ? 'salary' : 'instant');
+      if (policy.policy_category) {
+        if (policy.policy_category !== expectedCategory) {
           continue;
         }
       } else {
-        // self_employed: match on CIBIL only, skip salary/turnover check
-        if (creditScore < policy.min_cibil) {
+        if (loanType && loanType !== 'ALL' && policy.loan_type !== loanType) {
           continue;
         }
       }
 
-      // 3. Check FOIR
-      if (employmentType === 'salaried') {
-        if (userFoir > (policy.foir_max || 100)) {
-          continue;
+      // 2. CIBIL check
+      // PROTIUM waives CIBIL (min_cibil = 300 = any), all others need 700+.
+      const isCibilOk = creditScore === -1
+        ? policy.min_cibil <= 300
+        : creditScore >= policy.min_cibil;
+
+      if (!isCibilOk) continue;
+
+      if (loanType === 'BL') {
+        // --- Business Loan specific checks ---
+
+        // 1. Annual Turnover: must be >= 50 Lac/yr
+        const minTurnover = 5000000;
+        if (annualTurnover > 0 && annualTurnover < minTurnover) continue;
+
+        // 2. Monthly Profit margin: must be >= 10%
+        const minProfit = 0.10;
+        if (monthlyProfit > 0 && monthlyProfit < minProfit) continue;
+
+        // 3. Business vintage: must be at least 1 year
+        if (businessVintage) {
+          const vintageYears = parseFloat(businessVintage) || 0;
+          if (vintageYears < 1) continue;
         }
+
+        // 4. Business Sector check: bank's company_category must include the applicant's sector
+        if (businessType && policy.company_category) {
+          const cat = policy.company_category.toLowerCase();
+          // All 6 BL banks accept: Manufacturing, Trading, Retail, Service
+          // If for some reason a bank's category doesn't include the user's sector, skip
+          if (!cat.includes('all') && !cat.includes(businessType.toLowerCase())) continue;
+        }
+
+        // 5. Business FOIR check using monthly profit amount as income base
+        // Policy foir_max is 60% for all BL banks
+        const blFoirMax = policy.foir_max || 60;
+        if (monthlyProfitAmount > 0 && businessFoir > blFoirMax) continue;
+
+      } else if (employmentType === 'salaried') {
+        // --- Salary Loan checks ---
+        if (salary < policy.min_salary) continue;
+
+        // FOIR check
+        if (userFoir > (policy.foir_max || 100)) continue;
       }
+      // self_employed instant: CIBIL already checked above, no salary/turnover constraint
 
       // 4. Check PF Deduction
       // If bank requires PF and user does NOT have PF deduction, skip this bank
@@ -131,45 +193,100 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
       }
 
       // Calculate match score
-      let salaryScore, foirScore;
-      if (employmentType === 'salaried') {
-        salaryScore =
+      let primaryScore, secondaryScore;
+
+      if (loanType === 'BL') {
+        // Business Loan scoring (100 pts total):
+        // - CIBIL margin   (0-35): how far above minimum CIBIL
+        // - Turnover score (0-25): higher turnover = better score
+        // - FOIR score     (0-25): lower FOIR against turnover = better score
+        // - Vintage score  (0-15): longer running business = better score
+        const effectiveCibil = creditScore === -1 ? 300 : creditScore;
+        const minCibil = policy.min_cibil > 0 ? policy.min_cibil : 300;
+        const cibilMargin = Math.min(((effectiveCibil - minCibil) / (900 - minCibil)) * 35, 35);
+
+        const turnoverScore = annualTurnover >= 10000000 ? 25
+          : annualTurnover >= 7500000 ? 20
+          : annualTurnover >= 5000000 ? 14 : 10;
+
+        // FOIR score: 0 EMI => full 25pts; at foir_max (60%) => 0pts
+        const blFoirMax = policy.foir_max || 60;
+        const foirScore = monthlyProfitAmount > 0
+          ? Math.max(0, Math.min(25, ((blFoirMax - businessFoir) / blFoirMax) * 25))
+          : 20; // If no turnover entered, assume average
+
+        const vintageYears = parseFloat(businessVintage) || 1;
+        const vintageScore = vintageYears >= 5 ? 15 : vintageYears >= 3 ? 12 : vintageYears >= 2 ? 9 : 5;
+
+        let totalScore = Math.round(cibilMargin + turnoverScore + foirScore + vintageScore);
+        totalScore = Math.max(60, Math.min(99, totalScore));
+
+        // Bonus for PROTIUM (no CIBIL requirement = easier approval for borderline scores)
+        if (policy.bank_name && policy.bank_name.includes('PROTIUM') && effectiveCibil >= 300) {
+          totalScore = Math.min(99, totalScore + 5);
+        }
+
+        eligibleBanks.push({
+          ...policy,
+          match_score: totalScore,
+          user_foir: Math.round(businessFoir * 10) / 10,
+          annual_turnover: annualTurnover,
+          monthly_profit: monthlyProfit,
+          business_vintage: businessVintage,
+          business_type: businessType,
+        });
+      } else if (employmentType === 'salaried') {
+        primaryScore =
           policy.min_salary > 0
             ? Math.min(((salary - policy.min_salary) / policy.min_salary) * 50, 50)
             : 50;
 
         const foirMax = policy.foir_max || 100;
-        foirScore =
+        secondaryScore =
           foirMax > 0
             ? Math.min(((foirMax - userFoir) / foirMax) * 20, 20)
             : 20;
+
+        const effectiveCreditScore = creditScore === -1 ? 300 : creditScore;
+        const cibilScore =
+          policy.min_cibil > 0
+            ? Math.min(((effectiveCreditScore - policy.min_cibil) / policy.min_cibil) * 30, 30)
+            : 30;
+
+        let totalScore = Math.round(primaryScore + cibilScore + secondaryScore);
+        totalScore = Math.max(60, Math.min(99, totalScore));
+
+        eligibleBanks.push({
+          ...policy,
+          match_score: totalScore,
+          user_foir: Math.round(userFoir * 10) / 10,
+        });
       } else {
-        // self_employed defaults
-        salaryScore = 40;
-        foirScore = 15;
+        // Instant self_employed scoring
+        const effectiveCreditScore = creditScore === -1 ? 300 : creditScore;
+        const cibilScore =
+          policy.min_cibil > 0
+            ? Math.min(((effectiveCreditScore - policy.min_cibil) / policy.min_cibil) * 30, 30)
+            : 30;
+        let totalScore = Math.round(40 + cibilScore + 15);
+        totalScore = Math.max(60, Math.min(99, totalScore));
+
+        eligibleBanks.push({
+          ...policy,
+          match_score: totalScore,
+          user_foir: 0,
+        });
       }
-
-      const cibilScore =
-        policy.min_cibil > 0
-          ? Math.min(((creditScore - policy.min_cibil) / policy.min_cibil) * 30, 30)
-          : 30;
-
-      let totalScore = Math.round(salaryScore + cibilScore + foirScore);
-      totalScore = Math.max(60, Math.min(99, totalScore));
-
-      eligibleBanks.push({
-        ...policy,
-        match_score: totalScore,
-        user_foir: employmentType === 'salaried' ? Math.round(userFoir * 10) / 10 : 0,
-      });
-    } else {
-      // If no policy is available, match purely on the basis of pincode (ignore policy requirements)
+    } else if (!hasAnyDbPolicy) {
+      // If no policy is available in the database, match purely on the basis of pincode (ignore policy requirements)
       
       // 1. Infer Loan Type
       const isInferredBl = bankName.toLowerCase().includes('(bl)') || bankName.toLowerCase().includes(' bl');
       const inferredLoanType = isInferredBl ? 'BL' : 'PL';
+      const inferredCategory = inferredLoanType === 'BL' ? 'business' : (employmentType === 'salaried' ? 'salary' : 'instant');
 
-      if (loanType && loanType !== 'ALL' && inferredLoanType !== loanType) {
+      const expectedCategory = loanType === 'BL' ? 'business' : (employmentType === 'salaried' ? 'salary' : 'instant');
+      if (inferredCategory !== expectedCategory) {
         continue;
       }
 
@@ -194,6 +311,7 @@ export async function checkEligibility({ pincode, salary, creditScore, existingE
         min_experience: 'N/A',
         min_residence_stability: 'N/A',
         loan_type: inferredLoanType,
+        policy_category: inferredCategory,
         all_pincodes: false,
         special_notes: 'Matched based on pincode serviceability',
         logo_url: null,

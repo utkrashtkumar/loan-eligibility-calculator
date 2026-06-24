@@ -27,9 +27,9 @@ CREATE POLICY "Allow users to read their own inquiries"
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Policy C: Admin (utkrashtkumar@gmail.com) can read all inquiries
+-- Policy C: Admin (handtohandloans@gmail.com) can read all inquiries
 -- Uses auth.jwt() which is secure and does not query auth.users directly (avoids permission issues)
 CREATE POLICY "Allow admin to read all inquiries"
   ON user_inquiries FOR SELECT
   TO authenticated
-  USING (auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com');
+  USING (auth.jwt() ->> 'email' = 'handtohandloans@gmail.com');

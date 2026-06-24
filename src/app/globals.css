@@ -8,48 +8,48 @@
 
 /* ---------- CSS Custom Properties ---------- */
 :root {
-  /* --- Hand to Hand Redesign Tokens (Dark Theme Defaults) --- */
-  --bg-base: #0B1716;
-  --bg-surface: #142624;
-  --bg-subtle: #1B302D;
+  /* --- HandToHand Loans Redesign Tokens (Dark Theme Defaults - Green & Blue) --- */
+  --bg-base: #0b0f19;
+  --bg-surface: #111827;
+  --bg-subtle: #1f2937;
 
-  --color-primary: #2DD4BF;
-  --color-primary-hover: #5EEAD4;
-  --color-primary-light: #1E3A37;
+  --color-primary: #10b981;
+  --color-primary-hover: #059669;
+  --color-primary-light: rgba(16, 185, 129, 0.15);
 
-  --color-accent: #FB923C;
-  --color-accent-hover: #FDBA74;
-  --color-accent-light: #3A2616;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-light: rgba(59, 130, 246, 0.15);
 
-  --color-secondary: #FCD34D;
+  --color-secondary: #ffffff;
 
-  --color-success: #4ADE80;
-  --color-warning: #FBBF24;
-  --color-error: #F87171;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
 
-  --text-primary: #F0FAF8;
-  --text-secondary: #9FB5B2;
-  --text-muted: #647C79;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
 
-  --border-default: #2A4441;
+  --border-default: #374151;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
   --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.40);
   --shadow-lg: 0 16px 40px -4px rgba(0, 0, 0, 0.50);
 
-  --gradient-brand: linear-gradient(135deg, #0F766E 0%, #2DD4BF 50%, #F97316 100%);
+  --gradient-brand: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
 
-  /* --- Map red values to existing codebase styles --- */
+  /* --- Map values to existing variables --- */
   --color-bg-primary: var(--bg-base);
   --color-bg-secondary: var(--bg-surface);
   --color-bg-tertiary: var(--bg-subtle);
   --color-bg-card: var(--bg-surface);
   --color-bg-card-hover: var(--bg-subtle);
-  --color-bg-glass: rgba(20, 38, 36, 0.4);
-  --color-bg-glass-heavy: rgba(20, 38, 36, 0.8);
+  --color-bg-glass: rgba(17, 24, 39, 0.6);
+  --color-bg-glass-heavy: rgba(17, 24, 39, 0.85);
   --color-bg-input: var(--bg-base);
   --color-bg-input-focus: var(--bg-subtle);
-  --color-bg-section-subtle: rgba(15, 20, 36, 0.4);
+  --color-bg-section-subtle: rgba(31, 41, 55, 0.4);
 
   /* Accent Colors */
   --color-accent-indigo: var(--color-primary);
@@ -60,39 +60,32 @@
 
   /* Semantic Colors */
   --color-success: var(--color-success);
-  --color-success-bg: rgba(74, 222, 128, 0.1);
+  --color-success-bg: rgba(16, 185, 129, 0.1);
   --color-warning: var(--color-warning);
-  --color-warning-bg: rgba(251, 191, 36, 0.1);
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
   --color-error: var(--color-error);
-  --color-error-bg: rgba(248, 113, 113, 0.1);
+  --color-error-bg: rgba(239, 68, 68, 0.1);
   --color-info: var(--color-primary);
-  --color-info-bg: rgba(45, 212, 191, 0.1);
+  --color-info-bg: rgba(16, 185, 129, 0.1);
 
   /* Text Colors */
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-muted);
   --color-text-muted: var(--text-muted);
-  --color-text-accent: var(--color-accent);
+  --color-text-accent: var(--color-primary);
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 50%, var(--color-accent) 100%);
-  --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 50%, var(--color-accent-hover) 100%);
-  --gradient-accent: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 50%, var(--color-primary-hover) 100%);
-  --gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary-hover) 100%);
-  --gradient-warning: linear-gradient(135deg, var(--color-warning) 0%, var(--color-secondary) 100%);
+  --gradient-primary: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+  --gradient-primary-hover: linear-gradient(90deg, #059669 0%, #2563eb 100%);
+  --gradient-accent: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  --gradient-success: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+  --gradient-warning: linear-gradient(90deg, #f59e0b 0%, #3b82f6 100%);
   
-  --gradient-bg-mesh: radial-gradient(ellipse at 20% 50%, rgba(45, 212, 191, 0.08) 0%, transparent 50%),
-                       radial-gradient(ellipse at 80% 20%, rgba(251, 146, 60, 0.06) 0%, transparent 50%),
-                       radial-gradient(ellipse at 50% 80%, rgba(15, 118, 110, 0.05) 0%, transparent 50%);
-  --gradient-card-border: linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(251, 146, 60, 0.1), rgba(15, 118, 110, 0.2));
+  --gradient-bg-mesh: none;
+  --gradient-card-border: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
   --gradient-text: var(--gradient-brand);
-  --gradient-hero-mesh: linear-gradient(135deg, 
-    rgba(45, 212, 191, 0.12) 0%, 
-    rgba(94, 234, 212, 0.1) 25%, 
-    rgba(251, 146, 60, 0.08) 50%, 
-    rgba(15, 118, 110, 0.1) 75%, 
-    rgba(253, 186, 116, 0.06) 100%);
+  --gradient-hero-mesh: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 50%, #000000 100%);
 
   /* Borders */
   --border-subtle: 1px solid var(--border-default);
@@ -111,11 +104,11 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-lg);
-  --shadow-glow-indigo: 0 0 20px rgba(45, 212, 191, 0.25);
-  --shadow-glow-purple: 0 0 20px rgba(251, 146, 60, 0.25);
-  --shadow-glow-success: 0 0 15px rgba(74, 222, 128, 0.25);
-  --shadow-glow-error: 0 0 15px rgba(248, 113, 113, 0.25);
-  --shadow-input-focus: 0 0 0 3px rgba(45, 212, 191, 0.25), 0 0 20px rgba(251, 146, 60, 0.15);
+  --shadow-glow-indigo: 0 0 20px rgba(16, 185, 129, 0.25);
+  --shadow-glow-purple: 0 0 20px rgba(59, 130, 246, 0.25);
+  --shadow-glow-success: 0 0 15px rgba(16, 185, 129, 0.25);
+  --shadow-glow-error: 0 0 15px rgba(239, 68, 68, 0.25);
+  --shadow-input-focus: 0 0 0 3px rgba(16, 185, 129, 0.25), 0 0 20px rgba(59, 130, 246, 0.15);
   --color-circle-track: rgba(255, 255, 255, 0.06);
 
   /* Spacing */
@@ -348,9 +341,8 @@ p {
   height: 100%;
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 var(--space-lg);
+  padding: 0 clamp(12px, 4vw, 48px);
   position: relative;
-  z-index: calc(var(--z-overlay) + 10) !important;
 }
 
 .logo {
@@ -364,6 +356,8 @@ p {
   letter-spacing: var(--letter-spacing-tight);
   cursor: pointer;
   transition: transform var(--transition-fast);
+  position: relative;
+  z-index: 1;
 }
 
 .logo:hover {
@@ -467,7 +461,7 @@ p {
   padding: var(--space-sm);
   background: none;
   border: none;
-  z-index: var(--z-overlay);
+  z-index: calc(var(--z-overlay) + 20) !important;
 }
 
 .hamburger span {
@@ -488,6 +482,15 @@ p {
 
 .hamburger.active span:nth-child(3) {
   transform: rotate(-45deg) translate(5px, -5px);
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5), 0 0 15px rgba(217, 119, 6, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.8), 0 0 25px rgba(217, 119, 6, 0.5);
+  }
 }
 
 .mobile-menu {
@@ -861,14 +864,14 @@ p {
 }
 
 .btn-primary {
-  background: var(--color-accent);
+  background: var(--color-primary);
   color: #ffffff !important;
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  background: var(--color-accent-hover);
+  background: var(--color-primary-hover);
   box-shadow: var(--shadow-md);
 }
 
@@ -2543,34 +2546,36 @@ textarea.input-field {
    LIGHT THEME OVERRIDES
    ============================================ */
 [data-theme='light'] {
-  /* --- Hand to Hand Redesign Tokens (Light Theme Defaults) --- */
-  --bg-base: #FAFAF8;
-  --bg-surface: #FFFFFF;
-  --bg-subtle: #F1F5F4;
+  /* --- HandToHand Loans Redesign Tokens (Light Theme Defaults - Green & Blue) --- */
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f1f5f9;
 
-  --color-primary: #0F766E;
-  --color-primary-hover: #0D9488;
-  --color-primary-light: #CCFBF1;
+  --color-primary: #10b981;
+  --color-primary-hover: #059669;
+  --color-primary-light: rgba(16, 185, 129, 0.1);
 
-  --color-accent: #F97316;
-  --color-accent-hover: #EA580C;
-  --color-accent-light: #FFEDD5;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-light: rgba(59, 130, 246, 0.1);
 
-  --color-secondary: #FBBF24;
+  --color-secondary: #ffffff;
 
-  --color-success: #16A34A;
-  --color-warning: #F59E0B;
-  --color-error: #DC2626;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
 
-  --text-primary: #1F2A29;
-  --text-secondary: #5B6B69;
-  --text-muted: #94A3A1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
 
-  --border-default: #E2E8E7;
+  --border-default: #e2e8f0;
 
   --shadow-sm: 0 1px 2px 0 rgba(15, 23, 22, 0.06);
   --shadow-md: 0 4px 12px -2px rgba(15, 23, 22, 0.08);
   --shadow-lg: 0 12px 32px -4px rgba(15, 23, 22, 0.12);
+
+  --gradient-brand: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
 
   /* --- Map values to existing variables --- */
   --color-bg-primary: var(--bg-base);
@@ -2593,39 +2598,34 @@ textarea.input-field {
 
   /* Semantic Colors */
   --color-success: var(--color-success);
-  --color-success-bg: rgba(22, 163, 74, 0.1);
+  --color-success-bg: rgba(16, 185, 129, 0.1);
   --color-warning: var(--color-warning);
   --color-warning-bg: rgba(245, 158, 11, 0.1);
   --color-error: var(--color-error);
   --color-error-bg: rgba(220, 38, 38, 0.1);
   --color-info: var(--color-primary);
-  --color-info-bg: rgba(15, 118, 110, 0.1);
+  --color-info-bg: rgba(16, 185, 129, 0.1);
 
   /* Text Colors */
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
-  --color-text-accent: var(--color-accent);
+  --color-text-accent: var(--color-primary);
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 50%, var(--color-accent) 100%);
-  --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 50%, var(--color-accent-hover) 100%);
-  --gradient-accent: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 50%, var(--color-primary-hover) 100%);
-  --gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary-hover) 100%);
-  --gradient-warning: linear-gradient(135deg, var(--color-warning) 0%, var(--color-secondary) 100%);
+  --gradient-primary: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+  --gradient-primary-hover: linear-gradient(90deg, #059669 0%, #2563eb 100%);
+  --gradient-accent: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  --gradient-success: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+  --gradient-warning: linear-gradient(90deg, #f59e0b 0%, #3b82f6 100%);
   
-  --gradient-bg-mesh: radial-gradient(ellipse at 20% 50%, rgba(15, 118, 110, 0.04) 0%, transparent 50%),
-                       radial-gradient(ellipse at 80% 20%, rgba(249, 115, 22, 0.03) 0%, transparent 50%),
-                       radial-gradient(ellipse at 50% 80%, rgba(204, 251, 241, 0.02) 0%, transparent 50%);
-  --gradient-card-border: linear-gradient(135deg, rgba(15, 118, 110, 0.15), rgba(249, 115, 22, 0.08), rgba(204, 251, 241, 0.15));
+  --gradient-bg-mesh: linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px) center / 40px 40px repeat,
+                      linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px) center / 40px 40px repeat,
+                      linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%) no-repeat;
+  --gradient-card-border: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
   --gradient-text: var(--gradient-brand);
-  --gradient-hero-mesh: linear-gradient(135deg, 
-    rgba(15, 118, 110, 0.08) 0%, 
-    rgba(13, 148, 136, 0.06) 25%, 
-    rgba(249, 115, 22, 0.04) 50%, 
-    rgba(204, 251, 241, 0.05) 75%, 
-    rgba(255, 237, 213, 0.03) 100%);
+  --gradient-hero-mesh: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 50%, #ffffff 100%);
 
   /* Borders */
   --border-subtle: 1px solid var(--border-default);
@@ -2639,9 +2639,9 @@ textarea.input-field {
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-lg);
-  --shadow-glow-indigo: 0 0 20px rgba(15, 118, 110, 0.15);
-  --shadow-glow-purple: 0 0 20px rgba(249, 115, 22, 0.15);
-  --shadow-input-focus: 0 0 0 3px rgba(15, 118, 110, 0.15), 0 0 20px rgba(15, 118, 110, 0.08);
+  --shadow-glow-indigo: 0 0 20px rgba(16, 185, 129, 0.15);
+  --shadow-glow-purple: 0 0 20px rgba(59, 130, 246, 0.15);
+  --shadow-input-focus: 0 0 0 3px rgba(16, 185, 129, 0.15), 0 0 20px rgba(59, 130, 246, 0.08);
   --color-circle-track: rgba(15, 23, 42, 0.08);
 }
 
@@ -2881,154 +2881,6 @@ select.input-field option {
 [data-theme='light'] .mobile-menu .nav-link.nav-admin:hover {
   background: rgba(22, 163, 74, 0.1) !important;
   border-color: #16a34a !important;
-}
-
-/* ============================================
-   GREEN-BLUE THEME (ONLY GREEN, BLUE, WHITE, BLACK)
-   ============================================ */
-[data-theme='green-blue'] {
-  --bg-base: #000000;
-  --bg-surface: #000a1a;
-  --bg-subtle: #00122e;
-
-  --color-primary: #10b981; /* Emerald Green */
-  --color-primary-hover: #34d399; /* Light Green */
-  --color-primary-light: #064e3b; /* Dark Green */
-
-  --color-accent: #3b82f6; /* Royal Blue */
-  --color-accent-hover: #60a5fa; /* Light Blue */
-  --color-accent-light: #1e3a8a; /* Dark Blue */
-
-  --color-secondary: #00c853; /* Bright Green */
-
-  --color-success: #10b981; /* Green */
-  --color-success-bg: rgba(16, 185, 129, 0.15);
-  
-  --color-warning: #3b82f6; /* Blue */
-  --color-warning-bg: rgba(59, 130, 246, 0.15);
-  
-  --color-error: #2563eb; /* Cobalt Blue */
-  --color-error-bg: rgba(37, 99, 235, 0.15);
-
-  --text-primary: #ffffff; /* White */
-  --text-secondary: #93c5fd; /* Light Blue */
-  --text-muted: rgba(255, 255, 255, 0.5); /* Transparent White */
-
-  --border-default: #002244; /* Dark Blue Border */
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.9);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 1.0);
-
-  --gradient-brand: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
-
-  /* --- Map values to existing variables --- */
-  --color-bg-primary: var(--bg-base);
-  --color-bg-secondary: var(--bg-surface);
-  --color-bg-tertiary: var(--bg-subtle);
-  --color-bg-card: var(--bg-surface);
-  --color-bg-card-hover: var(--bg-subtle);
-  --color-bg-glass: rgba(0, 10, 26, 0.4);
-  --color-bg-glass-heavy: rgba(0, 10, 26, 0.85);
-  --color-bg-input: var(--bg-base);
-  --color-bg-input-focus: var(--bg-subtle);
-  --color-bg-section-subtle: rgba(0, 18, 46, 0.4);
-
-  /* Accent Colors */
-  --color-accent-indigo: var(--color-primary);
-  --color-accent-violet: var(--color-accent);
-  --color-accent-purple: var(--color-secondary);
-  --color-accent-blue: var(--color-accent);
-  --color-accent-cyan: var(--color-primary-hover);
-
-  /* Semantic Colors */
-  --color-success: var(--color-success);
-  --color-success-bg: var(--color-success-bg);
-  --color-warning: var(--color-warning);
-  --color-warning-bg: var(--color-warning-bg);
-  --color-error: var(--color-error);
-  --color-error-bg: var(--color-error-bg);
-  --color-info: var(--color-accent);
-  --color-info-bg: rgba(59, 130, 246, 0.15);
-
-  /* Text Colors */
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-muted);
-  --color-text-muted: var(--text-muted);
-  --color-text-accent: var(--color-accent);
-
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-  --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-accent-hover) 100%);
-  --gradient-accent: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
-  --gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary-hover) 100%);
-  --gradient-warning: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
-  
-  --gradient-bg-mesh: radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
-                       radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                       radial-gradient(ellipse at 50% 80%, rgba(6, 78, 59, 0.05) 0%, transparent 50%);
-  --gradient-card-border: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
-  --gradient-text: var(--gradient-brand);
-  --gradient-hero-mesh: linear-gradient(135deg, 
-    rgba(16, 185, 129, 0.1) 0%, 
-    rgba(59, 130, 246, 0.1) 50%, 
-    #000000 100%);
-
-  /* Borders */
-  --border-subtle: 1px solid var(--border-default);
-  --border-light: 1px solid var(--border-default);
-  --border-accent: 1px solid var(--color-primary);
-  --border-success: 1px solid var(--color-success);
-  --border-error: 1px solid var(--color-error);
-
-  /* Shadows */
-  --shadow-glow-indigo: 0 0 20px rgba(16, 185, 129, 0.25);
-  --shadow-glow-purple: 0 0 20px rgba(59, 130, 246, 0.25);
-  --shadow-glow-success: 0 0 15px rgba(16, 185, 129, 0.25);
-  --shadow-glow-error: 0 0 15px rgba(59, 130, 246, 0.25);
-  --shadow-input-focus: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 0 20px rgba(59, 130, 246, 0.15);
-  --color-circle-track: rgba(255, 255, 255, 0.06);
-}
-
-/* Green-Blue theme mobile menu overrides */
-[data-theme='green-blue'] .mobile-menu {
-  background: rgba(0, 0, 0, 0.98) !important; /* Solid black base */
-  border-left: 1px solid rgba(16, 185, 129, 0.2) !important;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7) !important;
-}
-
-[data-theme='green-blue'] .mobile-menu .nav-link {
-  background: rgba(0, 18, 32, 0.4) !important; /* Standard theme button backgrounds */
-  border: 1px solid rgba(16, 185, 129, 0.15) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-}
-
-[data-theme='green-blue'] .mobile-menu .nav-link:hover,
-[data-theme='green-blue'] .mobile-menu .nav-link:focus {
-  background: rgba(16, 185, 129, 0.08) !important;
-  border-color: var(--color-primary) !important;
-}
-
-[data-theme='green-blue'] .mobile-menu .nav-link.nav-logout {
-  background: rgba(37, 99, 235, 0.05) !important;
-  border: 1px solid rgba(37, 99, 235, 0.2) !important;
-  color: #60a5fa !important;
-}
-
-[data-theme='green-blue'] .mobile-menu .nav-link.nav-logout:hover {
-  background: rgba(37, 99, 235, 0.1) !important;
-}
-
-[data-theme='green-blue'] .mobile-menu .nav-link.nav-admin {
-  background: rgba(16, 185, 129, 0.05) !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
-  color: #34d399 !important;
-}
-
-[data-theme='green-blue'] .mobile-menu .nav-link.nav-admin:hover {
-  background: rgba(16, 185, 129, 0.1) !important;
 }
 
 /* ============================================
@@ -3592,4 +3444,229 @@ main, article, aside {
 .scroll-to-top-btn:active {
   transform: translateY(-1px) scale(0.98);
 }
+
+/* ==========================================================================
+   WHITE THEME SECTIONS & HOVER EFFECTS FOR HOME SCREEN
+   ========================================================================== */
+
+/* 1. Universal light theme overrides for the new sections */
+.light-section {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+.light-section-subtle {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* 2. Text styles for light sections */
+.light-title {
+  color: var(--color-text-primary) !important;
+  font-weight: 800 !important;
+}
+.light-subtitle {
+  color: var(--color-text-secondary) !important;
+}
+.light-tag {
+  color: #10b981 !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+/* 3. Card designs with light background and premium hover animations */
+.white-card {
+  background: var(--color-bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  color: var(--color-text-secondary) !important;
+  box-sizing: border-box;
+}
+
+.white-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md), 0 0 15px rgba(16, 185, 129, 0.15) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Process Card (horizontal timeline cards) */
+.timeline-card {
+  background: var(--color-bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all 0.3s ease !important;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  color: var(--color-text-secondary) !important;
+}
+.timeline-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md), 0 0 12px rgba(16, 185, 129, 0.15) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Dark stats cards for lead journey bottom block */
+.dark-stat-block {
+  background: #090d16 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+}
+.dark-stat-block:hover {
+  transform: translateY(-4px);
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* 4. Timeline process connector line */
+.process-timeline-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+@media (min-width: 1024px) {
+  .process-timeline-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 36px;
+    left: 8%;
+    right: 8%;
+    height: 3px;
+    background: linear-gradient(to right, #3b82f6, #10b981, #a855f7, #f97316);
+    z-index: 1;
+  }
+}
+
+/* 5. Custom tier-specific borders */
+.tier-card-silver {
+  border-left: 5px solid #cbd5e1 !important;
+}
+.tier-card-gold {
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.05) !important;
+}
+.tier-card-gold:hover {
+  box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.15) !important;
+}
+.tier-card-platinum {
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.05) !important;
+}
+.tier-card-platinum:hover {
+  box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* ---------- Josh W. Comeau 3D Pushable Button (Button 82) ---------- */
+.button-82-pushable {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline-offset: 4px;
+  transition: filter 250ms;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.button-82-shadow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  background: hsl(0deg 0% 0% / 0.25);
+  will-change: transform;
+  transform: translateY(2px);
+  transition:
+    transform
+    600ms
+    cubic-bezier(.3, .7, .4, 1);
+}
+
+.button-82-edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(
+    to left,
+    #047857 0%,
+    #059669 8%,
+    #059669 92%,
+    #047857 100%
+  );
+}
+
+.button-82-front {
+  display: block;
+  position: relative;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  background: #10b981;
+  will-change: transform;
+  transform: translateY(-4px);
+  transition:
+    transform
+    600ms
+    cubic-bezier(.3, .7, .4, 1);
+  font-family: inherit;
+}
+
+.button-82-pushable:hover {
+  filter: brightness(110%);
+}
+
+.button-82-pushable:hover .button-82-front {
+  transform: translateY(-6px);
+  transition:
+    transform
+    250ms
+    cubic-bezier(.3, .7, .4, 1.5);
+}
+
+.button-82-pushable:hover .button-82-shadow {
+  transform: translateY(4px);
+  transition:
+    transform
+    250ms
+    cubic-bezier(.3, .7, .4, 1.5);
+}
+
+.button-82-pushable:active .button-82-front {
+  transform: translateY(-2px);
+  transition: transform 34ms;
+}
+
+.button-82-pushable:active .button-82-shadow {
+  transform: translateY(1px);
+  transition: transform 34ms;
+}
+
+.button-82-pushable:focus:not(:focus-visible) {
+  outline: none;
+}
+
 

@@ -30,6 +30,9 @@ export default function AdminDashboard() {
   // Client applications state
   const [applications, setApplications] = useState([]);
   const [updatingAppId, setUpdatingAppId] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [deletingAppId, setDeletingAppId] = useState(null);
+  const [appStatusFilter, setAppStatusFilter] = useState('all');
 
   // Payout requests state
   const [payoutRequests, setPayoutRequests] = useState([]);
@@ -65,8 +68,11 @@ export default function AdminDashboard() {
     all_pincodes: true,
     special_notes: '',
     logo_url: '',
-    employment_type: 'salaried'
+    employment_type: 'salaried',
+    policy_category: 'salary'
   });
+
+  const [activePolicyCategory, setActivePolicyCategory] = useState('salary');
 
   // Pincode management state
   const [bankPincodes, setBankPincodes] = useState([]);
@@ -93,6 +99,13 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const getBankLogo = (bankName) => {
+    if (!bankName) return '';
+    const normName = bankName.toUpperCase().replace(/\(BL\)/g, '').trim();
+    const policy = policies.find(p => p.bank_name.toUpperCase().replace(/\(BL\)/g, '').trim() === normName);
+    return policy ? policy.logo_url : '';
   };
 
   const fetchBankPincodes = async (bankName) => {
@@ -238,7 +251,7 @@ export default function AdminDashboard() {
     setSelectedPolicy(null);
     setPolicyForm({
       bank_name: '',
-      loan_type: 'PL',
+      loan_type: activePolicyCategory === 'business' ? 'BL' : 'PL',
       min_salary: 25000,
       min_cibil: 650,
       foir_max: 55,
@@ -251,7 +264,8 @@ export default function AdminDashboard() {
       all_pincodes: true,
       special_notes: '',
       logo_url: '',
-      employment_type: 'salaried'
+      employment_type: activePolicyCategory === 'salary' ? 'salaried' : 'self_employed',
+      policy_category: activePolicyCategory
     });
     setBankPincodes([]);
     setPincodeSearchTerm('');
@@ -276,7 +290,8 @@ export default function AdminDashboard() {
       all_pincodes: policy.all_pincodes !== false,
       special_notes: policy.special_notes || '',
       logo_url: policy.logo_url || '',
-      employment_type: policy.employment_type || 'salaried'
+      employment_type: policy.employment_type || 'salaried',
+      policy_category: policy.policy_category || 'salary'
     });
     setPincodeSearchTerm('');
     setSelectedPincodeIds([]);
@@ -469,7 +484,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('applications')
-        .select('*, agent:profiles(full_name, email, agent_code)')
+        .select('*, agent:profiles(full_name, email, agent_code, role)')
         .order('created_at', { ascending: false });
 
       if (error) console.error('Error fetching applications:', error.message);
@@ -548,7 +563,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function authenticateAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session || session.user.email !== 'utkrashtkumar@gmail.com') {
+      if (!session || (session.user.email !== 'handtohandloans@gmail.com' && session.user.email !== 'utkrashtkumar@gmail.com')) {
         router.push('/admin/login');
       } else {
         await fetchAllData();
@@ -786,11 +801,41 @@ export default function AdminDashboard() {
         alert('Update status failed: ' + error.message);
       } else {
         await Promise.all([fetchApplications(), fetchPayoutRequests()]);
+        setSelectedApplication(prev => {
+          if (prev && prev.id === appId) {
+            return { ...prev, status: newStatus, disbursed_at: updateData.disbursed_at };
+          }
+          return prev;
+        });
       }
     } catch (err) {
       console.error(err);
     } finally {
       setUpdatingAppId(null);
+    }
+  };
+
+  const handleDeleteApplication = async (appId) => {
+    if (!window.confirm('⚠️ Are you sure you want to permanently delete this client application? This action cannot be undone.')) return;
+    setDeletingAppId(appId);
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', appId);
+
+      if (error) {
+        alert('Delete application failed: ' + error.message);
+      } else {
+        alert('Application deleted successfully!');
+        setSelectedApplication(prev => prev && prev.id === appId ? null : prev);
+        await Promise.all([fetchApplications(), fetchPayoutRequests()]);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while deleting the application.');
+    } finally {
+      setDeletingAppId(null);
     }
   };
 
@@ -929,6 +974,8 @@ export default function AdminDashboard() {
 
   const actualPendingAgents = pendingAgents.filter(sa => !(sa.profile_update_message && sa.profile_update_message.startsWith('REJECTED:')));
   const demotedBalances = getDemotedOutstandingBalances();
+  const agentApplications = applications.filter(app => app.agent?.role !== 'user');
+  const customerApplications = applications.filter(app => app.agent?.role === 'user');
   const totalNotifications = actualPendingAgents.length + 
                              payoutRequests.filter(r => r.status === 'Pending').length + 
                              applications.filter(a => a.status && a.status.toLowerCase() === 'applied').length + 
@@ -1030,7 +1077,8 @@ export default function AdminDashboard() {
                           { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
                           { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
                           { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
-                          { id: 'applications', label: `📝 Client Applications (${applications.length})` },
+                          { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
+                          { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                         ].find(t => t.id === activeTab)?.label || 'Select Menu Option'}
@@ -1066,7 +1114,8 @@ export default function AdminDashboard() {
                           { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
                           { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
                           { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
-                          { id: 'applications', label: `📝 Client Applications (${applications.length})` },
+                          { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
+                          { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                         ].map((tab) => (
@@ -1104,7 +1153,8 @@ export default function AdminDashboard() {
                       { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
                       { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
                       { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
-                      { id: 'applications', label: `📝 Client Applications (${applications.length})` },
+                      { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
+                          { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                       { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                       { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                     ].map((tab) => (
@@ -1319,7 +1369,7 @@ export default function AdminDashboard() {
                                      </td>
                                      <td style={{ padding: '16px 24px' }}>
                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
-                                         <BankLogo bankName={app.bank_name} size={16} />
+                                         <BankLogo bankName={app.bank_name} logoUrl={getBankLogo(app.bank_name)} size={16} />
                                          {app.bank_name}
                                        </div>
                                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>Type: {app.loan_type === 'PL' ? 'Personal' : 'Business'}</div>
@@ -2071,236 +2121,538 @@ export default function AdminDashboard() {
                 )}
 
                 {/* PANEL 5: CLIENT APPLICATIONS */}
-                {activeTab === 'applications' && (
-                  <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Client Details</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Submitting Agent</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Bank & Loan</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Loan Amount</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Commission (2%)</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Submit Date</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Update Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {applications.length === 0 ? (
-                            <tr>
-                              <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                No client applications submitted yet.
-                              </td>
-                            </tr>
-                          ) : (
-                            applications.map((app) => (
-                              <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                <td style={{ padding: '16px 24px' }}>
-                                  <div style={{ fontWeight: 500 }}>{app.client_name}</div>
-                                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
-                                  {app.problem && (
-                                    <div style={{ 
-                                      fontSize: '11px', 
-                                      color: 'var(--color-error)', 
-                                      marginTop: '6px',
-                                      background: 'rgba(239, 68, 68, 0.08)',
-                                      padding: '6px 8px',
-                                      borderRadius: '4px',
-                                      borderLeft: '2px solid var(--color-error)',
-                                      maxWidth: '280px',
-                                      wordBreak: 'break-word',
-                                      textAlign: 'left'
-                                    }}>
-                                      ⚠️ <strong>Issue:</strong> {app.problem}
-                                    </div>
-                                  )}
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                  {app.agent ? (
-                                    <>
-                                      <div style={{ fontWeight: 500 }}>{app.agent.full_name}</div>
-                                      <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
-                                        Code: <strong>{app.agent.agent_code}</strong>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <span style={{ color: 'var(--color-text-muted)' }}>Deleted Agent</span>
-                                  )}
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
-                                    <BankLogo bankName={app.bank_name} size={16} />
-                                    {app.bank_name}
-                                  </div>
-                                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                                    Type: {app.loan_type === 'PL' ? 'Personal' : 'Business'}
-                                  </div>
-                                </td>
-                                <td style={{ padding: '16px 24px', fontWeight: 500 }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-accent-violet)' }}>₹{Number(app.commission_amount).toLocaleString('en-IN')}</td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                  {new Date(app.created_at).toLocaleDateString('en-IN')}
-                                </td>
-                                <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                                    <span className="badge" style={{ ...getStatusBadgeStyle(app.status), margin: 0, fontSize: '10px' }}>
-                                      {app.status}
-                                    </span>
-                                    <select
-                                      disabled={updatingAppId === app.id}
-                                      value={app.status ? app.status.toLowerCase() : 'applied'}
-                                      onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
-                                      style={{
-                                        background: 'var(--color-bg-secondary)',
-                                        color: 'var(--color-text-primary)',
-                                        border: 'var(--border-light)',
-                                        padding: '4px 8px',
-                                        borderRadius: '6px',
-                                        fontSize: 'var(--text-xs)',
-                                        outline: 'none',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      <option value="applied">Applied</option>
-                                      <option value="in process">In Progress</option>
-                                      <option value="kyc verification">KYC Verification</option>
-                                      <option value="disbursed">Disbursed</option>
-                                      <option value="rejected">Rejected</option>
-                                    </select>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* PANEL 6: BANK POLICIES */}
-                {activeTab === 'policies' && (
-                  <div style={{ display: 'grid', gap: '24px' }}>
-                    {/* Header Row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                      <div>
-                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>🏦 Bank & NBFC Policies</h3>
-                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
-                          Manage lender eligibility criteria — CIBIL, salary, FOIR, age, PF, pincodes and more
-                        </p>
+                {activeTab === 'agent_applications' && (() => {
+                  const filtered = agentApplications;
+                  const displayApps = filtered.filter(app => 
+                    appStatusFilter === 'all' ? true : (app.status || '').toLowerCase() === appStatusFilter
+                  );
+                  return (
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                      {/* Sub-tabs for filtering status */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        {[
+                          { id: 'all', label: 'All' },
+                          { id: 'applied', label: 'Applied' },
+                          { id: 'in process', label: 'In Process' },
+                          { id: 'kyc verification', label: 'KYC Waiting' },
+                          { id: 'disbursed', label: 'Disbursed' },
+                          { id: 'rejected', label: 'Rejected' }
+                        ].map(subTab => {
+                          const count = filtered.filter(app => subTab.id === 'all' ? true : (app.status || '').toLowerCase() === subTab.id).length;
+                          return (
+                            <button
+                              key={subTab.id}
+                              onClick={() => setAppStatusFilter(subTab.id)}
+                              className="btn btn-sm"
+                              style={{
+                                margin: 0,
+                                padding: '6px 12px',
+                                fontSize: 'var(--text-xs)',
+                                background: appStatusFilter === subTab.id ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)',
+                                color: appStatusFilter === subTab.id ? '#fff' : 'var(--color-text-secondary)',
+                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-light)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                              }}
+                            >
+                              {subTab.label}
+                              <span style={{
+                                background: appStatusFilter === subTab.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                fontSize: '10px',
+                                color: '#fff'
+                              }}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={handleOpenAddPolicy}
-                        style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Add New Policy
-                      </button>
-                    </div>
 
-                    {/* Policies Table */}
-                    {policies.length === 0 ? (
-                      <div className="form-card" style={{ padding: '48px 24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
-                        <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏦</div>
-                        <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No bank policies configured yet.</p>
-                        <p style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>Click &quot;Add New Policy&quot; to define your first lender criteria.</p>
-                      </div>
-                    ) : (
                       <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
                         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                          <table style={{ width: '100%', minWidth: '720px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                          <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
                             <thead>
                               <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Bank / NBFC</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Type</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Emp. Type</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min Salary (₹)</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min CIBIL</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Max FOIR %</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Age Range</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Pincodes</th>
-                                <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Client Details</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Submitting Agent</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Bank & Loan</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Loan Amount</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Commission (2%)</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Submit Date</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Actions</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {policies.map((policy) => (
-                                <tr key={policy.id} style={{ borderBottom: 'var(--border-subtle)', transition: 'background 0.15s' }}
-                                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-card)'}
-                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                >
-                                  <td style={{ padding: '12px 10px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <BankLogo bankName={policy.bank_name} logoUrl={policy.logo_url} size={20} />
-                                      <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{policy.bank_name}</span>
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '12px 10px' }}>
-                                    <span className={`badge ${policy.loan_type === 'PL' ? 'badge-primary' : 'badge-info'}`}>
-                                      {policy.loan_type === 'PL' ? '💳 Personal' : '💼 Business'}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '12px 10px' }}>
-                                    <span className="badge" style={{
-                                      background: policy.employment_type === 'self_employed' ? 'rgba(16, 185, 129, 0.15)' : policy.employment_type === 'both' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                                      color: policy.employment_type === 'self_employed' ? '#10b981' : policy.employment_type === 'both' ? '#f59e0b' : '#6366f1',
-                                      border: 'none',
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      fontWeight: 600,
-                                      fontSize: '10px'
-                                    }}>
-                                      {policy.employment_type === 'self_employed' ? '🏢 Self Emp' : policy.employment_type === 'both' ? '🔄 Both' : '💼 Salaried'}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontWeight: 500 }}>
-                                    ₹{Number(policy.min_salary).toLocaleString('en-IN')}
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontWeight: 500 }}>
-                                    {policy.min_cibil}+
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontWeight: 500 }}>
-                                    {policy.foir_max}%
-                                  </td>
-                                  <td style={{ padding: '12px 10px' }}>
-                                    {policy.min_age}–{policy.max_age} yrs
-                                  </td>
-                                  <td style={{ padding: '12px 10px' }}>
-                                    {policy.all_pincodes ? (
-                                      <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>🌍 All India</span>
-                                    ) : (
-                                      <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>📍 Limited</span>
-                                    )}
-                                  </td>
-                                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                      <button
-                                        className="btn btn-secondary btn-sm"
-                                        style={{ padding: '5px 12px', fontSize: '11px' }}
-                                        onClick={() => handleOpenEditPolicy(policy)}
-                                      >
-                                        ✏️ Edit
-                                      </button>
-                                      <button
-                                        className="btn btn-sm"
-                                        style={{ padding: '5px 12px', fontSize: '11px', background: 'rgba(239,68,68,0.1)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.25)' }}
-                                        onClick={() => handleDeletePolicy(policy.id)}
-                                        disabled={agentActionLoading === 'deleting-policy'}
-                                      >
-                                        🗑️ Delete
-                                      </button>
-                                    </div>
+                              {displayApps.length === 0 ? (
+                                <tr>
+                                  <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                    No agent applications found for status &quot;${appStatusFilter}&quot;.
                                   </td>
                                 </tr>
-                              ))}
+                              ) : (
+                                displayApps.map((app) => (
+                                  <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }} onClick={() => setSelectedApplication(app)}>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      <div style={{ fontWeight: 500 }}>{app.client_name}</div>
+                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                      {app.problem && (
+                                        <div style={{ 
+                                          fontSize: '11px', 
+                                          color: 'var(--color-error)', 
+                                          marginTop: '6px',
+                                          background: 'rgba(239, 68, 68, 0.08)',
+                                          padding: '6px 8px',
+                                          borderRadius: '4px',
+                                          borderLeft: '2px solid var(--color-error)',
+                                          maxWidth: '280px',
+                                          wordBreak: 'break-word',
+                                          textAlign: 'left'
+                                        }}>
+                                          ⚠️ <strong>Issue:</strong> {app.problem}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      {app.agent ? (
+                                        <>
+                                          <div style={{ fontWeight: 500 }}>{app.agent.full_name}</div>
+                                          <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                                            Code: <strong>{app.agent.agent_code}</strong>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <span style={{ color: 'var(--color-text-muted)' }}>Deleted Agent</span>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                        <BankLogo bankName={app.bank_name} logoUrl={getBankLogo(app.bank_name)} size={16} />
+                                        {app.bank_name}
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                        Type: {app.loan_type === 'PL' ? 'Personal' : 'Business'}
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '16px 24px', fontWeight: 500 }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-accent-violet)' }}>₹{Number(app.commission_amount).toLocaleString('en-IN')}</td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
+                                      {new Date(app.created_at).toLocaleDateString('en-IN')}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <span className="badge" style={{ ...getStatusBadgeStyle(app.status), margin: 0, fontSize: '10px' }}>
+                                          {app.status}
+                                        </span>
+                                        <button
+                                          onClick={() => setSelectedApplication(app)}
+                                          className="btn btn-sm"
+                                          style={{
+                                            margin: 0,
+                                            padding: '6px 12px',
+                                            background: 'rgba(99, 102, 241, 0.1)',
+                                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                                            color: 'var(--color-primary)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: 'var(--text-xs)',
+                                            fontWeight: 600
+                                          }}
+                                        >
+                                          🔍 Inspect
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteApplication(app.id)}
+                                          disabled={deletingAppId === app.id}
+                                          className="btn btn-sm"
+                                          style={{
+                                            margin: 0,
+                                            padding: '6px 8px',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                                            color: 'var(--color-error)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                          title="Delete application"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
                             </tbody>
                           </table>
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
+
+                {/* PANEL 5B: CUSTOMER APPLICATIONS */}
+                {activeTab === 'customer_applications' && (() => {
+                  const filtered = customerApplications;
+                  const displayApps = filtered.filter(app => 
+                    appStatusFilter === 'all' ? true : (app.status || '').toLowerCase() === appStatusFilter
+                  );
+                  return (
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                      {/* Sub-tabs for filtering status */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        {[
+                          { id: 'all', label: 'All' },
+                          { id: 'applied', label: 'Applied' },
+                          { id: 'in process', label: 'In Process' },
+                          { id: 'kyc verification', label: 'KYC Waiting' },
+                          { id: 'disbursed', label: 'Disbursed' },
+                          { id: 'rejected', label: 'Rejected' }
+                        ].map(subTab => {
+                          const count = filtered.filter(app => subTab.id === 'all' ? true : (app.status || '').toLowerCase() === subTab.id).length;
+                          return (
+                            <button
+                              key={subTab.id}
+                              onClick={() => setAppStatusFilter(subTab.id)}
+                              className="btn btn-sm"
+                              style={{
+                                margin: 0,
+                                padding: '6px 12px',
+                                fontSize: 'var(--text-xs)',
+                                background: appStatusFilter === subTab.id ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)',
+                                color: appStatusFilter === subTab.id ? '#fff' : 'var(--color-text-secondary)',
+                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-light)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                              }}
+                            >
+                              {subTab.label}
+                              <span style={{
+                                background: appStatusFilter === subTab.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                fontSize: '10px',
+                                color: '#fff'
+                              }}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                            <thead>
+                              <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Client Details</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Submitting Customer</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Bank & Loan</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Loan Amount</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Submit Date</th>
+                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {displayApps.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                    No customer applications found for status &quot;${appStatusFilter}&quot;.
+                                  </td>
+                                </tr>
+                              ) : (
+                                displayApps.map((app) => (
+                                  <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }} onClick={() => setSelectedApplication(app)}>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      <div style={{ fontWeight: 500 }}>{app.client_name}</div>
+                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                      {app.problem && (
+                                        <div style={{ 
+                                          fontSize: '11px', 
+                                          color: 'var(--color-error)', 
+                                          marginTop: '6px',
+                                          background: 'rgba(239, 68, 68, 0.08)',
+                                          padding: '6px 8px',
+                                          borderRadius: '4px',
+                                          borderLeft: '2px solid var(--color-error)',
+                                          maxWidth: '280px',
+                                          wordBreak: 'break-word',
+                                          textAlign: 'left'
+                                        }}>
+                                          ⚠️ <strong>Issue:</strong> {app.problem}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      {app.agent ? (
+                                        <>
+                                          <div style={{ fontWeight: 500 }}>{app.agent.full_name}</div>
+                                          <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                                            Email: {app.agent.email}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <span style={{ color: 'var(--color-text-muted)' }}>Deleted User</span>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                        <BankLogo bankName={app.bank_name} logoUrl={getBankLogo(app.bank_name)} size={16} />
+                                        {app.bank_name}
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                        Type: {app.loan_type === 'PL' ? 'Personal' : 'Business'}
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '16px 24px', fontWeight: 500 }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
+                                      {new Date(app.created_at).toLocaleDateString('en-IN')}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <span className="badge" style={{ ...getStatusBadgeStyle(app.status), margin: 0, fontSize: '10px' }}>
+                                          {app.status}
+                                        </span>
+                                        <button
+                                          onClick={() => setSelectedApplication(app)}
+                                          className="btn btn-sm"
+                                          style={{
+                                            margin: 0,
+                                            padding: '6px 12px',
+                                            background: 'rgba(99, 102, 241, 0.1)',
+                                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                                            color: 'var(--color-primary)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: 'var(--text-xs)',
+                                            fontWeight: 600
+                                          }}
+                                        >
+                                          🔍 Inspect
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteApplication(app.id)}
+                                          disabled={deletingAppId === app.id}
+                                          className="btn btn-sm"
+                                          style={{
+                                            margin: 0,
+                                            padding: '6px 8px',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                                            color: 'var(--color-error)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                          title="Delete application"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* PANEL 6: BANK POLICIES */}
+                {activeTab === 'policies' && (() => {
+                  const salaryCount = policies.filter(p => (p.policy_category || 'salary') === 'salary').length;
+                  const instantCount = policies.filter(p => p.policy_category === 'instant').length;
+                  const businessCount = policies.filter(p => p.policy_category === 'business').length;
+                  
+                  const displayPolicies = policies.filter(policy => 
+                    (policy.policy_category || 'salary') === activePolicyCategory
+                  );
+                  
+                  const subTabs = [
+                    { id: 'salary', label: 'Salary PL', count: salaryCount, emoji: '💼' },
+                    { id: 'instant', label: 'Instant PL', count: instantCount, emoji: '⚡' },
+                    { id: 'business', label: 'Business Loans', count: businessCount, emoji: '🏢' }
+                  ];
+
+                  return (
+                    <div style={{ display: 'grid', gap: '24px' }}>
+                      {/* Header Row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <div>
+                          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>🏦 Bank & NBFC Policies</h3>
+                          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                            Manage lender eligibility criteria — CIBIL, salary, FOIR, age, PF, pincodes and more
+                          </p>
+                        </div>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={handleOpenAddPolicy}
+                          style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                          Add New Policy
+                        </button>
+                      </div>
+
+                      {/* Sub-tabs for filtering category */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        {subTabs.map((subTab) => (
+                          <button
+                            key={subTab.id}
+                            onClick={() => setActivePolicyCategory(subTab.id)}
+                            className="btn btn-sm"
+                            style={{
+                              margin: 0,
+                              padding: '6px 12px',
+                              fontSize: 'var(--text-xs)',
+                              background: activePolicyCategory === subTab.id ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)',
+                              color: activePolicyCategory === subTab.id ? '#fff' : 'var(--color-text-secondary)',
+                              border: activePolicyCategory === subTab.id ? 'none' : 'var(--border-light)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <span>{subTab.emoji}</span>
+                            {subTab.label}
+                            <span style={{
+                              background: activePolicyCategory === subTab.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                              padding: '2px 6px',
+                              borderRadius: '10px',
+                              fontSize: '10px',
+                              color: '#fff',
+                              marginLeft: '2px'
+                            }}>
+                              {subTab.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Policies Table */}
+                      {displayPolicies.length === 0 ? (
+                        <div className="form-card" style={{ padding: '48px 24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
+                          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏦</div>
+                          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No policies found in this category.</p>
+                          <p style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>Click &quot;Add New Policy&quot; to define a criteria for this category.</p>
+                        </div>
+                      ) : (
+                        <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ width: '100%', minWidth: '820px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                              <thead>
+                                <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Bank / NBFC</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Type</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Emp. Type</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min Salary (₹)</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min CIBIL</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Max FOIR %</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Age Range</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Pincodes</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {displayPolicies.map((policy) => (
+                                  <tr key={policy.id} style={{ borderBottom: 'var(--border-subtle)', transition: 'background 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-card)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <td style={{ padding: '12px 10px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <BankLogo bankName={policy.bank_name} logoUrl={policy.logo_url} size={20} />
+                                        <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{policy.bank_name}</span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '12px 10px' }}>
+                                      <span className={`badge ${policy.loan_type === 'PL' ? 'badge-primary' : 'badge-info'}`}>
+                                        {policy.loan_type === 'PL' ? '💳 Personal' : '💼 Business'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '12px 10px' }}>
+                                      <span className="badge" style={{
+                                        background: policy.employment_type === 'self_employed' ? 'rgba(16, 185, 129, 0.15)' : policy.employment_type === 'both' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                                        color: policy.employment_type === 'self_employed' ? '#10b981' : policy.employment_type === 'both' ? '#f59e0b' : '#6366f1',
+                                        border: 'none',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        fontWeight: 600,
+                                        fontSize: '10px'
+                                      }}>
+                                        {policy.employment_type === 'self_employed' ? '🏢 Self Emp' : policy.employment_type === 'both' ? '🔄 Both' : '💼 Salaried'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                      ₹{Number(policy.min_salary).toLocaleString('en-IN')}
+                                    </td>
+                                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                      {policy.min_cibil}+
+                                    </td>
+                                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                      {policy.foir_max}%
+                                    </td>
+                                    <td style={{ padding: '12px 10px' }}>
+                                      {policy.min_age}–{policy.max_age} yrs
+                                    </td>
+                                    <td style={{ padding: '12px 10px' }}>
+                                      {policy.all_pincodes ? (
+                                        <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>🌍 All India</span>
+                                      ) : (
+                                        <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>📍 Limited</span>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                        <button
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ padding: '5px 12px', fontSize: '11px' }}
+                                          onClick={() => handleOpenEditPolicy(policy)}
+                                        >
+                                          ✏️ Edit
+                                        </button>
+                                        <button
+                                          className="btn btn-sm"
+                                          style={{ padding: '5px 12px', fontSize: '11px', background: 'rgba(239,68,68,0.1)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.25)' }}
+                                          onClick={() => handleDeletePolicy(policy.id)}
+                                          disabled={agentActionLoading === 'deleting-policy'}
+                                        >
+                                          🗑️ Delete
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* PANEL 8: CONTACT MESSAGES */}
                 {activeTab === 'contacts' && (
@@ -2696,7 +3048,7 @@ export default function AdminDashboard() {
                         gap: '6px',
                         textTransform: 'none'
                       }}>
-                        <BankLogo bankName={bank} size={16} />
+                        <BankLogo bankName={bank} logoUrl={getBankLogo(bank)} size={16} />
                         {bank}
                       </span>
                     ))
@@ -2876,7 +3228,28 @@ export default function AdminDashboard() {
                       <option value="both">🔄 Both (Salaried & Self Employed)</option>
                     </select>
                   </div>
-                  <div></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Policy Category</label>
+                    <select
+                      className="input-field"
+                      value={policyForm.policy_category || 'salary'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const inferredLoanType = val === 'business' ? 'BL' : 'PL';
+                        const inferredEmpType = val === 'salary' ? 'salaried' : (val === 'instant' ? 'self_employed' : 'self_employed');
+                        setPolicyForm({ 
+                          ...policyForm, 
+                          policy_category: val,
+                          loan_type: inferredLoanType,
+                          employment_type: inferredEmpType
+                        });
+                      }}
+                    >
+                      <option value="salary">Salary PL</option>
+                      <option value="instant">Instant PL</option>
+                      <option value="business">Business Loans</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="responsive-grid-2" style={{ gap: '16px' }}>
@@ -2958,39 +3331,6 @@ export default function AdminDashboard() {
 
                 <div className="responsive-grid-2" style={{ gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min Experience</label>
-                    <input 
-                      type="text"
-                      className="input-field"
-                      placeholder="e.g. 1 Year, 6 Months"
-                      value={policyForm.min_experience}
-                      onChange={(e) => setPolicyForm({ ...policyForm, min_experience: e.target.value })}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Min Residence Stability</label>
-                    <input 
-                      type="text"
-                      className="input-field"
-                      placeholder="e.g. 1 Year, Own House"
-                      value={policyForm.min_residence_stability}
-                      onChange={(e) => setPolicyForm({ ...policyForm, min_residence_stability: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="responsive-grid-2" style={{ gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Company Category Mapped</label>
-                    <input 
-                      type="text"
-                      className="input-field"
-                      placeholder="e.g. CAT A, CAT B, ALL TYPES"
-                      value={policyForm.company_category}
-                      onChange={(e) => setPolicyForm({ ...policyForm, company_category: e.target.value })}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Bank Logo URL</label>
                     <input 
                       type="text"
@@ -3000,6 +3340,7 @@ export default function AdminDashboard() {
                       onChange={(e) => setPolicyForm({ ...policyForm, logo_url: e.target.value })}
                     />
                   </div>
+                  <div></div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -3819,6 +4160,301 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Client Application Detail Inspector Drawer */}
+      {selectedApplication && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'flex-end'
+        }} onClick={() => setSelectedApplication(null)}>
+          <div style={{
+            width: '100%',
+            maxWidth: 'min(600px, 96vw)',
+            height: '100%',
+            background: 'var(--color-bg-secondary)',
+            borderLeft: 'var(--border-light)',
+            boxShadow: 'var(--shadow-xl)',
+            padding: '32px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>Inspect Client Application</h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>ID: #{selectedApplication.id} | Submitted {new Date(selectedApplication.created_at).toLocaleString('en-IN')}</p>
+              </div>
+              <button
+                onClick={() => setSelectedApplication(null)}
+                style={{
+                  background: 'var(--color-bg-input)',
+                  border: 'var(--border-light)',
+                  color: 'var(--color-text-primary)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Client Info Card */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Client Profile</h4>
+              <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Client Name</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedApplication.client_name}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Mobile Number</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedApplication.client_mobile}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Submitting Agent/Customer Info */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>
+                {selectedApplication.agent?.role === 'user' ? 'Submitting Customer' : 'Submitting Agent'}
+              </h4>
+              <div className="form-card" style={{ padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+                {selectedApplication.agent ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                        {selectedApplication.agent?.role === 'user' ? 'Customer Name' : 'Agent Name'}
+                      </div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedApplication.agent.full_name}</div>
+                    </div>
+                    {selectedApplication.agent?.role !== 'user' && (
+                      <div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Code</div>
+                        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-primary)' }}>{selectedApplication.agent.agent_code}</div>
+                      </div>
+                    )}
+                    <div className={selectedApplication.agent?.role === 'user' ? "" : "span-2-desktop"}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                        {selectedApplication.agent?.role === 'user' ? 'Customer Email' : 'Agent Email'}
+                      </div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>{selectedApplication.agent.email}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Deleted Agent (No agent profile matches this code)</div>
+                )}
+              </div>
+            </div>
+
+            {/* Bank & Loan details */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Bank & Loan Details</h4>
+              <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Lender / Bank</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <BankLogo bankName={selectedApplication.bank_name} logoUrl={getBankLogo(selectedApplication.bank_name)} size={18} />
+                    {selectedApplication.bank_name}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Category</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+                    {(() => {
+                      if (selectedApplication.loan_type === 'BL') return 'Business Loan';
+                      const name = (selectedApplication.bank_name || '').toLowerCase();
+                      if (name.includes('instant')) return 'Instant PL';
+                      return 'Salary PL';
+                    })()}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Amount</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>₹{Number(selectedApplication.loan_amount).toLocaleString('en-IN')}</div>
+                </div>
+                {selectedApplication.agent?.role !== 'user' && (
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Payout Commission (2%)</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-accent-violet)' }}>₹{Number(selectedApplication.commission_amount).toLocaleString('en-IN')}</div>
+                  </div>
+                )}
+                {selectedApplication.disbursed_at && (
+                  <div className="span-2-desktop">
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Disbursed Date</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--color-success)' }}>
+                      {new Date(selectedApplication.disbursed_at).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Status & Problem updates */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Application Status Controls</h4>
+              <div className="form-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', background: 'var(--color-bg-card)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '4px' }}>Current Status</div>
+                    <span className="badge" style={{ ...getStatusBadgeStyle(selectedApplication.status), margin: 0, fontSize: '12px', padding: '6px 14px' }}>
+                      {selectedApplication.status || 'applied'}
+                    </span>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                      Update Status
+                    </label>
+                    <select
+                      disabled={updatingAppId === selectedApplication.id}
+                      value={selectedApplication.status ? selectedApplication.status.toLowerCase() : 'applied'}
+                      onChange={(e) => handleUpdateStatus(selectedApplication.id, e.target.value)}
+                      style={{
+                        background: 'var(--color-bg-secondary)',
+                        color: 'var(--color-text-primary)',
+                        border: 'var(--border-light)',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        fontSize: 'var(--text-sm)',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        minWidth: '160px'
+                      }}
+                    >
+                      <option value="applied">Applied</option>
+                      <option value="in process">In Process</option>
+                      <option value="kyc verification">KYC Waiting</option>
+                      <option value="disbursed">Disbursed</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Problems or notes update option */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                    Reported Issues / Status Notes
+                  </label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <textarea
+                      placeholder="Specify reason for rejection or details about current processing issue..."
+                      value={selectedApplication.problem || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedApplication(prev => prev ? { ...prev, problem: val } : null);
+                      }}
+                      className="input-field"
+                      rows={3}
+                      style={{
+                        flex: 1,
+                        resize: 'vertical',
+                        padding: '10px 12px',
+                        fontSize: 'var(--text-xs)',
+                        borderRadius: 'var(--border-radius-sm)',
+                        background: 'var(--color-bg-input)',
+                        border: 'var(--border-subtle)',
+                        color: 'var(--color-text-primary)',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setUpdatingAppId(selectedApplication.id);
+                      try {
+                        const { error } = await supabase
+                          .from('applications')
+                          .update({ problem: selectedApplication.problem || null })
+                          .eq('id', selectedApplication.id);
+                        if (error) {
+                          alert('Failed to save issue details: ' + error.message);
+                        } else {
+                          alert('Issue details successfully updated!');
+                          await fetchApplications();
+                        }
+                      } catch (err) {
+                        console.error(err);
+                      } finally {
+                        setUpdatingAppId(null);
+                      }
+                    }}
+                    disabled={updatingAppId === selectedApplication.id}
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      margin: '4px 0 0 auto',
+                      padding: '8px 16px',
+                      background: 'var(--gradient-primary)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 'var(--border-radius-sm)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💾 Save Status Notes
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ marginTop: 'auto', paddingTop: '24px', borderTop: 'var(--border-subtle)' }}>
+              <button
+                onClick={() => handleDeleteApplication(selectedApplication.id)}
+                disabled={deletingAppId === selectedApplication.id}
+                className="btn"
+                style={{
+                  width: '100%',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--color-error)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--border-radius-md)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-error)';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.color = 'var(--color-error)';
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                Delete Client Application
+              </button>
             </div>
 
           </div>

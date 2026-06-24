@@ -16,14 +16,14 @@ ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anonymous inserts" ON contact_messages
     FOR INSERT WITH CHECK (true);
 
--- Policy to allow only the administrator (utkrashtkumar@gmail.com) to view the messages
+-- Policy to allow only the administrator (handtohandloans@gmail.com) to view the messages
 CREATE POLICY "Allow admin select" ON contact_messages
     FOR SELECT USING (
-        auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com'
+        auth.jwt() ->> 'email' = 'handtohandloans@gmail.com'
     );
 
 -- Policy to allow only the administrator to delete messages
 CREATE POLICY "Allow admin delete" ON contact_messages
     FOR DELETE USING (
-        auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com'
+        auth.jwt() ->> 'email' = 'handtohandloans@gmail.com'
     );

@@ -25,11 +25,14 @@ const BANK_AFFILIATE_LINKS = {
   'FINNABLE': 'https://partner.finnable.com/auth/login',
 };
 
-const getAffiliateLink = (bankName, loanType = 'PL') => {
+const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily') => {
   if (!bankName) return null;
   const n = bankName.toUpperCase();
   if (n.includes('MUTHOOT')) {
-    if (loanType === 'BL') return BANK_AFFILIATE_LINKS['MUTHOOT DAILY BL'];
+    if (loanType === 'BL') {
+      if (muthootSubType === 'monthly') return BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY BL'];
+      return BANK_AFFILIATE_LINKS['MUTHOOT DAILY BL'];
+    }
     return BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY PL'];
   }
   if (n.includes('INCRED')) return BANK_AFFILIATE_LINKS['INCRED PL'];
@@ -46,14 +49,15 @@ const getAffiliateLink = (bankName, loanType = 'PL') => {
   return null;
 };
 
-// ─── Employment type badge ───────────────────────────────────────────────────
-const EmpBadge = ({ type }) => {
+// ─── Category badge ───────────────────────────────────────────────────────────
+const CategoryBadge = ({ category, loanType }) => {
+  const cat = category || (loanType === 'BL' ? 'business' : 'salary');
   const map = {
-    salaried: { label: '💼 Salary Loan', color: 'var(--color-primary)', bg: 'rgba(45,212,191,0.1)' },
-    self_employed: { label: '⚡ Instant Loan', color: 'var(--color-accent)', bg: 'rgba(251,146,60,0.1)' },
-    both: { label: '🔄 Both', color: 'var(--color-warning)', bg: 'rgba(251,191,36,0.1)' },
+    salary: { label: '💼 Salary Loan', color: 'var(--color-primary)', bg: 'rgba(99, 102, 241, 0.1)' },
+    instant: { label: '⚡ Instant Loan', color: 'var(--color-success)', bg: 'rgba(16, 185, 129, 0.1)' },
+    business: { label: '🏢 Business Loan', color: 'var(--color-warning)', bg: 'rgba(245, 158, 11, 0.15)' },
   };
-  const m = map[type] || map.salaried;
+  const m = map[cat] || map.salary;
   return (
     <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', color: m.color, background: m.bg, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
       {m.label}
@@ -62,8 +66,8 @@ const EmpBadge = ({ type }) => {
 };
 
 // ─── Single Bank Card ────────────────────────────────────────────────────────
-function BankCard({ bank, pincodeResult }) {
-  const affiliateLink = getAffiliateLink(bank.bank_name, bank.loan_type);
+function BankCard({ bank, pincodeResult, onApply, userRole }) {
+  const affiliateLink = userRole === 'user' ? null : getAffiliateLink(bank.bank_name, bank.loan_type);
   const [expanded, setExpanded] = useState(false);
 
   // pincodeResult: null = not searched, true = available, false = not available
@@ -86,17 +90,14 @@ function BankCard({ bank, pincodeResult }) {
       {/* Card Header */}
       <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
         <div style={{ flexShrink: 0, width: 48, height: 48, borderRadius: '10px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <BankLogo bankName={bank.bank_name} size={40} />
+          <BankLogo bankName={bank.bank_name} logoUrl={bank.logo_url} size={40} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
             <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
               {bank.bank_name}
             </h3>
-            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: bank.loan_type === 'BL' ? 'rgba(251,191,36,0.15)' : 'rgba(45,212,191,0.1)', color: bank.loan_type === 'BL' ? 'var(--color-warning)' : 'var(--color-primary)', letterSpacing: '0.05em' }}>
-              {bank.loan_type || 'PL'}
-            </span>
-            <EmpBadge type={bank.employment_type || 'salaried'} />
+            <CategoryBadge category={bank.policy_category} loanType={bank.loan_type} />
           </div>
           {/* Key stats row */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
@@ -151,7 +152,7 @@ function BankCard({ bank, pincodeResult }) {
               ['FOIR Max', bank.foir_max > 0 ? `${bank.foir_max}%` : 'N/A'],
               ['Min Age', bank.min_age || 21],
               ['Max Age', bank.max_age || 60],
-              ['Loan Type', bank.loan_type || 'PL'],
+              ['Loan Category', (bank.policy_category || (bank.loan_type === 'BL' ? 'business' : 'salary')).toUpperCase()],
               ['Company Category', bank.company_category || 'ALL TYPES'],
               ['PF Required', bank.pf_required || 'No'],
               ['Min Experience', bank.min_experience || 'N/A'],
@@ -174,22 +175,40 @@ function BankCard({ bank, pincodeResult }) {
         )}
 
         {/* Apply Button */}
-        {affiliateLink ? (
-          <a
-            href={affiliateLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 0', borderRadius: 'var(--border-radius-sm)', background: 'var(--gradient-primary)', color: '#fff', fontWeight: 700, fontSize: '13px', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.2s' }}
-            onMouseEnter={e => e.target.style.opacity = '0.88'}
-            onMouseLeave={e => e.target.style.opacity = '1'}
-          >
-            🚀 Apply Now
-          </a>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '10px 0', borderRadius: 'var(--border-radius-sm)', background: 'rgba(100,124,121,0.15)', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '13px' }}>
-            Contact Admin to Apply
-          </div>
-        )}
+        <button
+          onClick={() => onApply(bank)}
+          style={{
+            display: 'block',
+            width: '100%',
+            textAlign: 'center',
+            padding: '10px 0',
+            borderRadius: 'var(--border-radius-sm)',
+            background: (affiliateLink || userRole === 'user') ? 'var(--gradient-primary)' : 'rgba(99, 102, 241, 0.15)',
+            border: (affiliateLink || userRole === 'user') ? 'none' : '1px solid rgba(99, 102, 241, 0.3)',
+            color: (affiliateLink || userRole === 'user') ? '#fff' : 'var(--color-primary)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            letterSpacing: '0.02em',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => {
+            if (affiliateLink || userRole === 'user') {
+              e.currentTarget.style.opacity = '0.88';
+            } else {
+              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.25)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (affiliateLink || userRole === 'user') {
+              e.currentTarget.style.opacity = '1';
+            } else {
+              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+            }
+          }}
+        >
+          {(affiliateLink || userRole === 'user') ? '🚀 Apply Now' : '📩 Apply for Client'}
+        </button>
       </div>
     </div>
   );
@@ -199,6 +218,8 @@ function BankCard({ bank, pincodeResult }) {
 export default function BanksPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   const [banks, setBanks] = useState([]);
@@ -206,8 +227,7 @@ export default function BanksPage() {
 
   // Filters
   const [searchName, setSearchName] = useState('');
-  const [filterLoanType, setFilterLoanType] = useState('ALL');
-  const [filterEmpType, setFilterEmpType] = useState('ALL');
+  const [filterCategory, setFilterCategory] = useState('ALL');
 
   // Pincode check
   const [pincodeInput, setPincodeInput] = useState('');
@@ -215,7 +235,18 @@ export default function BanksPage() {
   const [pincodeResults, setPincodeResults] = useState(null); // { bankName: true/false }
   const [pincodeSearched, setPincodeSearched] = useState('');
 
-  // Auth — agents & admins only
+  // Client Application Modal States
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [clientName, setClientName] = useState('');
+  const [clientMobile, setClientMobile] = useState('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [applySuccess, setApplySuccess] = useState('');
+  const [applyError, setApplyError] = useState('');
+  const [muthootSubType, setMuthootSubType] = useState('daily');
+
+  // Auth — agents, admins, and customers
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
@@ -225,17 +256,19 @@ export default function BanksPage() {
       // Fetch role
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, approved')
+        .select('*')
         .eq('id', session.user.id)
         .single();
 
       const role = profile?.role || 'customer';
-      if (role !== 'agent' && role !== 'admin') {
+      if (role !== 'agent' && role !== 'admin' && role !== 'user') {
         // Customer — no access
         router.push('/?error=agent_only');
         return;
       }
       setUser(session.user);
+      setUserRole(role);
+      setUserProfile(profile);
       setCheckingAuth(false);
     });
   }, [router]);
@@ -286,19 +319,95 @@ export default function BanksPage() {
     setPincodeChecking(false);
   }, [pincodeInput, banks]);
 
+  // Client Application handlers (same as check/page.js)
+  const handleOpenApplyModal = (bank) => {
+    setSelectedBank(bank);
+    setClientName(userRole === 'user' ? (userProfile?.name || '') : '');
+    setClientMobile(userRole === 'user' ? (userProfile?.phone || '') : '');
+    setLoanAmount('');
+    setApplySuccess('');
+    setApplyError('');
+    setApplyModalOpen(true);
+  };
+
+  const handleApplySubmit = async (e) => {
+    e.preventDefault();
+    if (!clientName.trim() || !clientMobile.trim() || !loanAmount) {
+      setApplyError('Please fill in all fields.');
+      return;
+    }
+    if (!/^\d{10}$/.test(clientMobile.trim())) {
+      setApplyError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (Number(loanAmount) <= 0) {
+      setApplyError('Please enter a valid loan amount.');
+      return;
+    }
+
+    setApplying(true);
+    setApplyError('');
+    setApplySuccess('');
+
+    try {
+      const affiliateLink = userRole === 'user' ? null : getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType);
+
+      if (affiliateLink) {
+        // Direct redirection bank portal -> store in localStorage as pending bank application
+        const pendingData = {
+          clientName: clientName.trim(),
+          clientMobile: clientMobile.trim(),
+          bankName: selectedBank.bank_name,
+          loanAmount: Number(loanAmount),
+          loanType: selectedBank.loan_type,
+          affiliateLink: affiliateLink
+        };
+        localStorage.setItem('pending_bank_application', JSON.stringify(pendingData));
+        setApplySuccess(`Opening portal link in a new tab...`);
+        window.open(affiliateLink, '_blank');
+      } else {
+        // No link -> Offline application, insert immediately
+        const { error } = await supabase.from('applications').insert({
+          agent_id: user.id,
+          client_name: clientName.trim(),
+          client_mobile: clientMobile.trim(),
+          bank_name: selectedBank.bank_name,
+          loan_amount: Number(loanAmount),
+          loan_type: selectedBank.loan_type,
+          commission_rate: 2.00,
+          commission_amount: Number(loanAmount) * 0.02,
+          status: 'Applied'
+        });
+
+        if (error) {
+          setApplyError(error.message);
+        } else {
+          setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);
+        }
+      }
+      setTimeout(() => {
+        setApplyModalOpen(false);
+      }, 2000);
+    } catch (err) {
+      setApplyError('An unexpected error occurred.');
+      console.error(err);
+    } finally {
+      setApplying(false);
+    }
+  };
+
   // Derived filtered list
   const filteredBanks = banks.filter(b => {
     const nameMatch = b.bank_name.toLowerCase().includes(searchName.toLowerCase());
-    const loanMatch = filterLoanType === 'ALL' || b.loan_type === filterLoanType;
-    const empMatch = filterEmpType === 'ALL' || (b.employment_type || 'salaried') === filterEmpType;
-    return nameMatch && loanMatch && empMatch;
+    const catMatch = filterCategory === 'ALL' || b.policy_category === filterCategory;
+    return nameMatch && catMatch;
   });
 
   // Stats
   const totalBanks = banks.length;
-  const plBanks = banks.filter(b => b.loan_type === 'PL').length;
-  const blBanks = banks.filter(b => b.loan_type === 'BL').length;
-  const instantBanks = banks.filter(b => (b.employment_type || 'salaried') !== 'salaried').length;
+  const salaryBanks = banks.filter(b => b.policy_category === 'salary').length;
+  const instantBanks = banks.filter(b => b.policy_category === 'instant').length;
+  const businessBanks = banks.filter(b => b.policy_category === 'business').length;
 
   if (checkingAuth) {
     return (
@@ -323,7 +432,7 @@ export default function BanksPage() {
           <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto' }}>
             <div style={{ marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-primary)', background: 'rgba(45,212,191,0.1)', padding: '4px 14px', borderRadius: '99px' }}>
-                Agent Portal
+                {userRole === 'user' ? 'Customer Portal' : 'Agent Portal'}
               </span>
             </div>
             <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '12px', lineHeight: 1.15 }}>
@@ -337,9 +446,9 @@ export default function BanksPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '28px' }}>
               {[
                 { label: 'Total Banks', value: totalBanks, color: 'var(--color-primary)' },
-                { label: 'Personal Loan', value: plBanks, color: 'var(--color-accent)' },
-                { label: 'Business Loan', value: blBanks, color: 'var(--color-warning)' },
-                { label: 'Instant Loan', value: instantBanks, color: 'var(--color-success)' },
+                { label: 'Salary Loans', value: salaryBanks, color: 'var(--color-accent)' },
+                { label: 'Instant Loans', value: instantBanks, color: 'var(--color-success)' },
+                { label: 'Business Loans', value: businessBanks, color: 'var(--color-warning)' },
               ].map(s => (
                 <div key={s.label} style={{ background: 'var(--color-bg-card)', border: 'var(--border-subtle)', borderRadius: 'var(--border-radius-md)', padding: '14px 20px', minWidth: '120px', backdropFilter: 'blur(12px)' }}>
                   <div style={{ fontSize: '22px', fontWeight: 800, color: s.color, fontFamily: 'var(--font-heading)' }}>{s.value}</div>
@@ -366,32 +475,18 @@ export default function BanksPage() {
               />
             </div>
 
-            {/* Loan type filter */}
-            <div style={{ flex: '0 1 150px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>Loan Type</label>
-              <select
-                value={filterLoanType}
-                onChange={e => setFilterLoanType(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--border-radius-sm)', background: 'var(--color-bg-input)', border: 'var(--border-subtle)', color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', outline: 'none', cursor: 'pointer' }}
-              >
-                <option value="ALL">All Types</option>
-                <option value="PL">Personal Loan</option>
-                <option value="BL">Business Loan</option>
-              </select>
-            </div>
-
-            {/* Emp type filter */}
-            <div style={{ flex: '0 1 165px' }}>
+            {/* Loan Category Filter */}
+            <div style={{ flex: '0 1 200px' }}>
               <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>Loan Category</label>
               <select
-                value={filterEmpType}
-                onChange={e => setFilterEmpType(e.target.value)}
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--border-radius-sm)', background: 'var(--color-bg-input)', border: 'var(--border-subtle)', color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', outline: 'none', cursor: 'pointer' }}
               >
                 <option value="ALL">All Categories</option>
-                <option value="salaried">💼 Salary Loans</option>
-                <option value="self_employed">⚡ Instant Loans</option>
-                <option value="both">🔄 Both</option>
+                <option value="salary">💼 Salary Loans</option>
+                <option value="instant">⚡ Instant Loans</option>
+                <option value="business">🏢 Business Loans</option>
               </select>
             </div>
 
@@ -462,8 +557,8 @@ export default function BanksPage() {
               Showing <strong style={{ color: 'var(--color-text-primary)' }}>{filteredBanks.length}</strong> of <strong style={{ color: 'var(--color-text-primary)' }}>{totalBanks}</strong> banks
               {pincodeResults && <span style={{ color: 'var(--color-primary)', marginLeft: '8px' }}>for pincode <strong>{pincodeSearched}</strong></span>}
             </p>
-            {(searchName || filterLoanType !== 'ALL' || filterEmpType !== 'ALL') && (
-              <button onClick={() => { setSearchName(''); setFilterLoanType('ALL'); setFilterEmpType('ALL'); }} style={{ fontSize: '12px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+            {(searchName || filterCategory !== 'ALL') && (
+              <button onClick={() => { setSearchName(''); setFilterCategory('ALL'); }} style={{ fontSize: '12px', color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
                 ✕ Clear Filters
               </button>
             )}
@@ -487,12 +582,174 @@ export default function BanksPage() {
                   key={bank.id}
                   bank={bank}
                   pincodeResult={pincodeResults ? pincodeResults[bank.bank_name] : null}
+                  onApply={handleOpenApplyModal}
+                  userRole={userRole}
                 />
               ))}
             </div>
           )}
         </section>
       </main>
+
+      {/* Client Application Modal for Agents */}
+      {applyModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div className="form-card" style={{ maxWidth: 'min(480px, 96vw)', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{userRole === 'user' ? 'Apply for Loan' : 'Apply for Client'}</h3>
+              <button onClick={() => setApplyModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <BankLogo bankName={selectedBank?.bank_name} logoUrl={selectedBank?.logo_url} size={32} />
+              <div>
+                <h4 style={{ fontWeight: 600 }}>{selectedBank?.bank_name}</h4>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+                  Type: {selectedBank?.policy_category === 'salary' ? 'Salary Loan' : selectedBank?.policy_category === 'instant' ? 'Instant Loan' : 'Business Loan'}
+                </p>
+              </div>
+            </div>
+
+            {applyError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠ {applyError}</div>}
+            {applySuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {applySuccess}</div>}
+
+            <form onSubmit={handleApplySubmit} style={{ display: 'grid', gap: '16px' }}>
+              <div className="input-group">
+                <label className="input-label">{userRole === 'user' ? 'Your Name' : 'Client Name'}</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">{userRole === 'user' ? 'Your Mobile Number' : 'Client Mobile Number'}</label>
+                <input
+                  type="tel"
+                  className="input-field"
+                  value={clientMobile}
+                  onChange={(e) => setClientMobile(e.target.value.replace(/\D/g, ''))}
+                  maxLength={10}
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Requested Loan Amount</label>
+                <div className="input-wrapper">
+                  <span className="input-prefix">₹</span>
+                  <input
+                    type="number"
+                    className="input-field has-prefix"
+                    value={loanAmount}
+                    placeholder="e.g. 500000"
+                    onChange={(e) => setLoanAmount(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {selectedBank?.bank_name?.toUpperCase()?.includes('MUTHOOT') && selectedBank?.loan_type === 'BL' && (
+                <div className="input-group" style={{ marginTop: '16px' }}>
+                  <label className="input-label">Muthoot Business Loan Product <span className="required">*</span></label>
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                      <input 
+                        type="radio" 
+                        name="muthoot_type" 
+                        checked={muthootSubType === 'daily'} 
+                        onChange={() => setMuthootSubType('daily')} 
+                        style={{ accentColor: 'var(--color-primary)' }}
+                      />
+                      Daily EMI
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                      <input 
+                        type="radio" 
+                        name="muthoot_type" 
+                        checked={muthootSubType === 'monthly'} 
+                        onChange={() => setMuthootSubType('monthly')} 
+                        style={{ accentColor: 'var(--color-primary)' }}
+                      />
+                      Monthly EMI
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {userRole !== 'user' && selectedBank?.bank_name?.toUpperCase()?.includes('INCRED') && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: 'var(--border-subtle)',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  marginTop: '16px',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--color-text-secondary)',
+                  display: 'grid',
+                  gap: '6px'
+                }}>
+                  <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 InCred Partner Login Details:</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>• <strong>Login E-mail:</strong> incredhtoh@gmail.com</span>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText('incredhtoh@gmail.com'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>• <strong>OTP Support:</strong> Call & Message on WhatsApp to <strong>9389119399</strong></span>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                  </div>
+                </div>
+              )}
+
+              {userRole !== 'user' && selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE') && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: 'var(--border-subtle)',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  marginTop: '16px',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--color-text-secondary)',
+                  display: 'grid',
+                  gap: '6px'
+                }}>
+                  <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Finnable Partner Login Details:</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>• <strong>Login Mobile:</strong> 9389119399</span>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>• <strong>OTP Support:</strong> Call <strong>9389119399</strong></span>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setApplyModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
+                  {applying ? 'Submitting...' : (userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType)) ? 'Submit & Open Link ↗' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );

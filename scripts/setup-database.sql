@@ -104,4 +104,4 @@ CREATE POLICY "Allow public delete on bank_pincodes"
 CREATE POLICY "Allow admin to delete inquiries"
   ON user_inquiries FOR DELETE
   TO authenticated
-  USING (auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com');
+  USING (auth.jwt() ->> 'email' = 'handtohandloans@gmail.com');

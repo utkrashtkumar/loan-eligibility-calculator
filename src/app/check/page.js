@@ -85,6 +85,10 @@ const INITIAL_FORM = {
   loanType: 'ALL',
   employmentType: 'salaried',
   pfDeduction: 'yes', // 'yes' or 'no'
+  annualTurnover: '',
+  monthlyProfitPct: '',
+  businessVintage: '',
+  businessType: '',   // 'Manufacturing' | 'Trading' | 'Retail' | 'Service'
 };
 
 export default function CheckPage() {
@@ -110,6 +114,9 @@ export default function CheckPage() {
   const [applySuccess, setApplySuccess] = useState('');
   const [applyError, setApplyError] = useState('');
   const [muthootSubType, setMuthootSubType] = useState('daily');
+
+  // Tracks which banks have been applied to: Map<bank_name, appId>
+  const [appliedBanks, setAppliedBanks] = useState(new Map());
 
   // Ensure user is authenticated
   useEffect(() => {
@@ -160,6 +167,13 @@ export default function CheckPage() {
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
     }
+
+    // Reset results if they modify form inputs to prevent displaying stale applied/eligibility state
+    if (showResults) {
+      setShowResults(false);
+      setResults([]);
+      setAppliedBanks(new Map());
+    }
   };
 
   const inputClass = (field) => {
@@ -201,24 +215,25 @@ export default function CheckPage() {
     if (formData.employmentType === 'salaried' && (!formData.salary || Number(formData.salary) <= 0))
       newErrors.salary = 'Monthly salary is required';
     // Self-employed/instant loans: no salary required
-    if (!formData.creditScore) {
+    if (formData.creditScore === undefined || formData.creditScore === null || formData.creditScore.toString().trim() === '') {
       newErrors.creditScore = 'Credit score is required';
     } else if (
-      Number(formData.creditScore) < 300 ||
+      Number(formData.creditScore) < -1 ||
       Number(formData.creditScore) > 900
     ) {
-      newErrors.creditScore = 'Credit score must be between 300 and 900';
+      newErrors.creditScore = 'Credit score must be between -1 and 900';
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // Return both the boolean AND the newErrors so callers can use them synchronously
+    return { isValid: Object.keys(newErrors).length === 0, newErrors };
   };
 
   // Agent Application handlers
   const handleOpenApplyModal = (bank) => {
     setSelectedBank(bank);
-    setClientName(formData.name || '');
-    setClientMobile(formData.mobile || '');
+    setClientName(userProfile?.role === 'user' ? (userProfile?.name || '') : (formData.name || ''));
+    setClientMobile(userProfile?.role === 'user' ? (userProfile?.phone || '') : (formData.mobile || ''));
     setLoanAmount('');
     setApplySuccess('');
     setApplyError('');
@@ -245,41 +260,44 @@ export default function CheckPage() {
     setApplySuccess('');
 
     try {
-      const affiliateLink = getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType);
+      const affiliateLink = userProfile?.role === 'user' ? null : getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType);
 
-      const { data: insertData, error } = await supabase.from('applications').insert({
-        agent_id: user.id,
-        client_name: clientName.trim(),
-        client_mobile: clientMobile.trim(),
-        bank_name: selectedBank.bank_name,
-        loan_amount: Number(loanAmount),
-        loan_type: selectedBank.loan_type,
-        commission_rate: 2.00,
-        commission_amount: Number(loanAmount) * 0.02,
-        status: affiliateLink ? 'applied' : 'Applied'
-      }).select('id');
-
-      if (error) {
-        setApplyError(error.message);
+      if (affiliateLink) {
+        // Direct redirection bank portal -> store in localStorage as pending bank application
+        const pendingData = {
+          clientName: clientName.trim(),
+          clientMobile: clientMobile.trim(),
+          bankName: selectedBank.bank_name,
+          loanAmount: Number(loanAmount),
+          loanType: selectedBank.loan_type,
+          affiliateLink: affiliateLink
+        };
+        localStorage.setItem('pending_bank_application', JSON.stringify(pendingData));
+        setApplySuccess(`Opening portal link in a new tab...`);
+        window.open(affiliateLink, '_blank');
       } else {
-        if (affiliateLink) {
-          const insertedId = insertData && insertData[0]?.id;
-          if (insertedId) {
-            localStorage.setItem('pending_status_update', JSON.stringify({
-              appId: insertedId,
-              bankName: selectedBank.bank_name,
-              clientName: clientName.trim()
-            }));
-          }
-          setApplySuccess(`Application recorded! Opening portal link in a new tab...`);
-          window.open(affiliateLink, '_blank');
+        // No link -> Offline application, insert immediately
+        const { error } = await supabase.from('applications').insert({
+          agent_id: user.id,
+          client_name: clientName.trim(),
+          client_mobile: clientMobile.trim(),
+          bank_name: selectedBank.bank_name,
+          loan_amount: Number(loanAmount),
+          loan_type: selectedBank.loan_type,
+          commission_rate: 2.00,
+          commission_amount: Number(loanAmount) * 0.02,
+          status: 'Applied'
+        });
+
+        if (error) {
+          setApplyError(error.message);
         } else {
           setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);
         }
-        setTimeout(() => {
-          setApplyModalOpen(false);
-        }, 2000);
       }
+      setTimeout(() => {
+        setApplyModalOpen(false);
+      }, 2000);
     } catch (err) {
       setApplyError('An unexpected error occurred.');
       console.error(err);
@@ -291,9 +309,10 @@ export default function CheckPage() {
   /* ---------- submit ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      // Scroll to the first error
-      const firstErrorKey = Object.keys(errors)[0];
+    const { isValid, newErrors } = validateForm();
+    if (!isValid) {
+      // Scroll to the first error (use newErrors directly since state update is async)
+      const firstErrorKey = Object.keys(newErrors)[0];
       if (firstErrorKey) {
         const element = document.getElementsByName(firstErrorKey)[0];
         if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -302,6 +321,7 @@ export default function CheckPage() {
     }
 
     setLoading(true);
+    setAppliedBanks(new Map());
 
     try {
       const salary = Number(formData.salary);
@@ -318,10 +338,38 @@ export default function CheckPage() {
         employmentType: formData.employmentType,
         age,
         pfDeduction: formData.pfDeduction,
+        annualTurnover: Number(formData.annualTurnover) || 0,
+        monthlyProfit: (Number(formData.monthlyProfitPct) || 0) / 100,
+        businessVintage: formData.businessVintage || '',
+        businessType: formData.businessType || '',
       });
 
       setResults(eligible);
       setShowResults(true);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      // After getting eligible banks, fetch existing applications from this agent
+      // for this client's mobile number to pre-populate the applied state
+      if (userProfile?.role === 'agent' || userProfile?.role === 'admin') {
+        try {
+          const { data: existingApps } = await supabase
+            .from('applications')
+            .select('id, bank_name, status')
+            .eq('agent_id', user?.id)
+            .eq('client_mobile', formData.mobile.trim())
+            .in('status', ['applied', 'Applied', 'processing', 'approved', 'rejected', 'disbursed']);
+
+          if (existingApps && existingApps.length > 0) {
+            const map = new Map();
+            existingApps.forEach(app => map.set(app.bank_name, app.id));
+            setAppliedBanks(map);
+          } else {
+            setAppliedBanks(new Map());
+          }
+        } catch (e) {
+          console.error('Error fetching existing applications:', e);
+        }
+      }
 
       // Save inquiry with userId linked
       await saveInquiry({
@@ -355,6 +403,8 @@ export default function CheckPage() {
     setResults([]);
     setShowResults(false);
     setErrors({});
+    setAppliedBanks(new Map());
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   /* ---------- computed values ---------- */
@@ -413,7 +463,9 @@ export default function CheckPage() {
                   <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px' }}>
                     {formData.employmentType === 'salaried'
                       ? 'Based on pincode availability, minimum salary, CIBIL, and FOIR ratio.'
-                      : 'Based on pincode availability and CIBIL score (Instant Loans).'}
+                      : formData.loanType === 'BL'
+                        ? 'Based on pincode availability and CIBIL score (Business Loans).'
+                        : 'Based on pincode availability and CIBIL score (Instant Loans).'}
                   </p>
                 </div>
 
@@ -449,18 +501,44 @@ export default function CheckPage() {
                     <div className="profile-item-label">Input Pincode</div>
                     <div className="profile-item-value">{formData.pincode}</div>
                   </div>
-                  {formData.employmentType === 'salaried' && (
+                  {(formData.employmentType === 'salaried' || (formData.employmentType === 'self_employed' && formData.loanType === 'BL')) && (
                   <div className="profile-item">
-                    <div className="profile-item-label">Calculated FOIR</div>
-                    <div className="profile-item-value" style={{ color: Number(userFoir) > 50 ? 'var(--color-warning)' : 'var(--color-text-primary)' }}>
-                      {userFoir}%
+                    <div className="profile-item-label">{formData.loanType === 'BL' ? 'Business FOIR' : 'Calculated FOIR'}</div>
+                    <div className="profile-item-value" style={{ 
+                      color: (() => {
+                        const foirVal = formData.loanType === 'BL'
+                          ? (() => {
+                              const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * ((Number(formData.monthlyProfitPct) || 0) / 100);
+                              return monthlyProfitAmt > 0 ? ((Number(formData.existingEmi) || 0) / monthlyProfitAmt) * 100 : 0;
+                            })()
+                          : Number(userFoir);
+                        return foirVal > 60 || (formData.loanType !== 'BL' && foirVal > 50) ? 'var(--color-warning)' : 'var(--color-text-primary)';
+                      })()
+                    }}>
+                      {(() => {
+                        if (formData.loanType === 'BL') {
+                          const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * ((Number(formData.monthlyProfitPct) || 0) / 100);
+                          return monthlyProfitAmt > 0 ? (((Number(formData.existingEmi) || 0) / monthlyProfitAmt) * 100).toFixed(1) + '%' : '0.0%';
+                        }
+                        return userFoir + '%';
+                      })()}
                     </div>
                   </div>
                   )}
                   <div className="profile-item">
                     <div className="profile-item-label">Loan Category</div>
-                    <div className="profile-item-value" style={{ color: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-accent)' }}>
-                      {formData.employmentType === 'salaried' ? '💼 Salary Loan' : '⚡ Instant Loan'}
+                    <div className="profile-item-value" style={{ 
+                      color: formData.employmentType === 'salaried' 
+                        ? 'var(--color-primary)' 
+                        : formData.loanType === 'BL' 
+                          ? 'var(--color-warning)' 
+                          : 'var(--color-accent)' 
+                    }}>
+                      {formData.employmentType === 'salaried' 
+                        ? '💼 Salary Loan' 
+                        : formData.loanType === 'BL' 
+                          ? '🏢 Business Loan' 
+                          : '⚡ Instant Loan'}
                     </div>
                   </div>
                 </div>
@@ -469,11 +547,40 @@ export default function CheckPage() {
                 {results.length > 0 ? (
                   <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: '24px' }}>
                     {results.map((bank) => (
-                      <ResultCard 
-                        key={bank.id} 
-                        bank={bank} 
-                        isAgent={userProfile?.role === 'agent' || userProfile?.role === 'admin'}
+                      <ResultCard
+                        key={bank.id}
+                        bank={bank}
+                        isAgent={userProfile?.role === 'agent' || userProfile?.role === 'admin' || userProfile?.role === 'user'}
+                        userRole={userProfile?.role}
                         onApply={handleOpenApplyModal}
+                        isApplied={appliedBanks.has(bank.bank_name)}
+                        onToggleApplied={async (bankName, markApplied) => {
+                          if (!markApplied) {
+                            // Remove from local applied map and delete from DB to keep in sync
+                            const appId = appliedBanks.get(bankName);
+                            if (appId && appId !== true) {
+                              try {
+                                const { error } = await supabase
+                                  .from('applications')
+                                  .delete()
+                                  .eq('id', appId);
+                                if (error) {
+                                  console.error('Error deleting application:', error);
+                                }
+                              } catch (err) {
+                                console.error('Error deleting application:', err);
+                              }
+                            }
+                            setAppliedBanks(prev => {
+                              const next = new Map(prev);
+                              next.delete(bankName);
+                              return next;
+                            });
+                          } else {
+                            // Re-open apply modal for this bank
+                            handleOpenApplyModal(bank);
+                          }
+                        }}
                       />
                     ))}
                   </div>
@@ -552,6 +659,7 @@ export default function CheckPage() {
                         placeholder="Enter your full name"
                         value={formData.name}
                         onChange={(e) => updateField('name', e.target.value)}
+                        required
                       />
                       {errors.name && <p className="input-error-text">⚠ {errors.name}</p>}
                     </div>
@@ -566,6 +674,7 @@ export default function CheckPage() {
                         maxLength={10}
                         value={formData.mobile}
                         onChange={(e) => updateField('mobile', e.target.value.replace(/\D/g, ''))}
+                        required
                       />
                       {errors.mobile && <p className="input-error-text">⚠ {errors.mobile}</p>}
                       <p className="input-hint">Will be shared only with matching lenders</p>
@@ -579,6 +688,7 @@ export default function CheckPage() {
                         className={inputClass('dob')}
                         value={formData.dob}
                         onChange={(e) => updateField('dob', e.target.value)}
+                        required
                       />
                       {errors.dob && <p className="input-error-text">⚠ {errors.dob}</p>}
                     </div>
@@ -618,6 +728,7 @@ export default function CheckPage() {
                         value={formData.currentAddress}
                         onChange={(e) => updateField('currentAddress', e.target.value)}
                         rows={2}
+                        required
                       />
                       {errors.currentAddress && <p className="input-error-text">⚠ {errors.currentAddress}</p>}
                     </div>
@@ -675,19 +786,22 @@ export default function CheckPage() {
                       <label className="input-label">Employment Type <span className="required">*</span></label>
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
                         gap: '12px',
                         marginTop: '4px'
                       }}>
                         <button
                           type="button"
-                          onClick={() => updateField('employmentType', 'salaried')}
+                          onClick={() => {
+                            updateField('employmentType', 'salaried');
+                            updateField('loanType', 'PL');
+                          }}
                           style={{
                             padding: '14px 16px',
                             borderRadius: 'var(--border-radius-md)',
                             border: formData.employmentType === 'salaried' ? '2px solid var(--color-primary)' : 'var(--border-light)',
-                            background: formData.employmentType === 'salaried' ? 'rgba(99, 102, 241, 0.1)' : 'var(--color-bg-input)',
-                            color: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            background: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-bg-input)',
+                            color: formData.employmentType === 'salaried' ? '#ffffff' : 'var(--color-text-secondary)',
                             cursor: 'pointer',
                             fontWeight: 600,
                             fontSize: 'var(--text-sm)',
@@ -702,13 +816,16 @@ export default function CheckPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => updateField('employmentType', 'self_employed')}
+                          onClick={() => {
+                            updateField('employmentType', 'self_employed');
+                            updateField('loanType', 'PL');
+                          }}
                           style={{
                             padding: '14px 16px',
                             borderRadius: 'var(--border-radius-md)',
-                            border: formData.employmentType === 'self_employed' ? '2px solid var(--color-accent)' : 'var(--border-light)',
-                            background: formData.employmentType === 'self_employed' ? 'rgba(16, 185, 129, 0.1)' : 'var(--color-bg-input)',
-                            color: formData.employmentType === 'self_employed' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                            border: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                            background: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? 'var(--color-primary)' : 'var(--color-bg-input)',
+                            color: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? '#ffffff' : 'var(--color-text-secondary)',
                             cursor: 'pointer',
                             fontWeight: 600,
                             fontSize: 'var(--text-sm)',
@@ -720,6 +837,30 @@ export default function CheckPage() {
                           }}
                         >
                           ⚡ Instant Loan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateField('employmentType', 'self_employed');
+                            updateField('loanType', 'BL');
+                          }}
+                          style={{
+                            padding: '14px 16px',
+                            borderRadius: 'var(--border-radius-md)',
+                            border: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                            background: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? 'var(--color-primary)' : 'var(--color-bg-input)',
+                            color: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? '#ffffff' : 'var(--color-text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: 'var(--text-sm)',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          🏢 Business Loan
                         </button>
                       </div>
                     </div>
@@ -809,54 +950,193 @@ export default function CheckPage() {
 
                     {formData.employmentType === 'self_employed' && (
                       <div style={{
-                        background: 'rgba(251, 146, 60, 0.08)',
-                        border: '1px solid rgba(251, 146, 60, 0.2)',
+                        background: formData.loanType === 'BL' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(251, 146, 60, 0.08)',
+                        border: formData.loanType === 'BL' ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(251, 146, 60, 0.2)',
                         borderRadius: 'var(--border-radius-md)',
                         padding: '14px 16px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
                         fontSize: 'var(--text-xs)',
-                        color: 'var(--color-accent)',
+                        color: formData.loanType === 'BL' ? 'var(--color-warning)' : 'var(--color-accent)',
                         lineHeight: 1.5
                       }}>
-                        <span style={{ fontSize: '16px' }}>⚡</span>
-                        Instant loans do not require salary information. Eligibility is based on your pincode and CIBIL score.
+                        <span style={{ fontSize: '16px' }}>{formData.loanType === 'BL' ? '🏢' : '⚡'}</span>
+                        {formData.loanType === 'BL'
+                          ? 'Business loans require: Annual Turnover ≥ ₹50 Lac, Monthly Profit ≥ 10%, Business age ≥ 1 year, and CIBIL ≥ 700 (waived for PROTIUM).'
+                          : 'Instant loans do not require salary information. Eligibility is based on your pincode and CIBIL score.'}
                       </div>
+                    )}
+
+                    {/* Business Loan specific fields */}
+                    {formData.loanType === 'BL' && formData.employmentType === 'self_employed' && (
+                      <>
+                        {/* Business Type Selector */}
+                        <div className="input-group">
+                          <label className="input-label">Business Type / Sector <span className="required">*</span></label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
+                            {['Manufacturing', 'Trading', 'Retail', 'Service'].map((type) => (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => updateField('businessType', type)}
+                                style={{
+                                  padding: '12px 10px',
+                                  borderRadius: '10px',
+                                  border: formData.businessType === type
+                                    ? '2px solid var(--color-primary)'
+                                    : '1px solid var(--border-default)',
+                                  background: formData.businessType === type
+                                    ? 'var(--color-primary)'
+                                    : 'var(--color-bg-input)',
+                                  color: formData.businessType === type ? '#fff' : 'var(--color-text-secondary)',
+                                  fontWeight: formData.businessType === type ? 700 : 500,
+                                  fontSize: 'var(--text-sm)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                {type === 'Manufacturing' ? '🏭' : type === 'Trading' ? '🤝' : type === 'Retail' ? '🛒' : '🛠️'}
+                                {type}
+                              </button>
+                            ))}
+                          </div>
+                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>All 6 NBFC partners accept: Manufacturing, Trading, Retail &amp; Service sectors</p>
+                        </div>
+
+                        {/* Annual Turnover */}
+                        <div className="input-group">
+                          <label className="input-label">Annual Business Turnover <span className="required">*</span></label>
+                          <input
+                            type="number"
+                            name="annualTurnover"
+                            className="input-field"
+                            placeholder="e.g. 6000000 (₹60 Lac)"
+                            value={formData.annualTurnover}
+                            onChange={(e) => updateField('annualTurnover', e.target.value)}
+                            min={0}
+                          />
+                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Minimum required: ₹50 Lac (5,000,000) per year</p>
+                        </div>
+
+                        {/* Monthly Profit */}
+                        <div className="input-group">
+                          <label className="input-label">Monthly Profit Margin (%) <span className="required">*</span></label>
+                          <input
+                            type="number"
+                            name="monthlyProfitPct"
+                            className="input-field"
+                            placeholder="e.g. 15 (for 15%)"
+                            value={formData.monthlyProfitPct}
+                            onChange={(e) => updateField('monthlyProfitPct', e.target.value)}
+                            min={0}
+                            max={100}
+                          />
+                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Minimum required: 10% monthly profit margin</p>
+                        </div>
+
+                        {/* Existing EMI (for FOIR calculation) */}
+                        <div className="input-group">
+                          <label className="input-label">Existing Monthly EMI / Obligations</label>
+                          <input
+                            type="number"
+                            name="existingEmi"
+                            className="input-field"
+                            placeholder="Total existing loan EMIs per month (₹)"
+                            value={formData.existingEmi}
+                            onChange={(e) => updateField('existingEmi', e.target.value)}
+                            min={0}
+                          />
+                          {/* Live FOIR preview for BL */}
+                          {formData.annualTurnover && Number(formData.annualTurnover) > 0 && formData.monthlyProfitPct && Number(formData.monthlyProfitPct) > 0 && (
+                            <div style={{
+                              marginTop: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '8px 12px',
+                              background: (() => {
+                                const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * (Number(formData.monthlyProfitPct) / 100);
+                                const foir = monthlyProfitAmt > 0 ? ((Number(formData.existingEmi) || 0) / monthlyProfitAmt) * 100 : 0;
+                                return foir > 60 ? 'rgba(239,68,68,0.08)' : foir > 40 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)';
+                              })(),
+                              border: (() => {
+                                const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * (Number(formData.monthlyProfitPct) / 100);
+                                const foir = monthlyProfitAmt > 0 ? ((Number(formData.existingEmi) || 0) / monthlyProfitAmt) * 100 : 0;
+                                return foir > 60 ? '1px solid rgba(239,68,68,0.3)' : foir > 40 ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(16,185,129,0.3)';
+                              })(),
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                            }}>
+                              <span>📊 Business FOIR:</span>
+                              <span style={{
+                                color: (() => {
+                                  const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * (Number(formData.monthlyProfitPct) / 100);
+                                  const foir = monthlyProfitAmt > 0 ? ((Number(formData.existingEmi) || 0) / monthlyProfitAmt) * 100 : 0;
+                                  return foir > 60 ? 'var(--color-error)' : foir > 40 ? 'var(--color-warning)' : 'var(--color-success)';
+                                })()
+                              }}>
+                                {(() => {
+                                  const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * (Number(formData.monthlyProfitPct) / 100);
+                                  const foir = monthlyProfitAmt > 0 ? ((Number(formData.existingEmi) || 0) / monthlyProfitAmt) * 100 : 0;
+                                  return foir.toFixed(1);
+                                })()}%
+                              </span>
+                              <span style={{ color: 'var(--color-text-muted)', fontWeight: 400, fontSize: '11px' }}>(Max allowed: 60%)</span>
+                            </div>
+                          )}
+                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>FOIR is calculated as: (Existing EMI ÷ Monthly Profit Amount) × 100. Max allowed is 60%.</p>
+                        </div>
+
+                        {/* Business Vintage */}
+                        <div className="input-group">
+                          <label className="input-label">Business Vintage (Years) <span className="required">*</span></label>
+                          <select
+                            name="businessVintage"
+                            className="input-field"
+                            value={formData.businessVintage}
+                            onChange={(e) => updateField('businessVintage', e.target.value)}
+                          >
+                            <option value="">Select business age</option>
+                            <option value="1">1 year</option>
+                            <option value="2">2 years</option>
+                            <option value="3">3 years</option>
+                            <option value="4">4 years</option>
+                            <option value="5">5+ years</option>
+                          </select>
+                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Minimum required: 1 year in business</p>
+                        </div>
+                      </>
                     )}
 
                     <div className="input-group">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <label className="input-label" style={{ margin: 0 }}>CIBIL / Credit Score <span className="required">*</span></label>
                         <a
-                          href="https://pnb.bank.in/Free-Credit-Report.html"
+                          href="https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369"
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            color: 'var(--color-primary)',
-                            background: 'rgba(45,212,191,0.08)',
-                            border: '1px solid rgba(45,212,191,0.2)',
-                            borderRadius: '99px',
-                            padding: '3px 10px',
-                            textDecoration: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.2s'
-                          }}
+                          className="button-82-pushable"
+                          style={{ display: 'inline-block', textDecoration: 'none' }}
                         >
-                          📈 Check CIBIL Free
+                          <span className="button-82-shadow"></span>
+                          <span className="button-82-edge"></span>
+                          <span className="button-82-front text">
+                            Click Here For Free Credit Report
+                          </span>
                         </a>
                       </div>
                       <input
                         type="number"
                         name="creditScore"
                         className={inputClass('creditScore')}
-                        placeholder="Range 300 to 900"
-                        min="300"
+                        placeholder="Range -1 to 900"
+                        min="-1"
                         max="900"
                         value={formData.creditScore}
                         onChange={(e) => updateField('creditScore', e.target.value)}
@@ -902,7 +1182,7 @@ export default function CheckPage() {
           }}>
             <div className="form-card" style={{ maxWidth: 'min(480px, 96vw)', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
-                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Apply for Client</h3>
+                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{userProfile?.role === 'user' ? 'Apply for Loan' : 'Apply for Client'}</h3>
                 <button onClick={() => setApplyModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
               </div>
 
@@ -910,7 +1190,9 @@ export default function CheckPage() {
                 <BankLogo bankName={selectedBank?.bank_name} logoUrl={selectedBank?.logo_url} size={32} />
                 <div>
                   <h4 style={{ fontWeight: 600 }}>{selectedBank?.bank_name}</h4>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Type: {selectedBank?.loan_type === 'PL' ? 'Personal Loan' : 'Business Loan'}</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+                    Type: {selectedBank?.policy_category === 'salary' ? 'Salary Loan' : selectedBank?.policy_category === 'instant' ? 'Instant Loan' : 'Business Loan'}
+                  </p>
                 </div>
               </div>
 
@@ -919,7 +1201,7 @@ export default function CheckPage() {
 
               <form onSubmit={handleApplySubmit} style={{ display: 'grid', gap: '16px' }}>
                 <div className="input-group">
-                  <label className="input-label">Client Name</label>
+                  <label className="input-label">{userProfile?.role === 'user' ? 'Your Name' : 'Client Name'} <span className="required">*</span></label>
                   <input
                     type="text"
                     className="input-field"
@@ -929,7 +1211,7 @@ export default function CheckPage() {
                   />
                 </div>
                 <div className="input-group">
-                  <label className="input-label">Client Mobile Number</label>
+                  <label className="input-label">{userProfile?.role === 'user' ? 'Your Mobile Number' : 'Client Mobile Number'} <span className="required">*</span></label>
                   <input
                     type="tel"
                     className="input-field"
@@ -940,7 +1222,7 @@ export default function CheckPage() {
                   />
                 </div>
                 <div className="input-group">
-                  <label className="input-label">Requested Loan Amount</label>
+                  <label className="input-label">Requested Loan Amount <span className="required">*</span></label>
                   <div className="input-wrapper">
                     <span className="input-prefix">₹</span>
                     <input
@@ -982,7 +1264,7 @@ export default function CheckPage() {
                   </div>
                 )}
 
-                {selectedBank?.bank_name?.toUpperCase()?.includes('INCRED') && (
+                {userProfile?.role !== 'user' && selectedBank?.bank_name?.toUpperCase()?.includes('INCRED') && (
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.03)',
                     border: 'var(--border-subtle)',
@@ -1006,7 +1288,7 @@ export default function CheckPage() {
                   </div>
                 )}
 
-                {selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE') && (
+                {userProfile?.role !== 'user' && selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE') && (
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.03)',
                     border: 'var(--border-subtle)',
@@ -1032,9 +1314,9 @@ export default function CheckPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setApplyModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
-                    {applying ? 'Submitting...' : getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType) ? 'Submit & Open Link ↗' : 'Submit Application'}
-                  </button>
+                <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
+                  {applying ? 'Submitting...' : (userProfile?.role !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType)) ? 'Submit & Open Link ↗' : 'Submit Application'}
+                </button>
                 </div>
               </form>
             </div>
@@ -1050,18 +1332,20 @@ export default function CheckPage() {
 /* ============================================
    RESULT CARD SUB-COMPONENT
    ============================================ */
-function ResultCard({ bank, isAgent, onApply }) {
+function ResultCard({ bank, isAgent, onApply, isApplied = false, onToggleApplied, userRole }) {
   return (
     <div className="result-card" style={{
       background: 'var(--bg-surface)',
-      border: '1px solid var(--border-default)',
+      border: isApplied
+        ? '1.5px solid rgba(16, 185, 129, 0.4)'
+        : '1px solid var(--border-default)',
       borderRadius: '16px',
       padding: '24px',
       backdropFilter: 'blur(20px)',
       display: 'grid',
       gap: '16px',
       transition: 'all var(--transition-base)',
-      boxShadow: 'var(--shadow-sm)'
+      boxShadow: isApplied ? '0 0 0 3px rgba(16,185,129,0.07)' : 'var(--shadow-sm)'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1070,7 +1354,7 @@ function ResultCard({ bank, isAgent, onApply }) {
             {bank.bank_name}
           </div>
         </div>
-        {/* Match Score Badge */}
+        {/* Eligible Badge */}
         <div style={{
           padding: '6px 12px',
           borderRadius: '999px',
@@ -1106,16 +1390,24 @@ function ResultCard({ bank, isAgent, onApply }) {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-        <span className="badge badge-primary">
-          {bank.loan_type === 'PL' ? (
+        <span className={`badge ${
+          bank.policy_category === 'salary' ? 'badge-primary' :
+          bank.policy_category === 'instant' ? 'badge-success' : 'badge-warning'
+        }`}>
+          {bank.policy_category === 'salary' ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
-              PL
+              Salary
+            </span>
+          ) : bank.policy_category === 'instant' ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Instant
             </span>
           ) : (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
-              BL
+              Business
             </span>
           )}
         </span>
@@ -1153,19 +1445,21 @@ function ResultCard({ bank, isAgent, onApply }) {
       )}
 
       {isAgent && (
-        <button
-          onClick={() => onApply(bank)}
-          className="btn btn-primary btn-sm"
-          style={{ width: '100%', marginTop: '8px', justifyContent: 'center' }}
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-            </svg>
-            Apply for Client
-          </span>
-        </button>
+        <div style={{ marginTop: '8px' }}>
+          <button
+            onClick={() => onApply(bank)}
+            className="btn btn-primary btn-sm"
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+              {userRole === 'user' ? 'Apply Now' : 'Apply for Client'}
+            </span>
+          </button>
+        </div>
       )}
     </div>
   );

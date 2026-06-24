@@ -56,7 +56,7 @@ DROP POLICY IF EXISTS "Admin can manage all profiles" ON public.profiles;
 CREATE POLICY "Admin can manage all profiles"
   ON public.profiles FOR ALL
   TO authenticated
-  USING (auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com');
+  USING (auth.jwt() ->> 'email' = 'handtohandloans@gmail.com');
 
 -- 4. Row Level Security Policies for applications
 
@@ -79,7 +79,7 @@ DROP POLICY IF EXISTS "Admin can manage all applications" ON public.applications
 CREATE POLICY "Admin can manage all applications"
   ON public.applications FOR ALL
   TO authenticated
-  USING (auth.jwt() ->> 'email' = 'utkrashtkumar@gmail.com');
+  USING (auth.jwt() ->> 'email' = 'handtohandloans@gmail.com');
 
 -- 5. Automate Profile Creation on Auth Signup with Trigger
 
