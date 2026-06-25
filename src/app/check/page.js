@@ -37,7 +37,9 @@ const BANK_AFFILIATE_LINKS = {
   'FINNABLE': 'https://partner.finnable.com/auth/login'
 };
 
-const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily') => {
+const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily', dbApplyUrl = null, directSubmit = false) => {
+  if (directSubmit) return null;
+  if (dbApplyUrl) return dbApplyUrl;
   if (!bankName) return null;
   const normalized = bankName.toUpperCase();
   
@@ -260,7 +262,7 @@ export default function CheckPage() {
     setApplySuccess('');
 
     try {
-      const affiliateLink = userProfile?.role === 'user' ? null : getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType);
+      const affiliateLink = userProfile?.role === 'user' ? null : getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType, selectedBank.apply_url, selectedBank.direct_submit);
 
       if (affiliateLink) {
         // Direct redirection bank portal -> store in localStorage as pending bank application
@@ -1115,21 +1117,26 @@ export default function CheckPage() {
                     )}
 
                     <div className="input-group">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
                         <label className="input-label" style={{ margin: 0 }}>CIBIL / Credit Score <span className="required">*</span></label>
-                        <a
-                          href="https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="button-82-pushable"
-                          style={{ display: 'inline-block', textDecoration: 'none' }}
-                        >
-                          <span className="button-82-shadow"></span>
-                          <span className="button-82-edge"></span>
-                          <span className="button-82-front text">
-                            Click Here For Free Credit Report
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <a
+                            href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
+                            target={user ? "_blank" : "_self"}
+                            rel="noopener noreferrer"
+                            className="button-82-pushable"
+                            style={{ display: 'inline-block', textDecoration: 'none' }}
+                          >
+                            <span className="button-82-shadow"></span>
+                            <span className="button-82-edge"></span>
+                            <span className="button-82-front text">
+                              Click Here For Free Credit Report
+                            </span>
+                          </a>
+                          <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>
+                            🤝 In collaboration with PNB
                           </span>
-                        </a>
+                        </div>
                       </div>
                       <input
                         type="number"
@@ -1312,11 +1319,36 @@ export default function CheckPage() {
                   </div>
                 )}
 
+                {(() => {
+                  const hasLink = userProfile?.role !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit);
+                  if (hasLink) return null;
+                  
+                  return (
+                    <div style={{
+                      background: 'rgba(99, 102, 241, 0.05)',
+                      border: '1px solid rgba(99, 102, 241, 0.2)',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      marginTop: '16px',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--color-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      lineHeight: '1.4'
+                    }}>
+                      <span>
+                        📥 Direct Submission: This application will be submitted directly to the administrator who will apply for you on the partner portal.
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setApplyModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
-                  {applying ? 'Submitting...' : (userProfile?.role !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType)) ? 'Submit & Open Link ↗' : 'Submit Application'}
-                </button>
+                  <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
+                    {applying ? 'Submitting...' : (userProfile?.role !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit)) ? 'Submit & Open Link ↗' : 'Submit to Admin'}
+                  </button>
                 </div>
               </form>
             </div>

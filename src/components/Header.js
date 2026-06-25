@@ -212,13 +212,14 @@ export default function Header() {
             </li>
             <li>
               <a
-                href="https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369"
-                target="_blank"
+                href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
+                target={user ? "_blank" : "_self"}
                 rel="noopener noreferrer"
                 className="nav-link"
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)', marginLeft: '4px' }}
+                title="Free CIBIL report check in collaboration with PNB"
               >
-                📈 CIBIL Score
+                📈 CIBIL Score <span style={{ fontSize: '9px', fontWeight: 500, color: 'var(--color-text-tertiary)', opacity: 0.85 }}>(PNB Collab)</span>
               </a>
             </li>
             {user ? (
@@ -313,14 +314,14 @@ export default function Header() {
           Check Eligibility
         </Link>
         <a
-          href="https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369"
-          target="_blank"
+          href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
+          target={user ? "_blank" : "_self"}
           rel="noopener noreferrer"
           className="nav-link"
           style={{ color: 'var(--color-primary)', fontWeight: 700 }}
           onClick={closeMenu}
         >
-          📈 Check CIBIL Score
+          📈 Check CIBIL Score <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>(PNB Collab)</span>
         </a>
         {user ? (
           (userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com') && (

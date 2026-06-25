@@ -397,7 +397,7 @@ export default function UserDashboard() {
         setUser(session.user);
 
         // Fetch bank policies for resolving logos in real time
-        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url');
+        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit');
         if (polData) setPolicies(polData);
 
         // Fetch profile to determine role
@@ -2710,8 +2710,9 @@ export default function UserDashboard() {
             )}
           </div>
         </section>
+      </main>
 
-        {/* Payout Request Modal */}
+      {/* Payout Request Modal */}
         {payoutModalOpen && (
           <div style={{
             position: 'fixed',
@@ -2721,13 +2722,12 @@ export default function UserDashboard() {
             bottom: 0,
             background: 'rgba(0, 0, 0, 0.7)',
             backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '16px'
-          }}>
-            <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }}>
+            overflowY: 'auto',
+            padding: '40px 16px',
+            zIndex: 99999,
+            WebkitOverflowScrolling: 'touch'
+          }} onClick={() => setPayoutModalOpen(false)}>
+            <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Request Earnings Payout</h3>
                 <button onClick={() => setPayoutModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>Ã—</button>
@@ -2872,13 +2872,12 @@ export default function UserDashboard() {
             bottom: 0,
             background: 'rgba(0, 0, 0, 0.7)',
             backdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '24px',
+            overflowY: 'auto',
+            padding: '40px 24px',
+            zIndex: 99999,
+            WebkitOverflowScrolling: 'touch',
             animation: 'toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
+          }} onClick={() => setShowProfileUpdatePopup(false)}>
             <div className="form-card" style={{
               maxWidth: '520px',
               width: '100%',
@@ -2891,7 +2890,7 @@ export default function UserDashboard() {
               boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4), 0 0 40px rgba(245, 158, 11, 0.08)',
               borderRadius: 'var(--border-radius-lg)',
               padding: '32px'
-            }}>
+            }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', borderBottom: '1px solid rgba(245, 158, 11, 0.2)', paddingBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-warning)' }}>
@@ -3104,11 +3103,10 @@ export default function UserDashboard() {
             bottom: 0,
             background: 'rgba(0, 0, 0, 0.85)',
             backdropFilter: 'blur(20px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '24px'
+            overflowY: 'auto',
+            padding: '40px 24px',
+            zIndex: 99999,
+            WebkitOverflowScrolling: 'touch'
           }}>
             <div className="form-card" style={{
               maxWidth: '640px',
@@ -3207,7 +3205,10 @@ export default function UserDashboard() {
 
         {/* Selected Application Details & Lead Process Update Modal */}
         {selectedApplication && (() => {
-          const appLink = getAffiliateLink(selectedApplication.bank_name, selectedApplication.loan_type);
+          const matchedPolicy = policies.find(p => p.bank_name.toUpperCase().replace(/\(BL\)/g, '').trim() === selectedApplication.bank_name?.toUpperCase().replace(/\(BL\)/g, '').trim());
+          const appLink = matchedPolicy?.direct_submit
+            ? null
+            : (matchedPolicy?.apply_url || getAffiliateLink(selectedApplication.bank_name, selectedApplication.loan_type));
           const isFinalStatus = ['disbursed', 'rejected'].includes(selectedApplication.status?.toLowerCase());
 
           return (
@@ -3219,14 +3220,12 @@ export default function UserDashboard() {
               bottom: 0,
               background: 'rgba(0, 0, 0, 0.85)',
               backdropFilter: 'blur(20px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10000,
-              padding: '24px'
-            }}>
+              overflowY: 'auto',
+              padding: '40px 24px',
+              zIndex: 99999,
+              WebkitOverflowScrolling: 'touch'
+            }} onClick={() => setSelectedApplication(null)}>
               <div className="form-card" style={{
-                maxWidth: '540px',
                 width: '95vw',
                 margin: '0 auto',
                 display: 'grid',
@@ -3240,7 +3239,7 @@ export default function UserDashboard() {
                 color: '#fff',
                 maxHeight: '90vh',
                 overflowY: 'auto'
-              }}>
+              }} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -3309,22 +3308,65 @@ export default function UserDashboard() {
 
                 {/* Affiliate Link / Portal Section */}
                 {profile?.role !== 'user' && (() => {
-                  const isMuthoot = selectedApplication.bank_name?.toUpperCase()?.includes('MUTHOOT');
-                  const isMuthootBL = isMuthoot && selectedApplication.loan_type === 'BL';
-                  const isMuthootPL = isMuthoot && selectedApplication.loan_type === 'PL';
-                  const isIncred = selectedApplication.bank_name?.toUpperCase()?.includes('INCRED');
                   const isFinnable = selectedApplication.bank_name?.toUpperCase()?.includes('FINNABLE');
+                  const isIncred = selectedApplication.bank_name?.toUpperCase()?.includes('INCRED');
                   
-                  if (isMuthootBL) {
+                  let username = matchedPolicy?.portal_username || '';
+                  let password = matchedPolicy?.portal_password || '';
+                  
+                  if (!username && isFinnable) username = '9389119399';
+                  if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';
+                  if (!username && isIncred) username = 'incredhtoh@gmail.com';
+                  if (!password && isIncred) password = 'Call & Message on WhatsApp to 9389119399 (OTP Support)';
+                  
+                  const hasCredentials = username || password || appLink;
+                  
+                  if (matchedPolicy?.direct_submit) {
+                    return (
+                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)' }}>📥 Admin Processing Mode</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+                          This bank uses Direct Submit. The administrator is currently applying for this loan on your behalf.
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (hasCredentials) {
                     return (
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Muthoot Business Loan Portals</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                          Select the appropriate apply link to verify client status or complete the application steps:
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 {selectedApplication.bank_name} Partner Portal</div>
+                        
+                        {(username || password) && (
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: 'var(--border-subtle)',
+                            padding: '10px 12px',
+                            borderRadius: '6px',
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--color-text-secondary)',
+                            display: 'grid',
+                            gap: '6px'
+                          }}>
+                            <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                            {username && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span>• <strong>Login User ID:</strong> {username}</span>
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                              </div>
+                            )}
+                            {password && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span>• <strong>Password / Contact:</strong> {password}</span>
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {appLink && (
                           <a
-                            href={BANK_AFFILIATE_LINKS['MUTHOOT DAILY BL']}
+                            href={appLink}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn btn-primary btn-sm"
@@ -3334,199 +3376,22 @@ export default function UserDashboard() {
                               justifyContent: 'center',
                               gap: '6px',
                               textDecoration: 'none',
+                              marginTop: '4px',
                               fontSize: 'var(--text-xs)',
                               fontWeight: 600,
-                              padding: '10px'
+                              padding: '10px 16px'
                             }}
                           >
-                            🚀 Open Daily EMI Link
+                            🚀 Open Apply Portal ↗
                           </a>
-                          <a
-                            href={BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY BL']}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-accent btn-sm"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '6px',
-                              textDecoration: 'none',
-                              fontSize: 'var(--text-xs)',
-                              fontWeight: 600,
-                              padding: '10px',
-                              background: 'var(--gradient-accent)',
-                              border: 'none'
-                            }}
-                          >
-                            🚀 Open Monthly EMI Link
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  if (isMuthootPL) {
-                    return (
-                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Muthoot Salary Loan Portal</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                          Log in through the apply link to verify client status or complete the application steps:
-                        </div>
-                        <a
-                          href={BANK_AFFILIATE_LINKS['MUTHOOT MONTHLY PL']}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary btn-sm"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            textDecoration: 'none',
-                            marginTop: '4px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
-                            padding: '10px 16px'
-                          }}
-                        >
-                          🚀 Open Apply Link
-                        </a>
-                      </div>
-                    );
-                  }
-
-                  if (isIncred) {
-                    return (
-                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 InCred Salary Loan Portal</div>
-                        
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: 'var(--border-subtle)',
-                          padding: '10px 12px',
-                          borderRadius: '6px',
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--color-text-secondary)',
-                          display: 'grid',
-                          gap: '6px'
-                        }}>
-                          <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span>• <strong>Login E-mail:</strong> incredhtoh@gmail.com</span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText('incredhtoh@gmail.com'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span>• <strong>OTP Support:</strong> Call & Message on WhatsApp to <strong>9389119399</strong></span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                          </div>
-                        </div>
-
-                        <a
-                          href={BANK_AFFILIATE_LINKS['INCRED PL']}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary btn-sm"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            textDecoration: 'none',
-                            marginTop: '4px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
-                            padding: '10px 16px'
-                          }}
-                        >
-                          🚀 Open InCred Portal ↗
-                        </a>
-                      </div>
-                    );
-                  }
-
-                  if (isFinnable) {
-                    return (
-                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Finnable DSA Portal</div>
-                        
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: 'var(--border-subtle)',
-                          padding: '10px 12px',
-                          borderRadius: '6px',
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--color-text-secondary)',
-                          display: 'grid',
-                          gap: '6px'
-                        }}>
-                          <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span>• <strong>Login Mobile:</strong> 9389119399</span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span>• <strong>OTP Support:</strong> Call <strong>9389119399</strong></span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                          </div>
-                        </div>
-
-                        <a
-                          href={BANK_AFFILIATE_LINKS['FINNABLE']}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary btn-sm"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            textDecoration: 'none',
-                            marginTop: '4px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
-                            padding: '10px 16px'
-                          }}
-                        >
-                          🚀 Open Finnable Portal ↗
-                        </a>
-                      </div>
-                    );
-                  }
-
-                  if (appLink) {
-                    return (
-                      <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 Partner Lending Portal</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                          Log in through the apply link to verify client status or complete the application steps:
-                        </div>
-                        <a
-                          href={appLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary btn-sm"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            textDecoration: 'none',
-                            marginTop: '4px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
-                            padding: '10px 16px'
-                          }}
-                        >
-                          🚀 Open Apply Link
-                        </a>
+                        )}
                       </div>
                     );
                   }
 
                   return (
                     <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: 'var(--border-subtle)', padding: '12px 16px', borderRadius: '8px', fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                      ℹ️ No direct apply link configured for this bank.
+                      ℹ️ No direct apply link or portal credentials configured for this bank.
                     </div>
                   );
                 })()}
@@ -3651,8 +3516,6 @@ export default function UserDashboard() {
           );
         })()}
 
-      </main>
-
       {/* Selected Sub-Agent Details Modal */}
       {selectedSubAgent && (() => {
         const saApps = subAgentDisbursedApps.filter(app => app.agent_id === selectedSubAgent.id);
@@ -3668,28 +3531,24 @@ export default function UserDashboard() {
             bottom: 0,
             background: 'rgba(0, 0, 0, 0.85)',
             backdropFilter: 'blur(20px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflowY: 'auto',
+            padding: '40px 24px',
             zIndex: 99999,
-            padding: '24px'
-          }}>
+            WebkitOverflowScrolling: 'touch'
+          }} onClick={() => setSelectedSubAgent(null)}>
             <div className="form-card" style={{
-              maxWidth: '600px',
-              width: '95vw',
+              maxWidth: '650px',
+              width: '100%',
               margin: '0 auto',
               display: 'grid',
               gap: '20px',
-              background: 'rgba(20, 20, 20, 0.85)',
-              backdropFilter: 'blur(25px)',
+              background: 'var(--color-bg-secondary)',
               border: 'var(--border-light)',
               boxShadow: 'var(--shadow-xl)',
               borderRadius: 'var(--border-radius-lg)',
-              padding: '28px',
-              color: '#fff',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}>
+              padding: '32px',
+              color: '#fff'
+            }} onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

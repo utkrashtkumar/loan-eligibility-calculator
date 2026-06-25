@@ -25,7 +25,9 @@ const BANK_AFFILIATE_LINKS = {
   'FINNABLE': 'https://partner.finnable.com/auth/login',
 };
 
-const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily') => {
+const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily', dbApplyUrl = null, directSubmit = false) => {
+  if (directSubmit) return null;
+  if (dbApplyUrl) return dbApplyUrl;
   if (!bankName) return null;
   const n = bankName.toUpperCase();
   if (n.includes('MUTHOOT')) {
@@ -67,7 +69,7 @@ const CategoryBadge = ({ category, loanType }) => {
 
 // ─── Single Bank Card ────────────────────────────────────────────────────────
 function BankCard({ bank, pincodeResult, onApply, userRole }) {
-  const affiliateLink = userRole === 'user' ? null : getAffiliateLink(bank.bank_name, bank.loan_type);
+  const affiliateLink = userRole === 'user' ? null : getAffiliateLink(bank.bank_name, bank.loan_type, 'daily', bank.apply_url, bank.direct_submit);
   const [expanded, setExpanded] = useState(false);
 
   // pincodeResult: null = not searched, true = available, false = not available
@@ -350,7 +352,7 @@ export default function BanksPage() {
     setApplySuccess('');
 
     try {
-      const affiliateLink = userRole === 'user' ? null : getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType);
+      const affiliateLink = userRole === 'user' ? null : getAffiliateLink(selectedBank.bank_name, selectedBank.loan_type, muthootSubType, selectedBank.apply_url, selectedBank.direct_submit);
 
       if (affiliateLink) {
         // Direct redirection bank portal -> store in localStorage as pending bank application
@@ -739,10 +741,35 @@ export default function BanksPage() {
                 </div>
               )}
 
+              {(() => {
+                const hasLink = userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit);
+                if (hasLink) return null;
+                
+                return (
+                  <div style={{
+                    background: 'rgba(99, 102, 241, 0.05)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    marginTop: '16px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    lineHeight: '1.4'
+                  }}>
+                    <span>
+                      📥 Direct Submission: This application will be submitted directly to the administrator who will apply for you on the partner portal.
+                    </span>
+                  </div>
+                );
+              })()}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setApplyModalOpen(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={applying}>
-                  {applying ? 'Submitting...' : (userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType)) ? 'Submit & Open Link ↗' : 'Submit Application'}
+                  {applying ? 'Submitting...' : (userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit)) ? 'Submit & Open Link ↗' : 'Submit to Admin'}
                 </button>
               </div>
             </form>

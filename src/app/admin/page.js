@@ -264,6 +264,10 @@ export default function AdminDashboard() {
       all_pincodes: true,
       special_notes: '',
       logo_url: '',
+      apply_url: '',
+      portal_username: '',
+      portal_password: '',
+      direct_submit: false,
       employment_type: activePolicyCategory === 'salary' ? 'salaried' : 'self_employed',
       policy_category: activePolicyCategory
     });
@@ -290,6 +294,10 @@ export default function AdminDashboard() {
       all_pincodes: policy.all_pincodes !== false,
       special_notes: policy.special_notes || '',
       logo_url: policy.logo_url || '',
+      apply_url: policy.apply_url || '',
+      portal_username: policy.portal_username || '',
+      portal_password: policy.portal_password || '',
+      direct_submit: policy.direct_submit === true,
       employment_type: policy.employment_type || 'salaried',
       policy_category: policy.policy_category || 'salary'
     });
@@ -2581,18 +2589,18 @@ export default function AdminDashboard() {
                                     onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-card)'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                   >
-                                    <td style={{ padding: '12px 10px' }}>
+                                    <td data-label="Bank" style={{ padding: '12px 10px' }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <BankLogo bankName={policy.bank_name} logoUrl={policy.logo_url} size={20} />
                                         <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{policy.bank_name}</span>
                                       </div>
                                     </td>
-                                    <td style={{ padding: '12px 10px' }}>
+                                    <td data-label="Type" style={{ padding: '12px 10px' }}>
                                       <span className={`badge ${policy.loan_type === 'PL' ? 'badge-primary' : 'badge-info'}`}>
                                         {policy.loan_type === 'PL' ? '💳 Personal' : '💼 Business'}
                                       </span>
                                     </td>
-                                    <td style={{ padding: '12px 10px' }}>
+                                    <td data-label="Emp. Type" style={{ padding: '12px 10px' }}>
                                       <span className="badge" style={{
                                         background: policy.employment_type === 'self_employed' ? 'rgba(16, 185, 129, 0.15)' : policy.employment_type === 'both' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)',
                                         color: policy.employment_type === 'self_employed' ? '#10b981' : policy.employment_type === 'both' ? '#f59e0b' : '#6366f1',
@@ -2605,26 +2613,26 @@ export default function AdminDashboard() {
                                         {policy.employment_type === 'self_employed' ? '🏢 Self Emp' : policy.employment_type === 'both' ? '🔄 Both' : '💼 Salaried'}
                                       </span>
                                     </td>
-                                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                    <td data-label="Min Salary" style={{ padding: '12px 10px', fontWeight: 500 }}>
                                       ₹{Number(policy.min_salary).toLocaleString('en-IN')}
                                     </td>
-                                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                    <td data-label="Min CIBIL" style={{ padding: '12px 10px', fontWeight: 500 }}>
                                       {policy.min_cibil}+
                                     </td>
-                                    <td style={{ padding: '12px 10px', fontWeight: 500 }}>
+                                    <td data-label="Max FOIR" style={{ padding: '12px 10px', fontWeight: 500 }}>
                                       {policy.foir_max}%
                                     </td>
-                                    <td style={{ padding: '12px 10px' }}>
+                                    <td data-label="Age Range" style={{ padding: '12px 10px' }}>
                                       {policy.min_age}–{policy.max_age} yrs
                                     </td>
-                                    <td style={{ padding: '12px 10px' }}>
+                                    <td data-label="Pincodes" style={{ padding: '12px 10px' }}>
                                       {policy.all_pincodes ? (
                                         <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>🌍 All India</span>
                                       ) : (
                                         <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>📍 Limited</span>
                                       )}
                                     </td>
-                                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                                    <td data-label="Actions" style={{ padding: '12px 10px', textAlign: 'right' }}>
                                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                                         <button
                                           className="btn btn-secondary btn-sm"
@@ -2785,12 +2793,10 @@ export default function AdminDashboard() {
           background: 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '16px'
-        }}>
+          overflowY: 'auto',
+          padding: '40px 16px',
+          zIndex: 99999
+        }} onClick={() => setSelectedMessage(null)}>
           <div className="modal-drawer" style={{
             background: 'var(--color-bg-glass-heavy)',
             border: 'var(--border-accent)',
@@ -2799,9 +2805,8 @@ export default function AdminDashboard() {
             maxWidth: 'min(600px, 96vw)',
             padding: '28px',
             boxShadow: 'var(--shadow-lg)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
+            margin: '0 auto'
+          }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div>
                 <span className="badge badge-primary" style={{ background: 'var(--gradient-primary)', color: '#ffffff !important' }}>Contact Query</span>
@@ -2910,7 +2915,7 @@ export default function AdminDashboard() {
           height: '100%',
           background: 'rgba(0,0,0,0.6)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 99999,
           display: 'flex',
           justifyContent: 'flex-end'
         }} onClick={() => setSelectedInquiry(null)}>
@@ -3131,22 +3136,20 @@ export default function AdminDashboard() {
           height: '100%',
           background: 'rgba(0,0,0,0.6)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '20px'
+          zIndex: 99999,
+          overflowY: 'auto',
+          padding: '40px 20px',
+          WebkitOverflowScrolling: 'touch'
         }} onClick={() => setIsPolicyModalOpen(false)}>
           <div style={{
             width: '100%',
             maxWidth: policyForm.all_pincodes ? 'min(600px, 96vw)' : 'min(1100px, 96vw)',
-            maxHeight: '90vh',
             background: 'var(--color-bg-secondary)',
             border: 'var(--border-light)',
             borderRadius: 'var(--border-radius-xl)',
             boxShadow: 'var(--shadow-xl)',
             padding: '32px',
-            overflowY: 'auto',
+            margin: '0 auto',
             display: 'flex',
             flexDirection: 'column',
             gap: '24px',
@@ -3329,6 +3332,26 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '12px', border: 'var(--border-subtle)', marginBottom: '4px' }}>
+                  <input 
+                    type="checkbox"
+                    id="direct_submit_checkbox"
+                    checked={policyForm.direct_submit}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setPolicyForm({ 
+                        ...policyForm, 
+                        direct_submit: checked,
+                        apply_url: checked ? '' : policyForm.apply_url
+                      });
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="direct_submit_checkbox" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)', fontWeight: 600, cursor: 'pointer' }}>
+                    📥 Direct Submit to Admin (Admin will apply on behalf of Agent)
+                  </label>
+                </div>
+
                 <div className="responsive-grid-2" style={{ gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Bank Logo URL</label>
@@ -3340,7 +3363,43 @@ export default function AdminDashboard() {
                       onChange={(e) => setPolicyForm({ ...policyForm, logo_url: e.target.value })}
                     />
                   </div>
-                  <div></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                      Apply Link (URL) {policyForm.direct_submit && <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>(Disabled via Direct Submit)</span>}
+                    </label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. https://apply.bank.com/portal"
+                      disabled={policyForm.direct_submit}
+                      value={policyForm.apply_url}
+                      onChange={(e) => setPolicyForm({ ...policyForm, apply_url: e.target.value })}
+                      style={{ opacity: policyForm.direct_submit ? 0.5 : 1 }}
+                    />
+                  </div>
+                </div>
+
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Portal Login ID / Username (For Agent Portal)</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. incredhtoh@gmail.com (Optional)"
+                      value={policyForm.portal_username}
+                      onChange={(e) => setPolicyForm({ ...policyForm, portal_username: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Portal Login Password / OTP Contact</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. Password or 'OTP Support: 9389119399' (Optional)"
+                      value={policyForm.portal_password}
+                      onChange={(e) => setPolicyForm({ ...policyForm, portal_password: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -3364,7 +3423,7 @@ export default function AdminDashboard() {
                       const checked = e.target.checked;
                       setPolicyForm({ ...policyForm, all_pincodes: checked });
                       if (!checked && (policyForm.bank_name || selectedPolicy?.bank_name)) {
-                        fetchBankPincodes(policyForm.bank_name || selectedPolicy.bank_name);
+                        fetchBankPincodes(policyForm.bank_name || selectedPolicy?.bank_name || '');
                       }
                     }}
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
@@ -3568,7 +3627,7 @@ export default function AdminDashboard() {
           height: '100%',
           background: 'rgba(0,0,0,0.6)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 99999,
           display: 'flex',
           justifyContent: 'flex-end'
         }} onClick={() => handleSelectAgent(null)}>
@@ -4176,7 +4235,7 @@ export default function AdminDashboard() {
           height: '100%',
           background: 'rgba(0,0,0,0.6)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 99999,
           display: 'flex',
           justifyContent: 'flex-end'
         }} onClick={() => setSelectedApplication(null)}>
@@ -4308,6 +4367,92 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+
+            {/* Lender Portal & Credentials for Admin */}
+            {(() => {
+              const matchedPolicy = policies.find(p => p.bank_name.toUpperCase().replace(/\(BL\)/g, '').trim() === selectedApplication.bank_name?.toUpperCase().replace(/\(BL\)/g, '').trim());
+              if (!matchedPolicy) return null;
+              
+              const applyLink = matchedPolicy.apply_url || '';
+              const isFinnable = selectedApplication.bank_name?.toUpperCase()?.includes('FINNABLE');
+              const isIncred = selectedApplication.bank_name?.toUpperCase()?.includes('INCRED');
+              
+              let username = matchedPolicy.portal_username || '';
+              let password = matchedPolicy.portal_password || '';
+              
+              if (!username && isFinnable) username = '9389119399';
+              if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';
+              if (!username && isIncred) username = 'incredhtoh@gmail.com';
+              if (!password && isIncred) password = 'Call & Message on WhatsApp to 9389119399 (OTP Support)';
+              
+              const hasCredentials = username || password || applyLink;
+              
+              if (!hasCredentials) return null;
+              
+              return (
+                <div>
+                  <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Lender Portal & Credentials</h4>
+                  <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 {selectedApplication.bank_name} Partner Portal</div>
+                    
+                    {matchedPolicy.direct_submit && (
+                      <div style={{ fontSize: '11px', color: 'var(--color-warning)', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '8px 12px', borderRadius: '6px' }}>
+                        📥 <strong>Direct Submission Force Enabled</strong>: The agent submitted this client directly. You must log in and submit it on the partner portal below.
+                      </div>
+                    )}
+                    
+                    {(username || password) && (
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: 'var(--border-subtle)',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--color-text-secondary)',
+                        display: 'grid',
+                        gap: '6px'
+                      }}>
+                        <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Login Credentials for Portal:</div>
+                        {username && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>• <strong>Username / ID:</strong> {username}</span>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          </div>
+                        )}
+                        {password && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>• <strong>Password / OTP:</strong> {password}</span>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {applyLink && (
+                      <a
+                        href={applyLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          textDecoration: 'none',
+                          fontSize: 'var(--text-xs)',
+                          fontWeight: 600,
+                          padding: '10px 16px',
+                          marginTop: '4px'
+                        }}
+                      >
+                        🚀 Open Bank Partner Portal ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Status & Problem updates */}
             <div>
