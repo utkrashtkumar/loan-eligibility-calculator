@@ -582,6 +582,8 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
+
+
   // Auto-inject data-label attributes to td elements based on th text content
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1131,6 +1133,7 @@ export default function AdminDashboard() {
                             key={tab.id}
                             onClick={() => {
                               setActiveTab(tab.id);
+                              setSearchTerm('');
                               setIsMobileTabSelectOpen(false);
                             }}
                             className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
@@ -1162,13 +1165,16 @@ export default function AdminDashboard() {
                       { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
                       { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
                       { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
-                          { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
+                           { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                       { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                       { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
                     ].map((tab) => (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setSearchTerm('');
+                        }}
                         className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'} tabs-sidebar-button`}
                         style={{
                           padding: '10px 20px',
@@ -1826,97 +1832,158 @@ export default function AdminDashboard() {
                 )}
 
                 {/* PANEL 2: ACTIVE AGENTS */}
-                {activeTab === 'active_agents' && (
-                  <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Agent Name</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Email</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Phone Number</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Unique Code</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Approved On</th>
-                            <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeAgents.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                No active approved agents in database.
-                              </td>
-                            </tr>
-                          ) : (
-                            activeAgents.map((agent) => (
-                              <tr key={agent.id} onClick={() => handleSelectAgent(agent)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
-                                <td style={{ padding: '16px 24px', fontWeight: 500 }}>{agent.full_name}</td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{agent.email}</td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{agent.phone || 'Not provided'}</td>
-                                <td style={{ padding: '16px 24px', fontFamily: 'var(--font-heading)', fontWeight: 600, color: 'var(--color-accent-violet)' }}>
-                                  {agent.agent_code}
-                                </td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                  {new Date(agent.created_at).toLocaleDateString('en-IN')}
-                                </td>
-                                <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                    <button
-                                      onClick={() => handleSelectAgent(agent)}
-                                      className="btn btn-secondary btn-sm"
-                                      style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
-                                    >
-                                      Inspect Profile 👁️
-                                    </button>
-                                    <button
-                                      onClick={() => handleDemoteAgent(agent.id)}
-                                      className="btn btn-secondary btn-sm"
-                                      style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', border: 'var(--border-error)' }}
-                                    >
-                                      Demote to User 👤
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                {activeTab === 'active_agents' && (() => {
+                  const filtered = activeAgents.filter(agent => {
+                    const query = searchTerm.toLowerCase().trim();
+                    return (
+                      agent.full_name?.toLowerCase().includes(query) ||
+                      agent.email?.toLowerCase().includes(query) ||
+                      agent.phone?.includes(query) ||
+                      agent.agent_code?.toLowerCase().includes(query)
+                    );
+                  });
 
-                {/* PANEL 3: PENDING APPROVALS & RE-PROMOTIONS */}
-                {activeTab === 'pending_agents' && (
-                  <div style={{ display: 'grid', gap: '32px' }}>
-                    {/* Unapproved Signups */}
-                    <div>
-                      <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px' }}>
-                        Pending Agent Registrations
-                      </h2>
-                      <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
-                            <thead>
-                              <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Agent Name</th>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Email</th>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Phone Number</th>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status</th>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Referrer</th>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Registered Date</th>
-                                <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Action</th>
+                  return (
+                    <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                      {/* Search Bar */}
+                      <div style={{ padding: '16px 24px', borderBottom: 'var(--border-subtle)' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search active agents by name, email, phone, or code..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Agent Name</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Email</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Phone Number</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Unique Code</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Approved On</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                  No approved agents match your search criteria.
+                                </td>
                               </tr>
-                            </thead>
-                            <tbody>
-                              {pendingAgents.length === 0 ? (
-                                <tr>
-                                  <td colSpan={7} style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                    No pending agent approvals.
+                            ) : (
+                              filtered.map((agent) => (
+                                <tr key={agent.id} onClick={() => handleSelectAgent(agent)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
+                                  <td style={{ padding: '16px 24px', fontWeight: 500 }}>{agent.full_name}</td>
+                                  <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{agent.email}</td>
+                                  <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{agent.phone || 'Not provided'}</td>
+                                  <td style={{ padding: '16px 24px', fontFamily: 'var(--font-heading)', fontWeight: 600, color: 'var(--color-accent-violet)' }}>
+                                    {agent.agent_code}
+                                  </td>
+                                  <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
+                                    {new Date(agent.created_at).toLocaleDateString('en-IN')}
+                                  </td>
+                                  <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                      <button
+                                        onClick={() => handleSelectAgent(agent)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                                      >
+                                        Inspect Profile 👁️
+                                      </button>
+                                      <button
+                                        onClick={() => handleDemoteAgent(agent.id)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', border: 'var(--border-error)' }}
+                                      >
+                                        Demote to User 👤
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
-                              ) : (
-                                pendingAgents.map((sa) => {
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* PANEL 3: PENDING APPROVALS & RE-PROMOTIONS */}
+                {activeTab === 'pending_agents' && (() => {
+                  const query = searchTerm.toLowerCase().trim();
+                  const filteredPending = pendingAgents.filter(sa => {
+                    if (!query) return true;
+                    return (
+                      sa.full_name?.toLowerCase().includes(query) ||
+                      sa.email?.toLowerCase().includes(query) ||
+                      sa.phone?.includes(query) ||
+                      sa.referred_by?.toLowerCase().includes(query)
+                    );
+                  });
+                  const filteredDemoted = demotedUsers.filter(du => {
+                    if (!query) return true;
+                    return (
+                      du.full_name?.toLowerCase().includes(query) ||
+                      du.email?.toLowerCase().includes(query)
+                    );
+                  });
+
+                  return (
+                    <div style={{ display: 'grid', gap: '32px' }}>
+                      {/* Search Bar */}
+                      <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search pending registrations and demoted queue by name, email, phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Unapproved Signups */}
+                      <div>
+                        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px' }}>
+                          Pending Agent Registrations
+                        </h2>
+                        <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                              <thead>
+                                <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Agent Name</th>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Email</th>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Phone Number</th>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status</th>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Referrer</th>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Registered Date</th>
+                                  <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredPending.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={7} style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                      No pending agent approvals match search.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  filteredPending.map((sa) => {
                                   const isRejected = sa.profile_update_message && sa.profile_update_message.startsWith('REJECTED:');
                                   const rejectReason = isRejected ? sa.profile_update_message.replace('REJECTED:', '').trim() : '';
                                   return (
@@ -1993,14 +2060,14 @@ export default function AdminDashboard() {
                               </tr>
                             </thead>
                             <tbody>
-                              {demotedUsers.length === 0 ? (
+                              {filteredDemoted.length === 0 ? (
                                 <tr>
                                   <td colSpan={5} style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                    No demoted profiles recorded.
+                                    No demoted profiles match search.
                                   </td>
                                 </tr>
                               ) : (
-                                demotedUsers.map((du) => {
+                                filteredDemoted.map((du) => {
                                   const eligible = isWithin30Days(du.demoted_at);
                                   
                                   // Calculate remaining days
@@ -2045,97 +2112,159 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
-                )}
+                );
+              })()}
 
                 {/* PANEL 4: PAYOUT REQUESTS PROCESSOR */}
-                {activeTab === 'payouts' && (
-                  <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
-                            <th style={{ padding: '16px 24px' }}>Agent Details</th>
-                            <th style={{ padding: '16px 24px' }}>Payout Amount</th>
-                            <th style={{ padding: '16px 24px' }}>Request Date</th>
-                            <th style={{ padding: '16px 24px' }}>Disbursement Details</th>
-                            <th style={{ padding: '16px 24px' }}>Status</th>
-                            <th style={{ padding: '16px 24px', textAlign: 'right' }}>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {payoutRequests.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                No payout requests submitted.
-                              </td>
-                            </tr>
-                          ) : (
-                            payoutRequests.map((req) => (
-                              <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                <td style={{ padding: '16px 24px' }}>
-                                  {req.agent ? (
-                                    <>
-                                      <div style={{ fontWeight: 500 }}>{req.agent.full_name}</div>
-                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>Code: {req.agent.agent_code}</div>
-                                    </>
-                                  ) : (
-                                    <span style={{ color: 'var(--color-text-muted)' }}>Deleted Agent</span>
-                                  )}
-                                </td>
-                                <td style={{ padding: '16px 24px', fontWeight: 700, fontSize: 'var(--text-base)' }}>
-                                  ₹{Number(req.amount).toLocaleString('en-IN')}
-                                </td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                  {new Date(req.created_at).toLocaleDateString('en-IN')}
-                                </td>
-                                <td style={{ padding: '16px 24px', fontSize: 'var(--text-xs)' }}>
-                                  <div>Name: <strong>{req.account_name}</strong></div>
-                                  {req.upi_id ? (
-                                    <div style={{ color: 'var(--color-info)', marginTop: '2px' }}>UPI ID: {req.upi_id}</div>
-                                  ) : (
-                                    <div style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                                      {req.bank_name} | Acc: {req.account_no} | IFSC: {req.ifsc_code}
-                                    </div>
-                                  )}
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                  <span className="badge" style={{ ...getStatusBadgeStyle(req.status), margin: 0, fontSize: '10px' }}>
-                                    {req.status}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                  {req.status === 'Pending' ? (
-                                    <button
-                                      disabled={updatingPayoutId === req.id}
-                                      onClick={() => handleApprovePayout(req.id)}
-                                      className="btn btn-primary btn-sm"
-                                      style={{ margin: 0 }}
-                                    >
-                                      {updatingPayoutId === req.id ? 'Processing...' : 'Mark as Paid'}
-                                    </button>
-                                  ) : (
-                                    <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                                      Paid on {new Date(req.paid_at).toLocaleDateString('en-IN')}
-                                    </span>
-                                  )}
-                                </td>
+                {activeTab === 'payouts' && (() => {
+                  const query = searchTerm.toLowerCase().trim();
+                  const filteredPayouts = payoutRequests.filter(req => {
+                    if (!query) return true;
+                    return (
+                      req.agent?.full_name?.toLowerCase().includes(query) ||
+                      req.agent?.agent_code?.toLowerCase().includes(query) ||
+                      req.account_name?.toLowerCase().includes(query) ||
+                      req.upi_id?.toLowerCase().includes(query) ||
+                      req.bank_name?.toLowerCase().includes(query) ||
+                      req.account_no?.includes(query) ||
+                      req.amount?.toString().includes(query) ||
+                      req.status?.toLowerCase().includes(query)
+                    );
+                  });
+
+                  return (
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                      {/* Search Bar */}
+                      <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search payout requests by agent, bank details, upi, status, amount..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                            <thead>
+                              <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                                <th style={{ padding: '16px 24px' }}>Agent Details</th>
+                                <th style={{ padding: '16px 24px' }}>Payout Amount</th>
+                                <th style={{ padding: '16px 24px' }}>Request Date</th>
+                                <th style={{ padding: '16px 24px' }}>Disbursement Details</th>
+                                <th style={{ padding: '16px 24px' }}>Status</th>
+                                <th style={{ padding: '16px 24px', textAlign: 'right' }}>Action</th>
                               </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {filteredPayouts.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                    No payout requests match search.
+                                  </td>
+                                </tr>
+                              ) : (
+                                filteredPayouts.map((req) => (
+                                  <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      {req.agent ? (
+                                        <>
+                                          <div style={{ fontWeight: 500 }}>{req.agent.full_name}</div>
+                                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>Code: {req.agent.agent_code}</div>
+                                        </>
+                                      ) : (
+                                        <span style={{ color: 'var(--color-text-muted)' }}>Deleted Agent</span>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', fontWeight: 700, fontSize: 'var(--text-base)' }}>
+                                      ₹{Number(req.amount).toLocaleString('en-IN')}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
+                                      {new Date(req.created_at).toLocaleDateString('en-IN')}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', fontSize: 'var(--text-xs)' }}>
+                                      <div>Name: <strong>{req.account_name}</strong></div>
+                                      {req.upi_id ? (
+                                        <div style={{ color: 'var(--color-info)', marginTop: '2px' }}>UPI ID: {req.upi_id}</div>
+                                      ) : (
+                                        <div style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                                          {req.bank_name} | Acc: {req.account_no} | IFSC: {req.ifsc_code}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      <span className="badge" style={{ ...getStatusBadgeStyle(req.status), margin: 0, fontSize: '10px' }}>
+                                        {req.status}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                                      {req.status === 'Pending' ? (
+                                        <button
+                                          disabled={updatingPayoutId === req.id}
+                                          onClick={() => handleApprovePayout(req.id)}
+                                          className="btn btn-primary btn-sm"
+                                          style={{ margin: 0 }}
+                                        >
+                                          {updatingPayoutId === req.id ? 'Processing...' : 'Mark as Paid'}
+                                        </button>
+                                      ) : (
+                                        <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                                          Paid on {new Date(req.paid_at).toLocaleDateString('en-IN')}
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* PANEL 5: CLIENT APPLICATIONS */}
                 {activeTab === 'agent_applications' && (() => {
-                  const filtered = agentApplications;
+                  const query = searchTerm.toLowerCase().trim();
+                  const filtered = agentApplications.filter(app => {
+                    if (!query) return true;
+                    return (
+                      app.client_name?.toLowerCase().includes(query) ||
+                      app.client_mobile?.includes(query) ||
+                      app.bank_name?.toLowerCase().includes(query) ||
+                      app.loan_type?.toLowerCase().includes(query) ||
+                      app.application_id?.toLowerCase().includes(query) ||
+                      app.agent?.full_name?.toLowerCase().includes(query) ||
+                      app.agent?.agent_code?.toLowerCase().includes(query)
+                    );
+                  });
                   const displayApps = filtered.filter(app => 
                     appStatusFilter === 'all' ? true : (app.status || '').toLowerCase() === appStatusFilter
                   );
                   return (
                     <div style={{ display: 'grid', gap: '16px' }}>
+                      {/* Search Bar */}
+                      <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search applications by client, mobile, bank, agent, or Application ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                      </div>
+
                       {/* Sub-tabs for filtering status */}
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                         {[
@@ -2200,15 +2329,20 @@ export default function AdminDashboard() {
                               {displayApps.length === 0 ? (
                                 <tr>
                                   <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                    No agent applications found for status &quot;${appStatusFilter}&quot;.
+                                    No agent applications match search and status &quot;{appStatusFilter}&quot;.
                                   </td>
                                 </tr>
                               ) : (
                                 displayApps.map((app) => (
                                   <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }} onClick={() => setSelectedApplication(app)}>
                                     <td style={{ padding: '16px 24px' }}>
-                                      <div style={{ fontWeight: 500 }}>{app.client_name}</div>
+                                      <div style={{ fontWeight: 600 }}>{app.client_name}</div>
                                       <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                      {app.application_id && (
+                                        <div style={{ fontSize: '11px', color: 'var(--color-primary)', marginTop: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
+                                          ID: {app.application_id}
+                                        </div>
+                                      )}
                                       {app.problem && (
                                         <div style={{ 
                                           fontSize: '11px', 
@@ -2309,12 +2443,39 @@ export default function AdminDashboard() {
 
                 {/* PANEL 5B: CUSTOMER APPLICATIONS */}
                 {activeTab === 'customer_applications' && (() => {
-                  const filtered = customerApplications;
+                  const query = searchTerm.toLowerCase().trim();
+                  const filtered = customerApplications.filter(app => {
+                    if (!query) return true;
+                    return (
+                      app.client_name?.toLowerCase().includes(query) ||
+                      app.client_mobile?.includes(query) ||
+                      app.bank_name?.toLowerCase().includes(query) ||
+                      app.loan_type?.toLowerCase().includes(query) ||
+                      app.application_id?.toLowerCase().includes(query) ||
+                      app.agent?.full_name?.toLowerCase().includes(query) ||
+                      app.agent?.email?.toLowerCase().includes(query)
+                    );
+                  });
                   const displayApps = filtered.filter(app => 
                     appStatusFilter === 'all' ? true : (app.status || '').toLowerCase() === appStatusFilter
                   );
                   return (
                     <div style={{ display: 'grid', gap: '16px' }}>
+                      {/* Search Bar */}
+                      <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search applications by client, mobile, bank, customer, or Application ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                      </div>
+
                       {/* Sub-tabs for filtering status */}
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                         {[
@@ -2378,15 +2539,20 @@ export default function AdminDashboard() {
                               {displayApps.length === 0 ? (
                                 <tr>
                                   <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                                    No customer applications found for status &quot;${appStatusFilter}&quot;.
+                                    No customer applications match search and status &quot;{appStatusFilter}&quot;.
                                   </td>
                                 </tr>
                               ) : (
                                 displayApps.map((app) => (
                                   <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }} onClick={() => setSelectedApplication(app)}>
                                     <td style={{ padding: '16px 24px' }}>
-                                      <div style={{ fontWeight: 500 }}>{app.client_name}</div>
+                                      <div style={{ fontWeight: 600 }}>{app.client_name}</div>
                                       <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                      {app.application_id && (
+                                        <div style={{ fontSize: '11px', color: 'var(--color-primary)', marginTop: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
+                                          ID: {app.application_id}
+                                        </div>
+                                      )}
                                       {app.problem && (
                                         <div style={{ 
                                           fontSize: '11px', 
@@ -4255,7 +4421,7 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>Inspect Client Application</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>ID: #{selectedApplication.id} | Submitted {new Date(selectedApplication.created_at).toLocaleString('en-IN')}</p>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>App ID: <strong style={{ color: 'var(--color-primary)', fontFamily: 'monospace' }}>{selectedApplication.application_id || 'N/A'}</strong> | DB ID: #{selectedApplication.id} | Submitted {new Date(selectedApplication.created_at).toLocaleString('en-IN')}</p>
               </div>
               <button
                 onClick={() => setSelectedApplication(null)}

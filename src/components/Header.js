@@ -40,6 +40,7 @@ export default function Header() {
     if (!pendingApplication || !user) return;
     setSubmittingStatus(true);
     try {
+      const uniqueAppId = `H2H-APP-${Math.floor(100000 + Math.random() * 900000)}`;
       const { error } = await supabase.from('applications').insert({
         agent_id: user.id,
         client_name: pendingApplication.clientName,
@@ -49,13 +50,14 @@ export default function Header() {
         loan_type: pendingApplication.loanType,
         commission_rate: 2.00,
         commission_amount: Number(pendingApplication.loanAmount) * 0.02,
-        status: 'applied'
+        status: 'applied',
+        application_id: uniqueAppId
       });
 
       if (error) {
         alert('Failed to save lead: ' + error.message);
       } else {
-        alert(`Lead generated successfully for ${pendingApplication.clientName}!`);
+        alert(`Lead generated successfully for ${pendingApplication.clientName}! Application ID: ${uniqueAppId}`);
         localStorage.removeItem('pending_bank_application');
         setPendingApplication(null);
         router.refresh();

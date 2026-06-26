@@ -915,7 +915,7 @@ export default function UserDashboard() {
       return;
     }
     if (amt > availableBalance) {
-      setPayoutError(`Insufficient balance. Maximum request amount is ₹${availableBalance.toLocaleString('en-IN')}`);
+      setPayoutError(`Insufficient balance. Maximum request amount is \u20B9${availableBalance.toLocaleString('en-IN')}`);
       return;
     }
 
@@ -1027,6 +1027,11 @@ export default function UserDashboard() {
                     </svg>
                     {app.client_mobile}
                   </div>
+                  {app.application_id && (
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', marginTop: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
+                      ID: {app.application_id}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1047,7 +1052,7 @@ export default function UserDashboard() {
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Amount</div>
                   <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                    ₹{Number(app.loan_amount).toLocaleString('en-IN')}
+                    {"\u20B9"}{Number(app.loan_amount).toLocaleString('en-IN')}
                   </div>
                 </div>
 
@@ -1135,13 +1140,13 @@ export default function UserDashboard() {
                       <div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Monthly Salary</div>
                         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          ₹{Number(inq.salary).toLocaleString('en-IN')}
+                          {"\u20B9"}{Number(inq.salary).toLocaleString('en-IN')}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Running EMIs</div>
                         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          ₹{Number(inq.existing_emi).toLocaleString('en-IN')}
+                          {"\u20B9"}{Number(inq.existing_emi).toLocaleString('en-IN')}
                         </div>
                       </div>
                       <div>
@@ -1551,13 +1556,13 @@ export default function UserDashboard() {
                                 <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
                                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>TOTAL COMMISSION EARNED</div>
                                   <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-                                    ₹{totalEarnings.toLocaleString('en-IN')}
+                                    {"\u20B9"}{totalEarnings.toLocaleString('en-IN')}
                                   </div>
                                 </div>
                                 <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
                                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>AVAILABLE BALANCE</div>
                                   <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>₹{availableBalance.toLocaleString('en-IN')}</span>
+                                    <span>{"\u20B9"}{availableBalance.toLocaleString('en-IN')}</span>
                                     {availableBalance > 0 && (
                                       <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
                                         Request Payout
@@ -1568,13 +1573,13 @@ export default function UserDashboard() {
                                 <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
                                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PAID PAYOUTS</div>
                                   <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-primary)', marginTop: '8px' }}>
-                                    ₹{totalPaid.toLocaleString('en-IN')}
+                                    {"\u20B9"}{totalPaid.toLocaleString('en-IN')}
                                   </div>
                                 </div>
                                 <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
                                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>PENDING PAYOUTS</div>
                                   <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
-                                    ₹{totalPending.toLocaleString('en-IN')}
+                                    {"\u20B9"}{totalPending.toLocaleString('en-IN')}
                                   </div>
                                 </div>
                               </div>
@@ -1606,7 +1611,7 @@ export default function UserDashboard() {
                                         {payoutRequests.map((req) => (
                                           <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                             <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                                            <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
+                                            <td style={{ padding: '12px 16px', fontWeight: 600 }}>{"\u20B9"}{Number(req.amount).toLocaleString('en-IN')}</td>
                                             <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                             <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                               {req.upi_id ? (
@@ -2420,6 +2425,11 @@ export default function UserDashboard() {
                                       </svg>
                                       {app.client_mobile}
                                     </div>
+                                    {app.application_id && (
+                                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', marginTop: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
+                                        ID: {app.application_id}
+                                      </div>
+                                    )}
                                   </div>
 
                                   <div>
@@ -2440,14 +2450,14 @@ export default function UserDashboard() {
                                   <div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Loan Amount</div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                                      ₹{Number(app.loan_amount).toLocaleString('en-IN')}
+                                      {"\u20B9"}{Number(app.loan_amount).toLocaleString('en-IN')}
                                     </div>
                                   </div>
 
                                   <div>
                                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Est. Commission (2.0%)</div>
                                     <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--color-accent-violet)' }}>
-                                      ₹{Number(app.commission_amount).toLocaleString('en-IN')}
+                                      {"\u20B9"}{Number(app.commission_amount).toLocaleString('en-IN')}
                                     </div>
                                   </div>
 
@@ -2476,13 +2486,13 @@ export default function UserDashboard() {
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>TOTAL COMMISSION EARNED</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-                                ₹{totalEarnings.toLocaleString('en-IN')}
+                                {"\u20B9"}{totalEarnings.toLocaleString('en-IN')}
                               </div>
                             </div>
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>AVAILABLE BALANCE</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>₹{availableBalance.toLocaleString('en-IN')}</span>
+                                <span>{"\u20B9"}{availableBalance.toLocaleString('en-IN')}</span>
                                 {availableBalance > 0 && (
                                   <button onClick={handleOpenPayoutModal} className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '11px', margin: 0 }}>
                                     Request Payout
@@ -2493,13 +2503,13 @@ export default function UserDashboard() {
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-accent)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PAID PAYOUTS</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-accent)', marginTop: '8px' }}>
-                                ₹{totalPaid.toLocaleString('en-IN')}
+                                {"\u20B9"}{totalPaid.toLocaleString('en-IN')}
                               </div>
                             </div>
                             <div className="form-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
                               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>PENDING PAYOUTS</div>
                               <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-warning)', marginTop: '8px' }}>
-                                ₹{totalPending.toLocaleString('en-IN')}
+                                {"\u20B9"}{totalPending.toLocaleString('en-IN')}
                               </div>
                             </div>
                           </div>
@@ -2531,7 +2541,7 @@ export default function UserDashboard() {
                                     {payoutRequests.map((req) => (
                                       <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                         <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{"\u20B9"}{Number(req.amount).toLocaleString('en-IN')}</td>
                                         <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                         <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                           {req.upi_id ? (
@@ -2595,9 +2605,9 @@ export default function UserDashboard() {
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-success)', fontWeight: 500 }}>Direct (2%)</span></td>
                                           <td style={{ padding: '16px' }}>{app.client_name}</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
-                                          <td style={{ padding: '16px' }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>{"\u20B9"}{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: 'var(--color-success)' }}>
-                                            +₹{Number(app.commission_amount).toLocaleString('en-IN')}
+                                            +{"\u20B9"}{Number(app.commission_amount).toLocaleString('en-IN')}
                                           </td>
                                         </tr>
                                       ))}
@@ -2609,9 +2619,9 @@ export default function UserDashboard() {
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-info)', fontWeight: 500 }}>Referral (0.5%)</span></td>
                                           <td style={{ padding: '16px' }}>Agent Referral client ({app.client_name})</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
-                                          <td style={{ padding: '16px' }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>{"\u20B9"}{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                           <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: 'var(--color-info)' }}>
-                                            +₹{(Number(app.loan_amount) * 0.005).toLocaleString('en-IN')}
+                                            +{"\u20B9"}{(Number(app.loan_amount) * 0.005).toLocaleString('en-IN')}
                                           </td>
                                         </tr>
                                       ))}
@@ -3292,17 +3302,21 @@ export default function UserDashboard() {
                   </div>
                   <div style={{ gridColumn: profile?.role === 'user' ? 'span 2' : 'span 1' }}>
                     <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Loan Amount</label>
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-text-primary)' }}>₹{Number(selectedApplication.loan_amount).toLocaleString('en-IN')}</div>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-text-primary)' }}>{"\u20B9"}{Number(selectedApplication.loan_amount).toLocaleString('en-IN')}</div>
                   </div>
                   {profile?.role !== 'user' && (
                     <div>
                       <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Est. Commission (2%)</label>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-accent-violet)' }}>₹{Number(selectedApplication.commission_amount).toLocaleString('en-IN')}</div>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', color: 'var(--color-accent-violet)' }}>{"\u20B9"}{Number(selectedApplication.commission_amount).toLocaleString('en-IN')}</div>
                     </div>
                   )}
-                  <div style={{ gridColumn: 'span 2' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Application ID</label>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px', fontFamily: 'monospace', color: 'var(--color-primary)' }}>{selectedApplication.application_id || 'N/A'}</div>
+                  </div>
+                  <div>
                     <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Submission Date</label>
-                    <div style={{ fontSize: 'var(--text-xs)', marginTop: '2px' }}>{new Date(selectedApplication.created_at).toLocaleString('en-IN')}</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, marginTop: '2px' }}>{new Date(selectedApplication.created_at).toLocaleString('en-IN')}</div>
                   </div>
                 </div>
 
@@ -3603,11 +3617,11 @@ export default function UserDashboard() {
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Total Business</div>
-                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#fff', marginTop: '4px' }}>₹{saTotalBusiness.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#fff', marginTop: '4px' }}>{"\u20B9"}{saTotalBusiness.toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Your Earning (0.5%)</div>
-                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-success)', marginTop: '4px' }}>₹{saBonus.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-success)', marginTop: '4px' }}>{"\u20B9"}{saBonus.toLocaleString('en-IN')}</div>
                 </div>
               </div>
 

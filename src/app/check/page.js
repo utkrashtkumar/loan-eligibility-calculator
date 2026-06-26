@@ -279,6 +279,7 @@ export default function CheckPage() {
         window.open(affiliateLink, '_blank');
       } else {
         // No link -> Offline application, insert immediately
+        const uniqueAppId = `H2H-APP-${Math.floor(100000 + Math.random() * 900000)}`;
         const { error } = await supabase.from('applications').insert({
           agent_id: user.id,
           client_name: clientName.trim(),
@@ -288,13 +289,14 @@ export default function CheckPage() {
           loan_type: selectedBank.loan_type,
           commission_rate: 2.00,
           commission_amount: Number(loanAmount) * 0.02,
-          status: 'Applied'
+          status: 'Applied',
+          application_id: uniqueAppId
         });
 
         if (error) {
           setApplyError(error.message);
         } else {
-          setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}!`);
+          setApplySuccess(`Successfully applied to ${selectedBank.bank_name} for ${clientName}! Application ID: ${uniqueAppId}`);
         }
       }
       setTimeout(() => {
