@@ -1148,7 +1148,7 @@ export default function CheckPage() {
                             borderRadius: '4px',
                             border: '1px solid rgba(255, 255, 255, 0.05)'
                           }}>
-                            🤝 In partnership with PNB &nbsp;|&nbsp; 🛡️ Powered by Experian
+                            🤝 In partnership with Punjab National Bank &nbsp;|&nbsp; 🛡️ Powered by Experian
                           </span>
                         </div>
                       </div>

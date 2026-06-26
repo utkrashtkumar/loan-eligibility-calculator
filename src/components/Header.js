@@ -219,7 +219,7 @@ export default function Header() {
                 rel="noopener noreferrer"
                 className="nav-link"
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)', marginLeft: '4px' }}
-                title="Free CIBIL report check in collaboration with PNB"
+                title="Free CIBIL report check in collaboration with Punjab National Bank"
               >
                 📈 CIBIL Score <span style={{ fontSize: '9px', fontWeight: 500, color: 'var(--color-text-tertiary)', opacity: 0.85 }}>(PNB Collab)</span>
               </a>
