@@ -1135,8 +1135,20 @@ export default function CheckPage() {
                               Click Here For Free Credit Report
                             </span>
                           </a>
-                          <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>
-                            🤝 In collaboration with PNB
+                          <span style={{ 
+                            fontSize: '10.5px', 
+                            color: 'var(--color-text-secondary)', 
+                            fontWeight: 500, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '5px', 
+                            marginTop: '4px',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(255, 255, 255, 0.05)'
+                          }}>
+                            🤝 In partnership with PNB &nbsp;|&nbsp; 🛡️ Powered by Experian
                           </span>
                         </div>
                       </div>
