@@ -226,7 +226,7 @@ export default function Header() {
             </li>
             {user ? (
               <>
-                {(userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com') && (
+                {(userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
                 <li>
                   <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
                     🏦 Banks
@@ -238,7 +238,7 @@ export default function Header() {
                     Dashboard
                   </Link>
                 </li>
-                {user.email === 'handtohandloans@gmail.com' && (
+                {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
                   <li>
                     <Link href="/admin" className={`nav-link ${isLinkActive('/admin') ? 'active' : ''}`} style={{ color: 'var(--color-success)', fontWeight: 600, marginLeft: '12px' }}>
                       Admin Panel
@@ -344,7 +344,7 @@ export default function Header() {
             <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`} onClick={closeMenu}>
               Dashboard
             </Link>
-            {user.email === 'handtohandloans@gmail.com' && (
+            {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
               <Link href="/admin" className={`nav-link nav-admin ${isLinkActive('/admin') ? 'active' : ''}`} onClick={closeMenu}>
                 Admin Panel
               </Link>
