@@ -221,7 +221,7 @@ export default function Header() {
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)', marginLeft: '4px' }}
                 title="Free CIBIL report check in collaboration with Punjab National Bank"
               >
-                📈 CIBIL Score <span style={{ fontSize: '9px', fontWeight: 500, color: 'var(--color-text-tertiary)', opacity: 0.85 }}>(PNB Collab)</span>
+                📈 CIBIL Score <span style={{ fontSize: '9px', fontWeight: 500, color: 'var(--color-text-tertiary)', opacity: 0.85 }}>(Punjab National Bank Partnership)</span>
               </a>
             </li>
             {user ? (
@@ -323,7 +323,7 @@ export default function Header() {
           style={{ color: 'var(--color-primary)', fontWeight: 700 }}
           onClick={closeMenu}
         >
-          📈 Check CIBIL Score <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>(PNB Collab)</span>
+          📈 Check CIBIL Score <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>(Punjab National Bank Partnership)</span>
         </a>
         {user ? (
           (userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com') && (
