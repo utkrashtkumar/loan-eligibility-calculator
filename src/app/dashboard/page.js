@@ -1405,6 +1405,7 @@ export default function UserDashboard() {
                       flexShrink: 0
                     }}>
                       {(profileFormData.avatar || profile?.avatar) ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={profileFormData.avatar || profile?.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         getInitials(profile?.full_name || user?.email)
@@ -1924,6 +1925,7 @@ export default function UserDashboard() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', background: 'var(--color-bg-card)', padding: '16px', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)' }}>
                                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--color-bg-tertiary)', border: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                   {profileFormData.avatar ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
                                     <img src={profileFormData.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   ) : (
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
@@ -2157,6 +2159,7 @@ export default function UserDashboard() {
                                         ) : (
                                           <div style={{ display: 'grid', gap: '4px' }}>
                                             <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={profileFormData.id_file} alt="ID Document Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
                                           </div>
                                         )}
@@ -2219,6 +2222,7 @@ export default function UserDashboard() {
                                         ) : (
                                           <div style={{ display: 'grid', gap: '4px' }}>
                                             <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={profileFormData.id_file_2} alt="ID Document 2 Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
                                           </div>
                                         )}
@@ -2234,6 +2238,7 @@ export default function UserDashboard() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                                   <div style={{ width: '100px', height: '100px', borderRadius: '8px', background: 'var(--color-bg-tertiary)', border: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                     {profileFormData.selfie ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
                                       <img src={profileFormData.selfie} alt="Selfie Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
@@ -2332,6 +2337,7 @@ export default function UserDashboard() {
                                       ) : (
                                         <div style={{ display: 'grid', gap: '4px' }}>
                                           <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Cancelled Cheque Preview:</span>
+                                          {/* eslint-disable-next-line @next/next/no-img-element */}
                                           <img src={profileFormData.cancelled_cheque} alt="Cancelled Cheque Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
                                         </div>
                                       )}
@@ -3567,6 +3573,7 @@ export default function UserDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {selectedSubAgent.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img 
                       src={selectedSubAgent.avatar} 
                       alt={selectedSubAgent.full_name} 

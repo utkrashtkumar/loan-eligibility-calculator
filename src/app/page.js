@@ -161,6 +161,22 @@ export default function Home() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FinancialProduct",
+            "name": "Hand to Hand Fintech Loan Checker & EMI Calculator",
+            "description": "Calculate loan EMIs and check eligibility for Personal, Business, and Instant loans in collaboration with Punjab National Bank.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "INR"
+            }
+          })
+        }}
+      />
       <Header />
 
       {/* Hero Section */}

@@ -33,6 +33,7 @@ export default function BankLogo({ bankName = '', logoUrl = '', size = 32 }) {
   if (logoUrl && !imgError) {
     return (
       <div style={wrapperStyle} title={bankName}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src={logoUrl} 
           alt={bankName} 

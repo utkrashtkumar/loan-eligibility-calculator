@@ -39,6 +39,10 @@ export default function AdminDashboard() {
   const [updatingPayoutId, setUpdatingPayoutId] = useState(null);
   const [profileMsgText, setProfileMsgText] = useState('');
 
+  // Audit logs state
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+
   // Agent profile editing state
   const [isEditingAgent, setIsEditingAgent] = useState(false);
   const [editAgentData, setEditAgentData] = useState(null);
@@ -151,6 +155,7 @@ export default function AdminDashboard() {
         alert('Failed to update agent profile: ' + error.message);
       } else {
         alert('Agent profile updated successfully!');
+        logAdminAction('Edit Agent Profile', `Edited profile details for agent: ${editAgentData.full_name} (${editAgentData.email})`);
         const updatedAgent = { ...selectedAgent, ...editAgentData };
         setSelectedAgent(updatedAgent);
         setIsEditingAgent(false);
@@ -211,6 +216,7 @@ export default function AdminDashboard() {
         alert('Error saving policy: ' + error.message);
       } else {
         alert(selectedPolicy ? 'Policy updated successfully!' : 'Policy added successfully!');
+        logAdminAction(selectedPolicy ? 'Update Bank Policy' : 'Create Bank Policy', `${selectedPolicy ? 'Updated' : 'Created'} policy details for bank: ${policyForm.bank_name} (${policyForm.policy_category})`);
         setIsPolicyModalOpen(false);
         setSelectedPolicy(null);
         await fetchPolicies();
@@ -237,6 +243,7 @@ export default function AdminDashboard() {
         alert('Error deleting policy: ' + error.message);
       } else {
         alert('Policy deleted successfully!');
+        logAdminAction('Delete Bank Policy', `Deleted bank policy ID: ${policyId}`);
         await fetchPolicies();
       }
     } catch (err) {
@@ -554,6 +561,43 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchAuditLogs = async () => {
+    try {
+      setLoadingAuditLogs(true);
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) console.error('Error fetching audit logs:', error.message);
+      else setAuditLogs(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  const logAdminAction = async (action, details = '') => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminEmail = session?.user?.email || 'unknown';
+      const { error } = await supabase
+        .from('audit_logs')
+        .insert([{
+          admin_email: adminEmail,
+          action,
+          details
+        }]);
+      if (error) console.error('Error creating audit log:', error.message);
+      else {
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error('Error logging admin action:', err);
+    }
+  };
+
   const fetchAllData = async () => {
     setLoading(true);
     await Promise.all([
@@ -562,7 +606,8 @@ export default function AdminDashboard() {
       fetchApplications(),
       fetchPayoutRequests(),
       fetchPolicies(),
-      fetchContactMessages()
+      fetchContactMessages(),
+      fetchAuditLogs()
     ]);
     setLoading(false);
   };
@@ -625,6 +670,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Approval failed: ' + error.message);
       } else {
+        logAdminAction('Approve Agent', `Approved agent ID: ${agentId}`);
         await fetchAgentsData();
       }
     } catch (err) {
@@ -652,6 +698,7 @@ export default function AdminDashboard() {
         alert('Rejection failed: ' + error.message);
       } else {
         alert('Agent registration rejected.');
+        logAdminAction('Reject Agent', `Rejected agent ID: ${agentId}. Reason: ${reason}`);
         await fetchAgentsData();
       }
     } catch (err) {
@@ -676,6 +723,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Demotion failed: ' + error.message);
       } else {
+        logAdminAction('Demote Agent', `Demoted agent ID: ${agentId} to standard user role.`);
         handleSelectAgent(null);
         await fetchAgentsData();
       }
@@ -700,6 +748,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Re-promotion failed: ' + error.message);
       } else {
+        logAdminAction('Re-promote Agent', `Re-promoted user ID: ${userId} back to agent role.`);
         await fetchAgentsData();
       }
     } catch (err) {
@@ -722,6 +771,7 @@ export default function AdminDashboard() {
         alert('Failed to update profile lock status: ' + error.message);
       } else {
         alert(`Agent profile successfully ${newLockStatus ? 'locked' : 'unlocked'}!`);
+        logAdminAction(newLockStatus ? 'Lock Agent Profile' : 'Unlock Agent Profile', `Changed lock status to ${newLockStatus ? 'locked' : 'unlocked'} for agent ID: ${agent.id} (${agent.full_name})`);
         await fetchAgentsData();
         setSelectedAgent(prev => prev ? { ...prev, profile_locked: newLockStatus } : null);
       }
@@ -810,6 +860,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Update status failed: ' + error.message);
       } else {
+        logAdminAction('Update Application Status', `Updated application ID: ${appId} to status: ${newStatus}`);
         await Promise.all([fetchApplications(), fetchPayoutRequests()]);
         setSelectedApplication(prev => {
           if (prev && prev.id === appId) {
@@ -838,6 +889,7 @@ export default function AdminDashboard() {
         alert('Delete application failed: ' + error.message);
       } else {
         alert('Application deleted successfully!');
+        logAdminAction('Delete Client Application', `Deleted application ID: ${appId}`);
         setSelectedApplication(prev => prev && prev.id === appId ? null : prev);
         await Promise.all([fetchApplications(), fetchPayoutRequests()]);
       }
@@ -864,6 +916,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Payout update failed: ' + error.message);
       } else {
+        logAdminAction('Approve Payout Request', `Approved and marked paid for payout request ID: ${payoutId}`);
         await fetchPayoutRequests();
       }
     } catch (err) {
@@ -1091,6 +1144,7 @@ export default function AdminDashboard() {
                           { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
+                          { id: 'audit_logs', label: `📋 Audit Logs (${auditLogs.length})` },
                         ].find(t => t.id === activeTab)?.label || 'Select Menu Option'}
                       </span>
                       <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
@@ -1128,6 +1182,7 @@ export default function AdminDashboard() {
                           { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
+                          { id: 'audit_logs', label: `📋 Audit Logs (${auditLogs.length})` },
                         ].map((tab) => (
                           <button
                             key={tab.id}
@@ -1165,9 +1220,10 @@ export default function AdminDashboard() {
                       { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
                       { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
                       { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
-                           { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
+                      { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
                       { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
                       { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
+                      { id: 'audit_logs', label: `📋 Audit Logs (${auditLogs.length})` },
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -1488,6 +1544,7 @@ export default function AdminDashboard() {
                                            if (error) {
                                              alert("Failed to clear balance: " + error.message);
                                            } else {
+                                              logAdminAction('Clear Demoted Balance', `Cleared outstanding balance of ₹${outstandingBalance} for demoted user: ${du.full_name} (${du.email})`);
                                               await fetchPayoutRequests();
                                            }
                                          }}
@@ -2939,7 +2996,96 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
+                 {/* PANEL 11: AUDIT LOGS */}
+                 {activeTab === 'audit_logs' && (
+                   <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                       <div>
+                         <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>📋 Administrative Audit Logs</h3>
+                         <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>
+                           Chronological list of all actions performed by administrators in the control room panel.
+                         </p>
+                       </div>
+                       <div>
+                         <button onClick={fetchAuditLogs} className="btn btn-secondary btn-sm" disabled={loadingAuditLogs}>
+                           {loadingAuditLogs ? 'Refreshing...' : '🔄 Refresh Logs'}
+                         </button>
+                       </div>
+                     </div>
 
+                     {/* Search logs bar */}
+                     <div style={{ marginBottom: '20px' }}>
+                       <input
+                         type="text"
+                         className="input-field"
+                         placeholder="Search logs by action, admin email, or specific details..."
+                         value={searchTerm}
+                         onChange={(e) => setSearchTerm(e.target.value)}
+                         style={{ width: '100%', maxWidth: '400px' }}
+                       />
+                     </div>
+
+                     {auditLogs.length === 0 ? (
+                       <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-tertiary)' }}>
+                         No administrative actions recorded yet.
+                       </div>
+                     ) : (
+                       <div className="table-scroll-x" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                         <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                           <thead>
+                             <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                               <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Timestamp</th>
+                               <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Admin Email</th>
+                               <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Action</th>
+                               <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Details</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {auditLogs.filter(log => {
+                               const query = searchTerm.toLowerCase();
+                               return (
+                                 log.admin_email?.toLowerCase().includes(query) ||
+                                 log.action?.toLowerCase().includes(query) ||
+                                 log.details?.toLowerCase().includes(query)
+                               );
+                             }).map(log => (
+                               <tr key={log.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--color-text-primary)' }}>
+                                 <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                                   {new Date(log.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                                 </td>
+                                 <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+                                   {log.admin_email}
+                                 </td>
+                                 <td style={{ padding: '12px 16px' }}>
+                                   <span style={{
+                                     padding: '4px 8px',
+                                     borderRadius: '4px',
+                                     fontSize: '11px',
+                                     fontWeight: 600,
+                                     background: log.action?.includes('Approve') || log.action?.includes('promote') ? 'rgba(16, 185, 129, 0.1)' : 
+                                                 log.action?.includes('Reject') || log.action?.includes('Demote') || log.action?.includes('Delete') ? 'rgba(239, 68, 68, 0.1)' : 
+                                                 'rgba(99, 102, 241, 0.1)',
+                                     color: log.action?.includes('Approve') || log.action?.includes('promote') ? 'var(--color-success)' :
+                                            log.action?.includes('Reject') || log.action?.includes('Demote') || log.action?.includes('Delete') ? '#ef4444' :
+                                            'var(--color-primary)',
+                                     border: log.action?.includes('Approve') || log.action?.includes('promote') ? '1px solid rgba(16, 185, 129, 0.2)' :
+                                             log.action?.includes('Reject') || log.action?.includes('Demote') || log.action?.includes('Delete') ? '1px solid rgba(239, 68, 68, 0.2)' :
+                                             '1px solid rgba(99, 102, 241, 0.2)'
+                                   }}>
+                                     {log.action}
+                                   </span>
+                                 </td>
+                                 <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                                   {log.details}
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+                     )}
+                   </div>
+                 )}
               </div>
             </div>
           </>
@@ -3874,6 +4020,7 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--color-bg-card)', padding: '16px', borderRadius: '8px', border: 'var(--border-subtle)' }}>
               <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--color-bg-tertiary)', border: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {selectedAgent.avatar ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={selectedAgent.avatar} alt="Agent Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <span style={{ fontSize: '24px' }}>👤</span>
@@ -4245,6 +4392,7 @@ export default function AdminDashboard() {
                           View / Download Identity Proof PDF
                         </a>
                       ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={selectedAgent.id_file} alt="ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
                       )
                     ) : (
