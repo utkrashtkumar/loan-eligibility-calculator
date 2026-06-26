@@ -173,6 +173,46 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
                 <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>{bank.special_notes}</div>
               </div>
             )}
+            {userRole !== 'user' && !bank.direct_submit && (() => {
+              const isFinnable = bank.bank_name?.toUpperCase()?.includes('FINNABLE');
+              const isIncred = bank.bank_name?.toUpperCase()?.includes('INCRED');
+              
+              let username = bank.portal_username || '';
+              let password = bank.portal_password || '';
+              
+              if (!username && isFinnable) username = '9389119399';
+              if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';
+              if (!username && isIncred) username = 'incredhtoh@gmail.com';
+              if (!password && isIncred) password = 'Call & Message on WhatsApp to 9389119399 (OTP Support)';
+              
+              const hasCredentials = username || password || affiliateLink;
+              if (!hasCredentials) return null;
+              
+              return (
+                <div style={{ gridColumn: '1 / -1', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '8px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>🔑 Partner Portal Login Credentials:</div>
+                  <div style={{ display: 'grid', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+                    {username && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>• <strong>Login ID / Username:</strong> {username}</span>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                      </div>
+                    )}
+                    {password && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>• <strong>Password / OTP Contact:</strong> {password}</span>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                      </div>
+                    )}
+                    {affiliateLink && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <span>• <strong>Portal Link:</strong> <a href={affiliateLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>Open Partner Link ↗</a></span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -693,53 +733,55 @@ export default function BanksPage() {
                 </div>
               )}
 
-              {userRole !== 'user' && selectedBank?.bank_name?.toUpperCase()?.includes('INCRED') && (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: 'var(--border-subtle)',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  marginTop: '16px',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--color-text-secondary)',
-                  display: 'grid',
-                  gap: '6px'
-                }}>
-                  <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 InCred Partner Login Details:</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span>• <strong>Login E-mail:</strong> incredhtoh@gmail.com</span>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText('incredhtoh@gmail.com'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span>• <strong>OTP Support:</strong> Call & Message on WhatsApp to <strong>9389119399</strong></span>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                  </div>
-                </div>
-              )}
+              {userRole !== 'user' && (() => {
+                const isFinnable = selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE');
+                const isIncred = selectedBank?.bank_name?.toUpperCase()?.includes('INCRED');
+                
+                let username = selectedBank?.portal_username || '';
+                let password = selectedBank?.portal_password || '';
+                
+                if (!username && isFinnable) username = '9389119399';
+                if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';
+                if (!username && isIncred) username = 'incredhtoh@gmail.com';
+                if (!password && isIncred) password = 'Call & Message on WhatsApp to 9389119399 (OTP Support)';
+                
+                const hasCredentials = username || password;
+                
+                if (selectedBank?.direct_submit) {
+                  return null;
+                }
 
-              {userRole !== 'user' && selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE') && (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: 'var(--border-subtle)',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  marginTop: '16px',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--color-text-secondary)',
-                  display: 'grid',
-                  gap: '6px'
-                }}>
-                  <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Finnable Partner Login Details:</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span>• <strong>Login Mobile:</strong> 9389119399</span>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span>• <strong>OTP Support:</strong> Call <strong>9389119399</strong></span>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText('9389119399'); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
-                  </div>
-                </div>
-              )}
+                if (hasCredentials) {
+                  return (
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: 'var(--border-subtle)',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      marginTop: '16px',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--color-text-secondary)',
+                      display: 'grid',
+                      gap: '6px'
+                    }}>
+                      <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                      {username && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span>• <strong>Login ID / Username:</strong> {username}</span>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                        </div>
+                      )}
+                      {password && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span>• <strong>Password / OTP Contact:</strong> {password}</span>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {(() => {
                 const hasLink = userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit);
