@@ -415,7 +415,7 @@ export default function UserDashboard() {
         setUser(session.user);
 
         // Fetch bank policies for resolving logos in real time
-        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit');
+        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit, policy_pdf');
         if (polData) setPolicies(polData);
 
         // Fetch profile to determine role
@@ -3652,6 +3652,39 @@ export default function UserDashboard() {
                         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
                           This bank uses Direct Submit. The administrator is currently applying for this loan on your behalf.
                         </div>
+                        {matchedPolicy?.policy_pdf && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              marginTop: '8px',
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 600,
+                              padding: '10px 16px',
+                              width: 'max-content'
+                            }}
+                            onClick={() => {
+                              const base64Data = matchedPolicy.policy_pdf;
+                              const base64Parts = base64Data.split(';base64,');
+                              const contentType = base64Parts[0].split(':')[1] || 'application/pdf';
+                              const raw = window.atob(base64Parts[1] || base64Data);
+                              const rawLength = raw.length;
+                              const uInt8Array = new Uint8Array(rawLength);
+                              for (let i = 0; i < rawLength; ++i) {
+                                uInt8Array[i] = raw.charCodeAt(i);
+                              }
+                              const blob = new Blob([uInt8Array], { type: contentType });
+                              const blobUrl = URL.createObjectURL(blob);
+                              window.open(blobUrl, '_blank');
+                            }}
+                          >
+                            📄 View Policy PDF
+                          </button>
+                        )}
                       </div>
                     );
                   }
@@ -3689,25 +3722,59 @@ export default function UserDashboard() {
                         )}
 
                         {appLink && (
-                          <a
-                            href={appLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-primary btn-sm"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '6px',
-                              textDecoration: 'none',
-                              marginTop: '4px',
-                              fontSize: 'var(--text-xs)',
-                              fontWeight: 600,
-                              padding: '10px 16px'
-                            }}
-                          >
-                            🚀 Open Apply Portal ↗
-                          </a>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                            <a
+                              href={appLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-primary btn-sm"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                textDecoration: 'none',
+                                fontSize: 'var(--text-xs)',
+                                fontWeight: 600,
+                                padding: '10px 16px',
+                                margin: 0
+                              }}
+                            >
+                              🚀 Open Apply Portal ↗
+                            </a>
+                            {matchedPolicy?.policy_pdf && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  fontSize: 'var(--text-xs)',
+                                  fontWeight: 600,
+                                  padding: '10px 16px',
+                                  margin: 0
+                                }}
+                                onClick={() => {
+                                  const base64Data = matchedPolicy.policy_pdf;
+                                  const base64Parts = base64Data.split(';base64,');
+                                  const contentType = base64Parts[0].split(':')[1] || 'application/pdf';
+                                  const raw = window.atob(base64Parts[1] || base64Data);
+                                  const rawLength = raw.length;
+                                  const uInt8Array = new Uint8Array(rawLength);
+                                  for (let i = 0; i < rawLength; ++i) {
+                                    uInt8Array[i] = raw.charCodeAt(i);
+                                  }
+                                  const blob = new Blob([uInt8Array], { type: contentType });
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  window.open(blobUrl, '_blank');
+                                }}
+                              >
+                                📄 View Policy PDF
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     );

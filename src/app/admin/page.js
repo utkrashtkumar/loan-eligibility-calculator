@@ -83,7 +83,8 @@ export default function AdminDashboard() {
     special_notes: '',
     logo_url: '',
     employment_type: 'salaried',
-    policy_category: 'salary'
+    policy_category: 'salary',
+    policy_pdf: ''
   });
 
   const [activePolicyCategory, setActivePolicyCategory] = useState('salary');
@@ -286,7 +287,8 @@ export default function AdminDashboard() {
       portal_password: '',
       direct_submit: false,
       employment_type: activePolicyCategory === 'salary' ? 'salaried' : 'self_employed',
-      policy_category: activePolicyCategory
+      policy_category: activePolicyCategory,
+      policy_pdf: ''
     });
     setBankPincodes([]);
     setPincodeSearchTerm('');
@@ -316,7 +318,8 @@ export default function AdminDashboard() {
       portal_password: policy.portal_password || '',
       direct_submit: policy.direct_submit === true,
       employment_type: policy.employment_type || 'salaried',
-      policy_category: policy.policy_category || 'salary'
+      policy_category: policy.policy_category || 'salary',
+      policy_pdf: policy.policy_pdf || ''
     });
     setPincodeSearchTerm('');
     setSelectedPincodeIds([]);
@@ -3177,6 +3180,7 @@ export default function AdminDashboard() {
                                   <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Max FOIR %</th>
                                   <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Age Range</th>
                                   <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Pincodes</th>
+                                  <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>PDF</th>
                                   <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
                                 </tr>
                               </thead>
@@ -3227,6 +3231,31 @@ export default function AdminDashboard() {
                                         <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>🌍 All India</span>
                                       ) : (
                                         <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>📍 Limited</span>
+                                      )}
+                                    </td>
+                                    <td data-label="PDF" style={{ padding: '12px 10px' }}>
+                                      {policy.policy_pdf ? (
+                                        <span 
+                                          style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }} 
+                                          onClick={() => {
+                                            const base64Data = policy.policy_pdf;
+                                            const base64Parts = base64Data.split(';base64,');
+                                            const contentType = base64Parts[0].split(':')[1] || 'application/pdf';
+                                            const raw = window.atob(base64Parts[1] || base64Data);
+                                            const rawLength = raw.length;
+                                            const uInt8Array = new Uint8Array(rawLength);
+                                            for (let i = 0; i < rawLength; ++i) {
+                                              uInt8Array[i] = raw.charCodeAt(i);
+                                            }
+                                            const blob = new Blob([uInt8Array], { type: contentType });
+                                            const blobUrl = URL.createObjectURL(blob);
+                                            window.open(blobUrl, '_blank');
+                                          }}
+                                        >
+                                          📄 View PDF
+                                        </span>
+                                      ) : (
+                                        <span style={{ color: 'var(--color-text-tertiary)', fontSize: '11px' }}>None</span>
                                       )}
                                     </td>
                                     <td data-label="Actions" style={{ padding: '12px 10px', textAlign: 'right' }}>
@@ -4098,6 +4127,78 @@ export default function AdminDashboard() {
                     onChange={(e) => setPolicyForm({ ...policyForm, special_notes: e.target.value })}
                     style={{ resize: 'vertical' }}
                   />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                    Upload Bank Policy & Process Flow PDF
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: 'var(--border-subtle)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <input 
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            alert('PDF file size must be under 2MB.');
+                            e.target.value = '';
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setPolicyForm(prev => ({ ...prev, policy_pdf: reader.result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                        style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}
+                      />
+                    </div>
+                    {policyForm.policy_pdf && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          style={{ margin: 0, padding: '6px 12px', fontSize: '11px' }}
+                          onClick={() => {
+                            const base64Data = policyForm.policy_pdf;
+                            const base64Parts = base64Data.split(';base64,');
+                            const contentType = base64Parts[0].split(':')[1] || 'application/pdf';
+                            const raw = window.atob(base64Parts[1] || base64Data);
+                            const rawLength = raw.length;
+                            const uInt8Array = new Uint8Array(rawLength);
+                            for (let i = 0; i < rawLength; ++i) {
+                              uInt8Array[i] = raw.charCodeAt(i);
+                            }
+                            const blob = new Blob([uInt8Array], { type: contentType });
+                            const blobUrl = URL.createObjectURL(blob);
+                            window.open(blobUrl, '_blank');
+                          }}
+                        >
+                          👁️ Preview
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ margin: 0, padding: '6px 12px', fontSize: '11px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                          onClick={() => {
+                            setPolicyForm(prev => ({ ...prev, policy_pdf: '' }));
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--color-bg-card)', padding: '12px 16px', borderRadius: '12px', border: 'var(--border-subtle)' }}>
