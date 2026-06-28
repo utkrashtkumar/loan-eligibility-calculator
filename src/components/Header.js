@@ -279,6 +279,11 @@ export default function Header() {
               </Link>
             </li>
             <li>
+              <Link href="/#emi-calculator" className="nav-link" style={{ marginLeft: '12px' }}>
+                🧮 EMI Calculator
+              </Link>
+            </li>
+            <li>
               <a
                 href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
                 target={user ? "_blank" : "_self"}
