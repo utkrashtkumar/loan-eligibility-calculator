@@ -2,6 +2,7 @@ import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import CookieConsent from '@/components/CookieConsent';
 import ScrollToTop from '@/components/ScrollToTop';
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,11 +23,22 @@ export const metadata = {
   description:
     'Check loan eligibility instantly across 100+ banks and NBFCs, manage client applications, track agent earnings, and build your referral tree on the premium HandToHand Loans platform.',
   keywords: ['fintech loan platform', 'agent portal', 'loan eligibility', 'salary loan', 'instant loan', 'business loan', 'CIBIL score', 'loan checker', 'bank comparison'],
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'H2H Loans',
+  },
   openGraph: {
     title: 'HandToHand Loans Platform',
     description:
       'Check loan eligibility instantly, submit client applications, and manage agent commissions on the HandToHand Loans platform.',
     type: 'website',
+    images: ['/icon-512x512.png'],
+  },
+  icons: {
+    apple: '/icon-192x192.png',
+    icon: '/icon-512x512.png',
   },
 };
 
@@ -34,6 +46,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning>
       <head>
+        <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="H2H Loans" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -65,6 +84,7 @@ export default function RootLayout({ children }) {
           {children}
           <CookieConsent />
           <ScrollToTop />
+          <PWAInstallPrompt />
         </div>
       </body>
     </html>
