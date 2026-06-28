@@ -151,6 +151,9 @@ export default function UserDashboard() {
   const [showDemotionPopup, setShowDemotionPopup] = useState(false);
   const [showProfileUpdatePopup, setShowProfileUpdatePopup] = useState(false);
   const [applications, setApplications] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'kanban'
   const [subAgents, setSubAgents] = useState([]);
   const [subAgentDisbursedApps, setSubAgentDisbursedApps] = useState([]);
   const [copied, setCopied] = useState(false);
@@ -256,6 +259,21 @@ export default function UserDashboard() {
 
     if (appErr) console.error('Error fetching client applications:', appErr);
     else setApplications(appData || []);
+
+    // Fetch Leaderboard
+    setLeaderboardLoading(true);
+    try {
+      const { data: lbData, error: lbErr } = await supabase.rpc('get_agent_leaderboard');
+      if (!lbErr && lbData) {
+        setLeaderboard(lbData);
+      } else {
+        console.warn('Leaderboard function not found or failed:', lbErr);
+      }
+    } catch (e) {
+      console.warn('Leaderboard fetching error:', e);
+    } finally {
+      setLeaderboardLoading(false);
+    }
 
     // 2. Fetch payout requests
     const { data: payData, error: payErr } = await supabase
@@ -1701,6 +1719,7 @@ export default function UserDashboard() {
                             { id: 'applications', label: '📝 Client Applications' },
                             { id: 'earnings', label: '💸 Earning & Referral' },
                             { id: 'subagents', label: '👥 Sub-agents' },
+                            { id: 'leaderboard', label: '🏆 Partner Leaderboard' },
                           ].map((tab) => (
                             <button
                               key={tab.id}
@@ -1763,6 +1782,15 @@ export default function UserDashboard() {
                           icon: (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          id: 'leaderboard', 
+                          label: 'Partner Leaderboard',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                           )
                         },
@@ -2372,13 +2400,35 @@ export default function UserDashboard() {
                       {/* TAB 2: Client Applications */}
                       {activeTab === 'applications' && (
                         <div style={{ display: 'grid', gap: '20px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>
-                              Client Loan Submissions
-                            </h2>
-                            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-                              Total Applications: {applications.length}
-                            </span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                              <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>
+                                Client Loan Submissions
+                              </h2>
+                              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                                Total Applications: {applications.length}
+                              </span>
+                            </div>
+
+                            {/* View Switcher Toggle */}
+                            {applications.length > 0 && (
+                              <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '4px', borderRadius: 'var(--border-radius-md)', border: 'var(--border-light)' }}>
+                                <button 
+                                  onClick={() => setViewMode('table')} 
+                                  className={`btn btn-sm`}
+                                  style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'table' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: '#ffffff' }}
+                                >
+                                  📋 List View
+                                </button>
+                                <button 
+                                  onClick={() => setViewMode('kanban')} 
+                                  className={`btn btn-sm`}
+                                  style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'kanban' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: '#ffffff' }}
+                                >
+                                  📊 Kanban Board
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           {applications.length === 0 ? (
@@ -2400,7 +2450,7 @@ export default function UserDashboard() {
                                 Apply for a Client Now
                               </Link>
                             </div>
-                          ) : (
+                          ) : viewMode === 'table' ? (
                             <div style={{ display: 'grid', gap: '16px' }}>
                               {applications.map((app) => (
                                 <div 
@@ -2481,6 +2531,103 @@ export default function UserDashboard() {
                                   </div>
                                 </div>
                               ))}
+                            </div>
+                          ) : (
+                            <div className="table-scroll-x" style={{ paddingBottom: '16px' }}>
+                              <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(5, 1fr)',
+                                gap: '16px',
+                                minWidth: '1000px'
+                              }}>
+                                {[
+                                  { title: 'Applied', status: 'Applied', color: '#6366f1' },
+                                  { title: 'In Progress', status: 'In Progress', color: '#f59e0b' },
+                                  { title: 'Approved', status: 'Approved', color: '#10b981' },
+                                  { title: 'Disbursed', status: 'Disbursed', color: '#06b6d4' },
+                                  { title: 'Rejected / Not Interested', status: ['Rejected', 'not interested'], color: '#ef4444' }
+                                ].map((col) => {
+                                  const colApps = applications.filter(app => {
+                                    const s = (app.status || '').toLowerCase();
+                                    if (Array.isArray(col.status)) {
+                                      return col.status.map(x => x.toLowerCase()).includes(s);
+                                    }
+                                    return s === col.status.toLowerCase();
+                                  });
+
+                                  return (
+                                    <div 
+                                      key={col.title}
+                                      style={{
+                                        background: 'rgba(255, 255, 255, 0.02)',
+                                        borderRadius: 'var(--border-radius-md)',
+                                        border: 'var(--border-light)',
+                                        padding: '16px 12px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '12px',
+                                        minHeight: '400px'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '8px', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)' }}>
+                                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: col.color, display: 'inline-block' }}></span>
+                                          {col.title}
+                                        </span>
+                                        <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--color-text-secondary)' }}>
+                                          {colApps.length}
+                                        </span>
+                                      </div>
+
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto' }}>
+                                        {colApps.length === 0 ? (
+                                          <div style={{ textAlign: 'center', padding: '24px 8px', fontSize: '11px', color: 'var(--color-text-tertiary)', border: '1px dashed rgba(255,255,255,0.05)', borderRadius: 'var(--border-radius-sm)' }}>
+                                            No applications
+                                          </div>
+                                        ) : (
+                                          colApps.map(app => (
+                                            <div 
+                                              key={app.id}
+                                              onClick={() => {
+                                                setSelectedApplication(app);
+                                                setAppDetailsStatusValue(['disbursed', 'rejected'].includes(app.status?.toLowerCase()) ? app.status.toLowerCase() : (app.status ? app.status.toLowerCase() : 'applied'));
+                                                setAppDetailsProblemText(app.problem || '');
+                                              }}
+                                              style={{
+                                                background: 'var(--color-bg-card)',
+                                                border: 'var(--border-light)',
+                                                borderRadius: 'var(--border-radius-sm)',
+                                                padding: '12px',
+                                                cursor: 'pointer',
+                                                transition: 'transform 0.15s ease, border-color 0.15s ease'
+                                              }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                              }}
+                                            >
+                                              <div style={{ fontWeight: 600, fontSize: 'var(--text-xs)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.client_name}</div>
+                                              <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{app.bank_name}</div>
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                                <span style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)' }}>
+                                                  ₹{(Number(app.loan_amount) / 100000).toFixed(1)}L
+                                                </span>
+                                                <span style={{ fontSize: '9px', color: 'var(--color-text-tertiary)' }}>
+                                                  {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -2715,6 +2862,161 @@ export default function UserDashboard() {
                                     ))}
                                   </tbody>
                                 </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* TAB 5: Partner Leaderboard */}
+                      {activeTab === 'leaderboard' && (
+                        <div style={{ display: 'grid', gap: '20px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                              <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🏆 H2H Partner Leaderboard
+                              </h2>
+                              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                Compete with our top financial partners across the network. Updates in real-time!
+                              </p>
+                            </div>
+                            {!leaderboardLoading && leaderboard.length > 0 && (
+                              <div className="badge badge-primary" style={{ background: 'var(--gradient-primary)', color: '#ffffff', fontWeight: 600 }}>
+                                Live Rankings
+                              </div>
+                            )}
+                          </div>
+
+                          {leaderboardLoading ? (
+                            <div className="form-card text-center" style={{ padding: '48px' }}>
+                              <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+                              <p style={{ color: 'var(--color-text-secondary)' }}>Loading live rankings...</p>
+                            </div>
+                          ) : leaderboard.length === 0 ? (
+                            /* Fallback Mock Data if RPC not deployed yet */
+                            <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+                              <div style={{ 
+                                background: 'rgba(239, 68, 68, 0.08)', 
+                                border: '1px solid rgba(239, 68, 68, 0.2)', 
+                                color: '#f87171', 
+                                padding: '12px 16px', 
+                                borderRadius: 'var(--border-radius-md)', 
+                                marginBottom: '24px',
+                                fontSize: 'var(--text-sm)'
+                              }}>
+                                ⚠️ <strong>Admin configuration pending:</strong> Live rankings query helper not yet loaded in Supabase. Showing demo partner rankings below. Run the script <code>scripts/setup-leaderboard-rpc.sql</code> inside Supabase to connect live data.
+                              </div>
+                              
+                              <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 600, marginBottom: '16px' }}>🏆 Current Demo Standings</h3>
+                              <div style={{ display: 'grid', gap: '12px' }}>
+                                {[
+                                  { agent_rank: 1, masked_name: 'Amit Sharma (You)', disbursed_volume: 8500000, is_current_user: true },
+                                  { agent_rank: 2, masked_name: 'Rahul K.', disbursed_volume: 6400000, is_current_user: false },
+                                  { agent_rank: 3, masked_name: 'Priya S.', disbursed_volume: 4800000, is_current_user: false },
+                                  { agent_rank: 4, masked_name: 'Vikram A.', disbursed_volume: 3200000, is_current_user: false },
+                                  { agent_rank: 5, masked_name: 'Neha G.', disbursed_volume: 1500000, is_current_user: false }
+                                ].map((item) => (
+                                  <div 
+                                    key={item.agent_rank} 
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '16px',
+                                      borderRadius: 'var(--border-radius-md)',
+                                      background: item.is_current_user ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-bg-glass)',
+                                      border: item.is_current_user ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                                      boxShadow: item.agent_rank <= 3 ? '0 4px 12px rgba(245, 158, 11, 0.08)' : 'none'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 800,
+                                        fontSize: 'var(--text-sm)',
+                                        background: item.agent_rank === 1 ? 'linear-gradient(135deg, #f59e0b, #d97706)' :
+                                                    item.agent_rank === 2 ? 'linear-gradient(135deg, #94a3b8, #64748b)' :
+                                                    item.agent_rank === 3 ? 'linear-gradient(135deg, #b45309, #78350f)' :
+                                                    'rgba(255, 255, 255, 0.05)',
+                                        color: item.agent_rank <= 3 ? '#ffffff' : 'var(--color-text-secondary)'
+                                      }}>
+                                        {item.agent_rank === 1 ? '🥇' : item.agent_rank === 2 ? '🥈' : item.agent_rank === 3 ? '🥉' : item.agent_rank}
+                                      </div>
+                                      <div>
+                                        <span style={{ fontWeight: 600, color: item.is_current_user ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                                          {item.masked_name}
+                                        </span>
+                                        {item.is_current_user && (
+                                          <span style={{ marginLeft: '8px', fontSize: '10px', background: 'rgba(99, 102, 241, 0.2)', padding: '2px 6px', borderRadius: '4px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                                            YOU
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div style={{ fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--color-text-primary)' }}>
+                                      ₹{item.disbursed_volume.toLocaleString('en-IN')}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            /* Live Leaderboard list */
+                            <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+                              <div style={{ display: 'grid', gap: '12px' }}>
+                                {leaderboard.map((item) => (
+                                  <div 
+                                    key={item.agent_rank} 
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '16px',
+                                      borderRadius: 'var(--border-radius-md)',
+                                      background: item.is_current_user ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-bg-glass)',
+                                      border: item.is_current_user ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                                      boxShadow: item.agent_rank <= 3 ? '0 4px 12px rgba(245, 158, 11, 0.08)' : 'none'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 800,
+                                        fontSize: 'var(--text-sm)',
+                                        background: item.agent_rank === 1 ? 'linear-gradient(135deg, #f59e0b, #d97706)' :
+                                                    item.agent_rank === 2 ? 'linear-gradient(135deg, #94a3b8, #64748b)' :
+                                                    item.agent_rank === 3 ? 'linear-gradient(135deg, #b45309, #78350f)' :
+                                                    'rgba(255, 255, 255, 0.05)',
+                                        color: item.agent_rank <= 3 ? '#ffffff' : 'var(--color-text-secondary)'
+                                      }}>
+                                        {item.agent_rank === 1 ? '🥇' : item.agent_rank === 2 ? '🥈' : item.agent_rank === 3 ? '🥉' : item.agent_rank}
+                                      </div>
+                                      <div>
+                                        <span style={{ fontWeight: 600, color: item.is_current_user ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                                          {item.masked_name}
+                                        </span>
+                                        {item.is_current_user && (
+                                          <span style={{ marginLeft: '8px', fontSize: '10px', background: 'rgba(99, 102, 241, 0.2)', padding: '2px 6px', borderRadius: '4px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                                            YOU
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div style={{ fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--color-text-primary)' }}>
+                                      ₹{Number(item.disbursed_volume).toLocaleString('en-IN')}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}

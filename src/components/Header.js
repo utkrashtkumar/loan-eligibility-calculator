@@ -12,6 +12,11 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Notifications State
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   // Client Application Redirect Confirmation Modal (Global return popup)
   const [pendingApplication, setPendingApplication] = useState(null);
   const [submittingStatus, setSubmittingStatus] = useState(false);
@@ -135,6 +140,66 @@ export default function Header() {
       subscription?.unsubscribe();
     };
   }, [router]);
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    const fetchNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (!error && data) {
+          setNotifications(data);
+          setUnreadCount(data.filter(n => !n.read).length);
+        }
+      } catch (e) {
+        console.warn('Notifications table not configured yet:', e.message);
+      }
+    };
+
+    fetchNotifications();
+
+    const channel = supabase
+      .channel('realtime:notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `agent_id=eq.${user.id}`
+      }, (payload) => {
+        setNotifications(prev => [payload.new, ...prev].slice(0, 20));
+        setUnreadCount(c => c + 1);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const markAllRead = async () => {
+    if (!user || unreadCount === 0) return;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('agent_id', user.id)
+        .eq('read', false);
+      if (!error) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+      }
+    } catch (e) {
+      console.warn('Failed to mark notifications read:', e);
+    }
+  };
 
   useEffect(() => {
     if (menuOpen) {
@@ -271,6 +336,99 @@ export default function Header() {
 
         {/* Right Header Actions (Theme Toggle & Hamburger) */}
         <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {user && (
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  if (!showNotifications) markAllRead();
+                }}
+                className="theme-toggle-btn"
+                style={{ margin: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Notifications"
+              >
+                {/* Bell Icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9z" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    background: 'var(--color-error)',
+                    color: '#ffffff',
+                    fontSize: '9px',
+                    fontWeight: 800,
+                    borderRadius: '50%',
+                    width: '14px',
+                    height: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1.5px solid var(--color-bg-card)',
+                    lineHeight: 1
+                  }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '12px',
+                  width: '320px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  background: 'var(--color-bg-glass-heavy)',
+                  backdropFilter: 'blur(25px)',
+                  border: 'var(--border-light)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-lg)',
+                  zIndex: 999999,
+                  padding: '16px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)' }}>🔔 Notifications</span>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: '24px 0', color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', textAlign: 'center' }}>
+                      No new notifications.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {notifications.map(n => (
+                        <div key={n.id} style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          background: n.read ? 'rgba(255,255,255,0.02)' : 'rgba(99, 102, 241, 0.05)',
+                          borderLeft: n.read ? '2px solid transparent' : '2px solid var(--color-primary)',
+                          fontSize: 'var(--text-xs)',
+                          lineHeight: 1.4
+                        }}>
+                          <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '2px' }}>{n.title}</div>
+                          <div style={{ color: 'var(--color-text-secondary)' }}>{n.message}</div>
+                          <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                            {new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <button 
             onClick={toggleTheme} 
             className="theme-toggle-btn"

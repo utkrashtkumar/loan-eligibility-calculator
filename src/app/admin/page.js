@@ -667,6 +667,8 @@ export default function AdminDashboard() {
     payoutRequests, 
     policies, 
     contactMessages,
+    auditLogs,
+    auditSearchTerm,
     searchTerm,
     contactSearch,
     pincodeSearchTerm,
