@@ -6,12 +6,21 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BankLogo from '@/components/BankLogo';
+import { 
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
+  CartesianGrid, Tooltip, BarChart, Bar, Cell, Legend, PieChart, Pie 
+} from 'recharts';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('notifications');
   const [isMobileTabSelectOpen, setIsMobileTabSelectOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Leads state
   const [inquiries, setInquiries] = useState([]);
@@ -1055,6 +1064,317 @@ export default function AdminDashboard() {
     }).filter(item => item.outstandingBalance > 0);
   };
 
+  const renderAnalytics = () => {
+    if (!isMounted) {
+      return (
+        <div className="text-center" style={{ padding: '60px 0' }}>
+          <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+          <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading Dashboard Analytics...</p>
+        </div>
+      );
+    }
+
+    // ─── Data Aggregation ───────────────────────────────────────────────────
+    const totalLeads = inquiries.length;
+    const totalApps = applications.length;
+    
+    const disbursedApps = applications.filter(app => app.status && app.status.toLowerCase() === 'disbursed');
+    const totalDisbursedAmount = disbursedApps.reduce((acc, app) => acc + (Number(app.loan_amount) || 0), 0);
+    const disbursementRate = totalApps > 0 ? ((disbursedApps.length / totalApps) * 100).toFixed(1) : '0.0';
+
+    // 1. Monthly Disbursement Trend (Last 6 Months)
+    const getTrendData = () => {
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const trendMap = {};
+      const now = new Date();
+      
+      // Seed last 6 months
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = `${months[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+        trendMap[label] = { name: label, applied: 0, disbursed: 0 };
+      }
+
+      applications.forEach(app => {
+        if (!app.created_at) return;
+        const date = new Date(app.created_at);
+        const label = `${months[date.getMonth()]} ${date.getFullYear().toString().slice(2)}`;
+        if (trendMap[label] !== undefined) {
+          const amt = Number(app.loan_amount) || 0;
+          trendMap[label].applied += amt;
+          if (app.status && app.status.toLowerCase() === 'disbursed') {
+            trendMap[label].disbursed += amt;
+          }
+        }
+      });
+      return Object.values(trendMap);
+    };
+
+    // 2. Application Status Split
+    const getStatusData = () => {
+      const counts = {
+        'Applied': 0,
+        'In Progress': 0,
+        'KYC Check': 0,
+        'Disbursed': 0,
+        'Rejected': 0,
+        'Not Interested': 0
+      };
+      
+      applications.forEach(app => {
+        const status = app.status ? app.status.toLowerCase() : 'applied';
+        if (status === 'applied') counts['Applied']++;
+        else if (status === 'in process' || status === 'in progress') counts['In Progress']++;
+        else if (status === 'kyc verification' || status === 'kyc waiting') counts['KYC Check']++;
+        else if (status === 'disbursed' || status === 'paid') counts['Disbursed']++;
+        else if (status === 'rejected') counts['Rejected']++;
+        else if (status === 'not interested') counts['Not Interested']++;
+      });
+
+      const colors = {
+        'Applied': '#6366f1',
+        'In Progress': '#f59e0b',
+        'KYC Check': '#3b82f6',
+        'Disbursed': '#10b981',
+        'Rejected': '#ef4444',
+        'Not Interested': '#94a3b8'
+      };
+
+      return Object.keys(counts).map(key => ({
+        name: key,
+        value: counts[key],
+        color: colors[key]
+      })).filter(item => item.value > 0);
+    };
+
+    // 3. Bank-wise Loan Distribution (Top 6)
+    const getBankData = () => {
+      const bankMap = {};
+      applications.forEach(app => {
+        const bank = app.bank_name || 'Other Lenders';
+        if (!bankMap[bank]) bankMap[bank] = { name: bank, count: 0 };
+        bankMap[bank].count++;
+      });
+      return Object.values(bankMap)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+    };
+
+    // 4. Top Performing Agents Leaderboard
+    const getAgentLeaderboard = () => {
+      const agentMap = {};
+      applications.forEach(app => {
+        if (app.status && app.status.toLowerCase() === 'disbursed') {
+          const agentId = app.agent_id;
+          const name = app.agent?.name || 'Customer App / Direct';
+          const amt = Number(app.loan_amount) || 0;
+          
+          if (!agentMap[agentId]) agentMap[agentId] = { name, amount: 0 };
+          agentMap[agentId].amount += amt;
+        }
+      });
+      return Object.values(agentMap)
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+    };
+
+    const trendData = getTrendData();
+    const statusData = getStatusData();
+    const bankData = getBankData();
+    const agentLeaderboard = getAgentLeaderboard();
+
+    return (
+      <div style={{ display: 'grid', gap: '32px' }}>
+        {/* Header Title */}
+        <div>
+          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>📊 Control Room Analytics</h3>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+            Real-time business intelligence metrics, loan disbursements, and top-performing agent metrics.
+          </p>
+        </div>
+
+        {/* Aggregated Cards Row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '24px'
+        }}>
+          {/* Card 1: Total Leads */}
+          <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>👤</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total Leads Checked
+            </div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '4px' }}>
+              {totalLeads}
+            </div>
+          </div>
+
+          {/* Card 2: Total Applications */}
+          <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📝</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total Applications
+            </div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '4px' }}>
+              {totalApps}
+            </div>
+          </div>
+
+          {/* Card 3: Total Disbursed Volume */}
+          <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)', border: '1px solid rgba(16,185,129,0.2)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>💸</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total Disbursed Volume
+            </div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+              ₹{totalDisbursedAmount.toLocaleString('en-IN')}
+            </div>
+          </div>
+
+          {/* Card 4: Success Rate */}
+          <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏆</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Disbursement Rate
+            </div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--color-primary)', marginTop: '4px' }}>
+              {disbursementRate}%
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Layout Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+          gap: '32px'
+        }}>
+          {/* Chart 1: Disbursement Trend */}
+          <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
+              📈 Disbursement & Application Volume Trend
+            </h4>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorApplied" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorDisbursed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" stroke="var(--color-text-secondary)" fontSize={10} />
+                <YAxis stroke="var(--color-text-secondary)" fontSize={10} tickFormatter={(v) => `₹${(v/100000).toFixed(0)}L`} />
+                <Tooltip 
+                  contentStyle={{ background: 'var(--color-bg-card)', border: 'var(--border-light)', borderRadius: '8px' }}
+                  labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 600 }}
+                  formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`]}
+                />
+                <Legend verticalAlign="top" height={36} iconType="circle" fontSize={11} />
+                <Area name="Applied Volume" type="monotone" dataKey="applied" stroke="#6366f1" fillOpacity={1} fill="url(#colorApplied)" strokeWidth={2} />
+                <Area name="Disbursed Volume" type="monotone" dataKey="disbursed" stroke="#10b981" fillOpacity={1} fill="url(#colorDisbursed)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Chart 2: Status Split */}
+          <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
+              🥧 Application Status Distribution
+            </h4>
+            {statusData.length === 0 ? (
+              <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
+                No active application data available.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="40%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ background: 'var(--color-bg-card)', border: 'var(--border-light)', borderRadius: '8px' }}
+                    formatter={(value) => [`${value} Applications`]}
+                  />
+                  <Legend verticalAlign="bottom" align="center" iconType="circle" fontSize={11} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Chart 3: Bank-wise Distribution */}
+          <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
+              🏦 Lender Application Share (Top Banks)
+            </h4>
+            {bankData.length === 0 ? (
+              <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
+                No loan records submitted yet.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={bankData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="var(--color-text-secondary)" fontSize={9} interval={0} tickFormatter={(v) => v.split(' ')[0]} />
+                  <YAxis stroke="var(--color-text-secondary)" fontSize={10} allowDecimals={false} />
+                  <Tooltip 
+                    contentStyle={{ background: 'var(--color-bg-card)', border: 'var(--border-light)', borderRadius: '8px' }}
+                    formatter={(value) => [`${value} Submissions`]}
+                  />
+                  <Bar name="Submissions Count" dataKey="count" fill="var(--color-accent)" radius={[4, 4, 0, 0]} barSize={24}>
+                    {bankData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#6366f1'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Chart 4: Top Agents Leaderboard */}
+          <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
+              🏆 Top Performing Partner Agents (Disbursements)
+            </h4>
+            {agentLeaderboard.length === 0 ? (
+              <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
+                No agent disbursements registered yet.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={agentLeaderboard} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis type="number" stroke="var(--color-text-secondary)" fontSize={10} tickFormatter={(v) => `₹${(v/100000).toFixed(0)}L`} />
+                  <YAxis dataKey="name" type="category" stroke="var(--color-text-secondary)" fontSize={9} width={90} />
+                  <Tooltip 
+                    contentStyle={{ background: 'var(--color-bg-card)', border: 'var(--border-light)', borderRadius: '8px' }}
+                    formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`]}
+                  />
+                  <Bar name="Disbursed Volume" dataKey="amount" fill="#10b981" radius={[0, 4, 4, 0]} barSize={14} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const actualPendingAgents = pendingAgents.filter(sa => !(sa.profile_update_message && sa.profile_update_message.startsWith('REJECTED:')));
   const demotedBalances = getDemotedOutstandingBalances();
   const agentApplications = applications.filter(app => app.agent?.role !== 'user');
@@ -1193,6 +1513,7 @@ export default function AdminDashboard() {
                       >
                         {[
                           { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
+                          { id: 'analytics', label: `📈 Business Analytics` },
                           { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
                           { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
                           { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
@@ -1234,6 +1555,7 @@ export default function AdminDashboard() {
                   <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
                     {[
                       { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
+                      { id: 'analytics', label: `📈 Business Analytics` },
                       { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
                       { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
                       { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
@@ -1267,8 +1589,11 @@ export default function AdminDashboard() {
                   {/* TAB CONTENT PANELS */}
                   <div className="tabs-content">
  
-                 {/* PANEL 0: NOTIFICATIONS */}
-                 {activeTab === 'notifications' && (
+                  {/* PANEL: BUSINESS ANALYTICS */}
+                  {activeTab === 'analytics' && renderAnalytics()}
+
+                  {/* PANEL 0: NOTIFICATIONS */}
+                  {activeTab === 'notifications' && (
                    <div style={{ display: 'grid', gap: '32px' }}>
                      
                      {/* SECTION 1: Unapproved agent registrations */}
