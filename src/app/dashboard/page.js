@@ -550,6 +550,8 @@ export default function UserDashboard() {
         return { color: 'var(--color-success)', background: 'var(--color-success-bg)', border: 'var(--border-success)', boxShadow: 'var(--shadow-glow-success)' };
       case 'rejected':
         return { color: 'var(--color-error)', background: 'var(--color-error-bg)', border: 'var(--border-error)' };
+      case 'not interested':
+        return { color: '#94a3b8', background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.2)' };
       default:
         return { color: 'var(--color-text-secondary)', background: 'var(--color-bg-card)', border: 'var(--border-light)' };
     }
