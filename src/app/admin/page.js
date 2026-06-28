@@ -689,7 +689,8 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
-  const handleApproveAgent = async (agentId) => {
+  const handleApproveAgent = async (agent) => {
+    const agentId = agent.id;
     setAgentActionLoading(agentId);
     try {
       const { error } = await supabase
@@ -702,6 +703,17 @@ export default function AdminDashboard() {
       } else {
         logAdminAction('Approve Agent', `Approved agent ID: ${agentId}`);
         await fetchAgentsData();
+        
+        // Trigger approval email in background
+        fetch('/api/agent-approval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentName: agent.full_name,
+            agentEmail: agent.email,
+            action: 'approved'
+          })
+        }).catch(err => console.error('Failed to send approval email:', err));
       }
     } catch (err) {
       console.error(err);
@@ -710,7 +722,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRejectAgent = async (agentId) => {
+  const handleRejectAgent = async (agent) => {
+    const agentId = agent.id;
     const reason = prompt('Enter reason for rejecting this agent (this will be shown to the user upon login):', 'Your document details were invalid.');
     if (reason === null) return; // user cancelled prompt
     
@@ -730,6 +743,18 @@ export default function AdminDashboard() {
         alert('Agent registration rejected.');
         logAdminAction('Reject Agent', `Rejected agent ID: ${agentId}. Reason: ${reason}`);
         await fetchAgentsData();
+        
+        // Trigger rejection email in background
+        fetch('/api/agent-approval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentName: agent.full_name,
+            agentEmail: agent.email,
+            action: 'rejected',
+            reason: reason.trim()
+          })
+        }).catch(err => console.error('Failed to send rejection email:', err));
       }
     } catch (err) {
       console.error(err);
@@ -1630,7 +1655,7 @@ export default function AdminDashboard() {
                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                          <button
-                                           onClick={() => handleApproveAgent(sa.id)}
+                                           onClick={() => handleApproveAgent(sa)}
                                            disabled={agentActionLoading === sa.id}
                                            className="btn btn-primary btn-sm"
                                            style={{ margin: 0 }}
@@ -1638,7 +1663,7 @@ export default function AdminDashboard() {
                                            {agentActionLoading === sa.id ? 'Approving...' : '✓ Approve'}
                                          </button>
                                          <button
-                                           onClick={() => handleRejectAgent(sa.id)}
+                                           onClick={() => handleRejectAgent(sa)}
                                            disabled={agentActionLoading === sa.id}
                                            className="btn btn-secondary btn-sm"
                                            style={{ margin: 0, backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
@@ -2416,7 +2441,7 @@ export default function AdminDashboard() {
                                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                           <button
-                                            onClick={() => handleApproveAgent(sa.id)}
+                                            onClick={() => handleApproveAgent(sa)}
                                             disabled={agentActionLoading === sa.id}
                                             className="btn btn-primary btn-sm"
                                             style={{ margin: 0 }}
@@ -2425,7 +2450,7 @@ export default function AdminDashboard() {
                                           </button>
                                           {!isRejected && (
                                             <button
-                                              onClick={() => handleRejectAgent(sa.id)}
+                                              onClick={() => handleRejectAgent(sa)}
                                               disabled={agentActionLoading === sa.id}
                                               className="btn btn-secondary btn-sm"
                                               style={{ margin: 0, backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
