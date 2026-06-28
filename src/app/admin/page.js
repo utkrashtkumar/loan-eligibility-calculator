@@ -51,6 +51,7 @@ export default function AdminDashboard() {
   // Audit logs state
   const [auditLogs, setAuditLogs] = useState([]);
   const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+  const [auditSearchTerm, setAuditSearchTerm] = useState('');
 
   // Agent profile editing state
   const [isEditingAgent, setIsEditingAgent] = useState(false);
