@@ -262,7 +262,7 @@ export async function POST(request) {
     }
 
     // Try sending with standard verified domain sender
-    let sender = 'HandToHand Loans <noreply@handtohandloans.com>';
+    let sender = 'HandToHand Loans <noreply@handtohandloans.in>';
     console.log(`Attempting to send email to ${agentEmail} from ${sender}...`);
 
     let response = await fetch('https://api.resend.com/emails', {
