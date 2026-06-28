@@ -3360,6 +3360,7 @@ main, article, aside {
     font-size: var(--text-sm) !important;
     white-space: normal !important;
     width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
   }
 
@@ -3375,14 +3376,16 @@ main, article, aside {
   .tabs-content td::before,
   .dashboard-section td::before,
   .admin-section td::before {
-    content: attr(data-label) ":";
+    content: attr(data-label) ": ";
     font-weight: 700;
     color: var(--color-text-secondary);
     text-align: left;
-    margin-right: 16px;
+    flex-shrink: 0;
+    margin-right: 8px;
     font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    white-space: nowrap;
   }
 }
 

@@ -647,7 +647,25 @@ export default function AdminDashboard() {
       });
     }, 150);
     return () => clearTimeout(timer);
-  }, [activeTab, loading, inquiries, activeAgents, pendingAgents, demotedUsers, applications, payoutRequests, policies, contactMessages]);
+  }, [
+    activeTab, 
+    loading, 
+    inquiries, 
+    activeAgents, 
+    pendingAgents, 
+    demotedUsers, 
+    applications, 
+    payoutRequests, 
+    policies, 
+    contactMessages,
+    searchTerm,
+    contactSearch,
+    pincodeSearchTerm,
+    loanTypeFilter,
+    sortBy,
+    appStatusFilter,
+    activePolicyCategory
+  ]);
 
   const handleSignOut = async () => {
     try {
@@ -2795,7 +2813,7 @@ export default function AdminDashboard() {
                       ) : (
                         <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
                           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                            <table style={{ width: '100%', minWidth: '820px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
                               <thead>
                                 <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
                                   <th style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Bank / NBFC</th>
