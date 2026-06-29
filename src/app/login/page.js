@@ -186,6 +186,27 @@ function LoginContent() {
       <h2 className="form-step-title">Welcome Back</h2>
       <p className="form-step-subtitle">Log in to view your eligibility runs and check loans</p>
 
+      {/* Agent Sign-up Warning Notice */}
+      <div style={{
+        background: 'rgba(245, 158, 11, 0.08)',
+        border: '1px solid rgba(245, 158, 11, 0.25)',
+        borderRadius: '12px',
+        padding: '16px',
+        textAlign: 'left',
+        margin: '20px 0 10px',
+        display: 'flex',
+        gap: '12px',
+        alignItems: 'flex-start'
+      }}>
+        <span style={{ fontSize: '20px', color: '#f59e0b', lineHeight: '1' }}>⚠️</span>
+        <div>
+          <div style={{ fontWeight: 600, color: '#f59e0b', fontSize: 'var(--text-sm)' }}>For Agent Partners:</div>
+          <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+            Please note that you must register via <strong>Manual Signup</strong> first. You can use the Google Login option to access your dashboard only after your registration has been approved by the admin.
+          </p>
+        </div>
+      </div>
+
       {error && (
         <div style={{
           padding: '12px 16px',
