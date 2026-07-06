@@ -198,7 +198,7 @@ function LoginContent() {
         gap: '12px',
         alignItems: 'flex-start'
       }}>
-        <span style={{ fontSize: '20px', color: '#f59e0b', lineHeight: '1' }}>⚠️</span>
+        <span style={{ fontSize: '20px', color: '#f59e0b', lineHeight: '1' }}></span>
         <div>
           <div style={{ fontWeight: 600, color: '#f59e0b', fontSize: 'var(--text-sm)' }}>For Agent Partners:</div>
           <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
@@ -220,7 +220,7 @@ function LoginContent() {
           lineHeight: '1.5'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-            <span style={{ marginTop: '2px' }}>⚠</span>
+            <span style={{ marginTop: '2px' }}></span>
             <span>{error}</span>
           </div>
         </div>
@@ -319,7 +319,7 @@ function LoginContent() {
             style={{ width: '100%', justifyContent: 'center', margin: 0, border: 'var(--border-accent)', background: 'var(--color-bg-glass)' }}
             disabled={loading}
           >
-            ✨ Magic Link
+            Magic Link
           </button>
         </div>
       </form>

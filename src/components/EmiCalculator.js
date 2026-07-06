@@ -404,7 +404,7 @@ export default function EmiCalculator() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: '6px' }}>
-              🧮 Advanced EMI & Eligibility Calculator
+              Advanced EMI & Eligibility Calculator
             </h3>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
               Calculate EMIs, compare flat vs reducing methods, and check income obligations in real-time.
@@ -429,7 +429,7 @@ export default function EmiCalculator() {
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'}
           >
-            {copied ? '✅ Pre-filled Link Copied!' : '🔗 Copy Share Link'}
+            {copied ? 'Pre-filled Link Copied!' : 'Copy Share Link'}
           </button>
         </div>
 
@@ -567,9 +567,9 @@ export default function EmiCalculator() {
           {/* Monthly Net Salary Input */}
           <div className="slider-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="slider-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                💼 Monthly Income (Net) <span style={{ fontSize: '9px', opacity: 0.6 }}>(Optional)</span>
-              </span>
+              <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+                Monthly Income (Net) <span style={{ fontSize: '9px', opacity: 0.6 }}>(Optional)</span>
+              </label>
               <input
                 type="number"
                 placeholder="e.g. 50000"
@@ -597,7 +597,7 @@ export default function EmiCalculator() {
           <div className="slider-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="slider-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                💳 Existing Monthly EMIs <span style={{ fontSize: '9px', opacity: 0.6 }}>(Optional)</span>
+                Existing Monthly EMIs <span style={{ fontSize: '9px', opacity: 0.6 }}>(Optional)</span>
               </span>
               <input
                 type="number"
@@ -645,15 +645,15 @@ export default function EmiCalculator() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <strong style={{
-                color: eligibilityStatus === 'high' ? '#10b981' : eligibilityStatus === 'medium' ? '#f59e0b' : '#ef4444',
-                fontSize: 'var(--text-sm)',
+                fontSize: '13px',
+                color: eligibilityStatus === 'high' ? 'var(--color-primary)' : eligibilityStatus === 'medium' ? 'var(--color-warning)' : 'var(--color-error)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                {eligibilityStatus === 'high' && '🟢 High Eligibility (Low Risk)'}
-                {eligibilityStatus === 'medium' && '🟡 Moderate Eligibility (Medium Risk)'}
-                {eligibilityStatus === 'low' && '🔴 Low Eligibility (High Debt Risk)'}
+                {eligibilityStatus === 'high' && 'High Eligibility (Low Risk)'}
+                {eligibilityStatus === 'medium' && 'Moderate Eligibility (Medium Risk)'}
+                {eligibilityStatus === 'low' && 'Low Eligibility (High Debt Risk)'}
               </strong>
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                 Your Income Obligations (FOIR): <strong>{foir}%</strong>
@@ -672,7 +672,7 @@ export default function EmiCalculator() {
           {/* Reducing Balance Method Card */}
           <div className="result-card-inner result-card-reducing">
             <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              📉 Reducing Balance Method
+              Reducing Balance Method
             </h4>
             
             <div style={{
@@ -737,7 +737,7 @@ export default function EmiCalculator() {
           {/* Flat Rate Method Card */}
           <div className="result-card-inner result-card-flat">
             <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              📌 Flat / Fixed Rate Method
+              Flat / Fixed Rate Method
             </h4>
             
             <div style={{
@@ -764,7 +764,7 @@ export default function EmiCalculator() {
             {/* Donut Chart */}
             <div className="donut-container">
               <div className="donut-chart" style={{
-                background: `conic-gradient(var(--color-primary) 0% ${flatPrincipalPercent}%, var(--color-secondary) ${flatPrincipalPercent}% 100%)`
+                background: `conic-gradient(var(--color-primary) 0% ${flatPrincipalPercent}%, var(--color-accent) ${flatPrincipalPercent}% 100%)`
               }}>
                 <div className="donut-center">
                   <span style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Total Payment</span>
@@ -789,7 +789,7 @@ export default function EmiCalculator() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                  <span className="legend-dot" style={{ background: 'var(--color-secondary)' }}></span>
+                  <span className="legend-dot" style={{ background: 'var(--color-accent)' }}></span>
                   Total Interest
                 </span>
                 <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
@@ -802,24 +802,13 @@ export default function EmiCalculator() {
 
         {/* ─── Bottom Action: Amortization Schedule ────────────────────────── */}
         <div style={{ marginTop: '32px', textAlign: 'center' }}>
+          {/* Toggle repayment schedule button */}
           <button
             onClick={() => setShowAmortization(!showAmortization)}
-            style={{
-              padding: '12px 24px',
-              background: 'var(--color-bg-secondary)',
-              border: 'var(--border-light)',
-              borderRadius: '10px',
-              color: 'var(--color-text-primary)',
-              fontWeight: 600,
-              fontSize: 'var(--text-sm)',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
+            className="btn btn-secondary"
+            style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
           >
-            📊 {showAmortization ? 'Hide Repayment Schedule' : 'Show Month-by-Month Repayment Schedule'}
+            {showAmortization ? 'Hide Repayment Schedule' : 'Show Month-by-Month Repayment Schedule'}
           </button>
         </div>
 

@@ -23,9 +23,23 @@ export default function PWAInstallPrompt() {
   const [showBanner, setShowBanner]         = useState(false);
   const [debugPWA, setDebugPWA]             = useState(false);
 
-  // All detection via lazy initializers — no setState inside effects
-  const [isInstalled, setIsInstalled] = useState(detectIsInstalled);
-  const [isIOS]                       = useState(detectIsIOS);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS, setIsIOS]             = useState(false);
+  const [isMobile, setIsMobile]       = useState(false);
+
+  // ── Client-side safe initialization ────────────────────────────────────────
+  useEffect(() => {
+    setIsInstalled(detectIsInstalled());
+    setIsIOS(detectIsIOS());
+    if (typeof window !== 'undefined') {
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+      };
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  }, []);
 
   // ── Debug mode check ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -64,6 +78,12 @@ export default function PWAInstallPrompt() {
     if (isIOS || isInstalled) return;
     const wasDismissed = localStorage.getItem('pwa_banner_dismissed');
     if (wasDismissed) return;
+
+    // Check if the event was already captured by layout head script early on
+    if (typeof window !== 'undefined' && window.deferredPWAEvent) {
+      setDeferredPrompt(window.deferredPWAEvent);
+      setTimeout(() => setShowBanner(true), 3000);
+    }
 
     const onBeforeInstall = (e) => {
       e.preventDefault();
@@ -128,15 +148,13 @@ export default function PWAInstallPrompt() {
           style={{
             maxWidth: '480px',
             margin: '0 auto',
-            background:
-              'linear-gradient(135deg, rgba(10,15,30,0.97) 0%, rgba(13,22,39,0.97) 100%)',
+            background: 'var(--color-bg-glass-heavy)',
             backdropFilter: 'blur(30px)',
             WebkitBackdropFilter: 'blur(30px)',
-            border: '1px solid rgba(16,185,129,0.35)',
+            border: '1px solid var(--color-primary-light)',
             borderRadius: '20px',
             padding: '20px',
-            boxShadow:
-              '0 -4px 40px rgba(16,185,129,0.18), 0 20px 60px rgba(0,0,0,0.5)',
+            boxShadow: 'var(--shadow-xl), 0 0 30px var(--color-primary-light)',
           }}
         >
           {/* Header row */}
@@ -157,7 +175,7 @@ export default function PWAInstallPrompt() {
                 height: '52px',
                 borderRadius: '14px',
                 flexShrink: 0,
-                boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                boxShadow: '0 4px 12px var(--color-primary-light)',
               }}
             />
             <div style={{ flex: 1 }}>
@@ -165,7 +183,7 @@ export default function PWAInstallPrompt() {
                 style={{
                   fontWeight: 700,
                   fontSize: '15px',
-                  color: '#ffffff',
+                  color: 'var(--color-text-primary)',
                   lineHeight: 1.2,
                 }}
               >
@@ -174,7 +192,7 @@ export default function PWAInstallPrompt() {
               <div
                 style={{
                   fontSize: '12px',
-                  color: 'rgba(255,255,255,0.55)',
+                  color: 'var(--color-text-secondary)',
                   marginTop: '3px',
                 }}
               >
@@ -184,13 +202,13 @@ export default function PWAInstallPrompt() {
             <button
               onClick={handleDismiss}
               style={{
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--color-bg-tertiary)',
                 border: 'none',
                 borderRadius: '50%',
                 width: '28px',
                 height: '28px',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--color-text-secondary)',
                 fontSize: '14px',
                 display: 'flex',
                 alignItems: 'center',
@@ -212,17 +230,17 @@ export default function PWAInstallPrompt() {
               flexWrap: 'wrap',
             }}
           >
-            {['⚡ Instant load', '📴 Works offline', '🔔 Get alerts', '📱 Home screen'].map(
+            {['Instant load', 'Works offline', 'Get alerts', 'Home screen'].map(
               (b) => (
                 <span
                   key={b}
                   style={{
-                    background: 'rgba(16,185,129,0.08)',
-                    border: '1px solid rgba(16,185,129,0.2)',
+                    background: 'var(--color-primary-light)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
                     borderRadius: '20px',
                     padding: '3px 10px',
                     fontSize: '11px',
-                    color: 'rgba(255,255,255,0.7)',
+                    color: 'var(--color-text-primary)',
                   }}
                 >
                   {b}
@@ -235,16 +253,16 @@ export default function PWAInstallPrompt() {
           {isIOS ? (
             <div
               style={{
-                background: 'rgba(16,185,129,0.05)',
-                border: '1px solid rgba(16,185,129,0.12)',
+                background: 'var(--color-primary-light)',
+                border: '1px solid rgba(16, 185, 129, 0.2)',
                 borderRadius: '12px',
                 padding: '12px 14px',
                 fontSize: '13px',
-                color: 'rgba(255,255,255,0.75)',
+                color: 'var(--color-text-secondary)',
                 lineHeight: 1.7,
               }}
             >
-              <strong style={{ color: '#6ee7b7' }}>To install on iPhone / iPad:</strong>
+              <strong style={{ color: 'var(--color-primary)' }}>To install on iPhone / iPad:</strong>
               <br />
               1. Tap the <strong>Share</strong> button{' '}
               <span style={{ fontSize: '16px' }}>⎋</span> in Safari
@@ -252,36 +270,58 @@ export default function PWAInstallPrompt() {
               2. Scroll down and tap{' '}
               <strong>&quot;Add to Home Screen&quot;</strong>
               <br />
-              3. Tap <strong>&quot;Add&quot;</strong> — done! 🎉
+              3. Tap <strong>&quot;Add&quot;</strong> — done!
             </div>
           ) : (
-            <button
-              onClick={handleInstall}
-              style={{
-                width: '100%',
-                padding: '13px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: 'pointer',
-                letterSpacing: '0.02em',
-                boxShadow: '0 4px 20px rgba(16,185,129,0.3)',
-                transition: 'transform 0.15s, box-shadow 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 6px 24px rgba(16,185,129,0.45)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(16,185,129,0.3)';
-              }}
-            >
-              📲 Install App — It&apos;s Free
-            </button>
+            <div style={{ display: 'grid', gap: '12px', width: '100%' }}>
+              <button
+                onClick={handleInstall}
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  background: 'var(--gradient-primary)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.02em',
+                  boxShadow: 'var(--shadow-md), 0 4px 15px var(--color-primary-light)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg), 0 6px 20px var(--color-primary-light)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md), 0 4px 15px var(--color-primary-light)';
+                }}
+              >
+                Install App — It&apos;s Free
+              </button>
+              {isMobile && (
+                <div
+                  style={{
+                    background: 'var(--color-primary-light)',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    fontSize: '12px',
+                    color: 'var(--color-text-secondary)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <strong style={{ color: 'var(--color-primary)' }}>To install on Android / Chrome:</strong>
+                  <br />
+                  1. Tap the <strong>three dots menu</strong>{' '}
+                  <span style={{ fontSize: '14px' }}>⋮</span> in Chrome
+                  <br />
+                  2. Tap <strong>&quot;Add to Home screen&quot;</strong> or <strong>&quot;Install app&quot;</strong>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

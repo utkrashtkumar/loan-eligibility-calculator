@@ -78,7 +78,7 @@ export default function CookieConsent() {
     >
       <div style={{ flex: '1', minWidth: '280px' }}>
         <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          🍪 Cookie Preference
+          Cookie Preference
         </h4>
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
           We use cookies to enhance your experience, analyze site traffic, and optimize loan eligibility matching. By clicking &quot;Accept Cookies&quot;, you consent to our use of cookies.

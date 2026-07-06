@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loansDropdownOpen, setLoansDropdownOpen] = useState(false);
+  const [mobileLoansOpen, setMobileLoansOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const pathname = usePathname();
@@ -79,17 +81,52 @@ export default function Header() {
     setPendingApplication(null);
   };
   
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
+  const [mounted, setMounted] = useState(false);
+  const [userFont, setUserFont] = useState('Jakarta');
 
   useEffect(() => {
-    let savedTheme = localStorage.getItem('theme') || 'dark';
-    if (savedTheme !== 'dark' && savedTheme !== 'light') savedTheme = 'dark';
+    setMounted(true);
+    let savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme !== 'dark' && savedTheme !== 'light') savedTheme = 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const savedFont = localStorage.getItem('user-font') || 'Jakarta';
+    setUserFont(savedFont);
+
     const timer = setTimeout(() => {
       setTheme(savedTheme);
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+
+  const changeFont = (newFont) => {
+    setUserFont(newFont);
+    localStorage.setItem('user-font', newFont);
+
+    let fontBody = '';
+    let fontHeading = '';
+    if (newFont === 'Inter') { fontBody = 'Inter, sans-serif'; fontHeading = 'Inter, sans-serif'; }
+    else if (newFont === 'Poppins') { fontBody = 'Poppins, sans-serif'; fontHeading = 'Poppins, sans-serif'; }
+    else if (newFont === 'Outfit') { fontBody = 'Outfit, sans-serif'; fontHeading = 'Outfit, sans-serif'; }
+    else if (newFont === 'Lora') { fontBody = 'Lora, serif'; fontHeading = 'Lora, serif'; }
+    else if (newFont === 'Playfair') { fontBody = '"Playfair Display", serif'; fontHeading = '"Playfair Display", serif'; }
+    else if (newFont === 'JetBrains') { fontBody = '"JetBrains Mono", monospace'; fontHeading = '"JetBrains Mono", monospace'; }
+    else { fontBody = 'var(--font-inter), "Plus Jakarta Sans", sans-serif'; fontHeading = 'var(--font-plus-jakarta), "Plus Jakarta Sans", sans-serif'; }
+    
+    if (fontBody) {
+      document.documentElement.style.setProperty('--font-body', fontBody);
+      document.documentElement.style.setProperty('--font-heading', fontHeading);
+    }
+  };
+
+  const cycleFont = () => {
+    const fontOrder = ['Jakarta', 'Inter', 'Poppins', 'Outfit', 'Lora', 'Playfair', 'JetBrains'];
+    const currentIndex = fontOrder.indexOf(userFont);
+    const nextIndex = (currentIndex + 1) % fontOrder.length;
+    const nextFont = fontOrder[nextIndex];
+    changeFont(nextFont);
+  };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -238,39 +275,131 @@ export default function Header() {
             alt="HandToHand Loans Logo"
             style={{ display: 'block', height: '36px', width: 'auto', flexShrink: 0, objectFit: 'contain' }}
           />
-          <span className="logo-text" style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>
-            HandToHand Loans
-          </span>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '3px 10px',
-            background: 'linear-gradient(135deg, #059669 0%, #ea580c 100%)',
-            borderRadius: '20px',
-            color: '#ffffff',
-            fontSize: '11px',
-            fontWeight: 800,
-            letterSpacing: '0.05em',
-            boxShadow: '0 0 10px rgba(5, 150, 105, 0.5), 0 0 20px rgba(234, 88, 12, 0.3)',
-            lineHeight: 1,
-            textTransform: 'uppercase',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            animation: 'pulseGlow 2s infinite alternate',
-            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-            flexShrink: 0,
-            marginLeft: '4px',
-            WebkitTextFillColor: '#ffffff'
-          }}>
-            FINTECH
-          </span>
+          <div className="logo-text-group">
+            <span className="logo-text">
+              HandToHand Loans
+            </span>
+            <span className="logo-badge-fintech">
+              FINTECH
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
         <nav className="desktop-nav">
           <ul className="nav-links">
+            {mounted && (
+              <>
             <li>
               <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`}>
                 Home
+              </Link>
+            </li>
+            
+            {/* Loans Dropdown */}
+            <li 
+              className="dropdown-container"
+              onMouseEnter={() => setLoansDropdownOpen(true)}
+              onMouseLeave={() => setLoansDropdownOpen(false)}
+              style={{ position: 'relative', display: 'inline-block' }}
+            >
+              <button 
+                className={`nav-link dropdown-toggle ${loansDropdownOpen ? 'active' : ''}`}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  fontFamily: 'inherit',
+                  fontSize: 'inherit',
+                  fontWeight: 'inherit',
+                  color: 'inherit',
+                  padding: '8px 0'
+                }}
+                onClick={() => setLoansDropdownOpen(!loansDropdownOpen)}
+              >
+                Loans
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: loansDropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                  <path d="M1 1l4 4 4-4" />
+                </svg>
+              </button>
+              {loansDropdownOpen && (
+                <ul className="dropdown-menu" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  background: 'var(--color-bg-glass-heavy)',
+                  backdropFilter: 'blur(20px)',
+                  border: 'var(--border-light)',
+                  borderRadius: '10px',
+                  boxShadow: 'var(--shadow-md)',
+                  padding: '8px 0',
+                  margin: '4px 0 0 0',
+                  listStyle: 'none',
+                  minWidth: '160px',
+                  zIndex: 99999
+                }}>
+                  <li>
+                    <Link 
+                      href={user ? "/banks?category=instant" : "/check"} 
+                      className="dropdown-item" 
+                      onClick={() => setLoansDropdownOpen(false)}
+                      style={{
+                        display: 'block',
+                        padding: '8px 16px',
+                        color: 'var(--color-text-primary)',
+                        textDecoration: 'none',
+                        fontSize: '13px',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      Instant Loan
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href={user ? "/banks?category=salary" : "/check"} 
+                      className="dropdown-item" 
+                      onClick={() => setLoansDropdownOpen(false)}
+                      style={{
+                        display: 'block',
+                        padding: '8px 16px',
+                        color: 'var(--color-text-primary)',
+                        textDecoration: 'none',
+                        fontSize: '13px',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      Salary Loan
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href={user ? "/banks?category=business" : "/check"} 
+                      className="dropdown-item" 
+                      onClick={() => setLoansDropdownOpen(false)}
+                      style={{
+                        display: 'block',
+                        padding: '8px 16px',
+                        color: 'var(--color-text-primary)',
+                        textDecoration: 'none',
+                        fontSize: '13px',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      Business Loan
+                    </Link>
+                  </li>
+                </ul>
+              )}
+            </li>
+
+            {/* Credit Cards */}
+            <li>
+              <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+                Credit Cards
               </Link>
             </li>
             <li>
@@ -280,27 +409,30 @@ export default function Header() {
             </li>
             <li>
               <Link href="/#emi-calculator" className="nav-link" style={{ marginLeft: '12px' }}>
-                🧮 EMI Calculator
+                EMI Calculator
               </Link>
             </li>
             <li>
-              <a
-                href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
-                target={user ? "_blank" : "_self"}
-                rel="noopener noreferrer"
-                className="nav-link"
+              <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+                Verify Agreement
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/cibil"
+                className={`nav-link ${isLinkActive('/cibil') ? 'active' : ''}`}
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)', marginLeft: '4px' }}
-                title="Free CIBIL report check in collaboration with Punjab National Bank"
+                title="Free CIBIL report check in collaboration with PNB"
               >
-                📈 CIBIL Score <span style={{ fontSize: '9px', fontWeight: 500, color: 'var(--color-text-tertiary)', opacity: 0.85 }}>(Punjab National Bank Partnership)</span>
-              </a>
+                CIBIL Score <span className="cibil-subtext">(PNB Partnership)</span>
+              </Link>
             </li>
             {user ? (
               <>
                 {(userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
                 <li>
                   <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
-                    🏦 Banks
+                    Banks
                   </Link>
                 </li>
                 )}
@@ -326,7 +458,7 @@ export default function Header() {
               <>
                 <li>
                   <Link href="/#banks" className="nav-link" style={{ marginLeft: '12px' }}>
-                    🏦 Banks
+                    Banks
                   </Link>
                 </li>
                 <li>
@@ -336,12 +468,14 @@ export default function Header() {
                 </li>
               </>
             )}
+              </>
+            )}
           </ul>
         </nav>
 
         {/* Right Header Actions (Theme Toggle & Hamburger) */}
-        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {user && (
+        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          {mounted && user && (
             <div style={{ position: 'relative' }}>
               <button
                 onClick={() => {
@@ -398,7 +532,7 @@ export default function Header() {
                   padding: '16px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)' }}>🔔 Notifications</span>
+                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Notifications</span>
                     {unreadCount > 0 && (
                       <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
                         Mark all read
@@ -434,23 +568,64 @@ export default function Header() {
             </div>
           )}
 
+          {/* Font Cycler Button */}
+          <button
+            onClick={cycleFont}
+            className="theme-toggle-btn"
+            style={{ 
+              margin: 0, 
+              marginRight: '6px', 
+              padding: '0', 
+              fontSize: '14px', 
+              fontWeight: 700, 
+              fontFamily: 'var(--font-body)', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              textTransform: 'none',
+              cursor: 'pointer'
+            }}
+            title={`Font: ${userFont} (Tap to cycle)`}
+            aria-label="Cycle Font Style"
+          >
+            Aa
+          </button>
+
           <button 
             onClick={toggleTheme} 
             className="theme-toggle-btn"
             aria-label="Toggle Theme"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={mounted ? (theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode') : 'Switch Theme'}
             style={{ margin: 0 }}
           >
-            {theme === 'dark' ? (
-              /* Moon Icon */
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
+            {mounted ? (
+              theme === 'dark' ? (
+                <>
+                  {/* Moon Icon */}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                  <span className="theme-toggle-text">Dark Mode</span>
+                </>
+              ) : (
+                <>
+                  {/* Sun Icon */}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  </svg>
+                  <span className="theme-toggle-text">Light Mode</span>
+                </>
+              )
             ) : (
-              /* Sun Icon */
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
+              <>
+                {/* Fallback while mounting: Light Mode default */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+                <span className="theme-toggle-text">Light Mode</span>
+              </>
             )}
           </button>
 
@@ -473,35 +648,87 @@ export default function Header() {
 
       {/* Mobile Menu */}
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
+        {mounted && (
+          <>
         <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`} onClick={closeMenu}>
           Home
+        </Link>
+        
+        {/* Mobile Loans Dropdown (Accordion) */}
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '4px 0' }}>
+          <button
+            onClick={() => setMobileLoansOpen(!mobileLoansOpen)}
+            className="nav-link"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              padding: '12px 16px',
+              color: 'var(--color-text-primary)'
+            }}
+          >
+            <span>Loans</span>
+            <svg width="12" height="8" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: mobileLoansOpen ? 'rotate(180deg)' : 'none' }}>
+              <path d="M1 1l4 4 4-4" />
+            </svg>
+          </button>
+          
+          {mobileLoansOpen && (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              background: 'none',
+              padding: '4px 0'
+            }}>
+              <Link href={user ? "/banks?category=instant" : "/check"} className="mobile-dropdown-item" onClick={closeMenu}>
+                Instant Loan
+              </Link>
+              <Link href={user ? "/banks?category=salary" : "/check"} className="mobile-dropdown-item" onClick={closeMenu}>
+                Salary Loan
+              </Link>
+              <Link href={user ? "/banks?category=business" : "/check"} className="mobile-dropdown-item" onClick={closeMenu}>
+                Business Loan
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Credit Cards */}
+        <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
+          Credit Cards
         </Link>
         <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
           Check Eligibility
         </Link>
-        <a
-          href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
-          target={user ? "_blank" : "_self"}
-          rel="noopener noreferrer"
-          className="nav-link"
+        <Link
+          href="/cibil"
+          className={`nav-link ${isLinkActive('/cibil') ? 'active' : ''}`}
           style={{ color: 'var(--color-primary)', fontWeight: 700 }}
           onClick={closeMenu}
         >
-          📈 Check CIBIL Score <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>(Punjab National Bank Partnership)</span>
-        </a>
+          Check CIBIL Score <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>(PNB Partnership)</span>
+        </Link>
         {user ? (
           (userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com') && (
             <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} onClick={closeMenu}>
-              🏦 Banks
+              Banks
             </Link>
           )
         ) : (
           <Link href="/#banks" className="nav-link" onClick={closeMenu}>
-            🏦 Banks
+            Banks
           </Link>
         )}
         <Link href="/#emi-calculator" className="nav-link" onClick={closeMenu}>
           EMI Calculator
+        </Link>
+        <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`} onClick={closeMenu}>
+          Verify Agent Agreement
         </Link>
         {user ? (
           <>
@@ -521,6 +748,8 @@ export default function Header() {
           <Link href="/login" className="nav-link nav-cta" style={{ width: '100%' }} onClick={closeMenu}>
             Sign In
           </Link>
+        )}
+          </>
         )}
       </div>
 
@@ -554,7 +783,7 @@ export default function Header() {
             boxShadow: 'var(--shadow-xl)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '48px', margin: '0 auto' }}>📲</div>
+            <div style={{ fontSize: '48px', margin: '0 auto', color: 'var(--color-primary)', fontWeight: 'bold' }}>✓</div>
             <div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: '8px', fontFamily: 'var(--font-heading)' }}>
                 Update Lead Status
@@ -572,7 +801,7 @@ export default function Header() {
                 style={{ justifyContent: 'center', padding: '12px 16px', borderRadius: '10px' }}
                 disabled={submittingStatus}
               >
-                ✕ Not Applied
+                Not Applied
               </button>
               <button
                 onClick={handleConfirmApplied}
@@ -580,7 +809,7 @@ export default function Header() {
                 style={{ justifyContent: 'center', padding: '12px 16px', borderRadius: '10px', background: 'var(--gradient-primary)', border: 'none' }}
                 disabled={submittingStatus}
               >
-                {submittingStatus ? 'Saving Lead...' : '✓ Applied'}
+                {submittingStatus ? 'Saving Lead...' : 'Applied'}
               </button>
             </div>
           </div>

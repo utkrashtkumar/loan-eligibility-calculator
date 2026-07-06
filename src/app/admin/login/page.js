@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
               </h2>
               <p className="form-step-subtitle">Log in to view user eligibility inquiries</p>
 
-              {error && <div className="input-error-text" style={{ padding: '12px', background: 'var(--color-error-bg)', border: 'var(--border-error)', borderRadius: '8px', margin: '16px 0' }}>⚠ {error}</div>}
+              {error && <div className="input-error-text" style={{ padding: '12px', background: 'var(--color-error-bg)', border: 'var(--border-error)', borderRadius: '8px', margin: '16px 0' }}>{error}</div>}
               {success && <div style={{ color: 'var(--color-success)', padding: '12px', background: 'var(--color-success-bg)', border: 'var(--border-success)', borderRadius: '8px', margin: '16px 0' }}>✓ {success}</div>}
 
               <form onSubmit={handleAdminLogin} style={{ textAlign: 'left', marginTop: '24px' }}>

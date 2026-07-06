@@ -69,6 +69,28 @@ const calculateAge = (dobString) => {
   return age;
 };
 
+const getExpirationCountdown = (createdAt) => {
+  const createdTime = new Date(createdAt).getTime();
+  const expireTime = createdTime + 14 * 24 * 60 * 60 * 1000;
+  const timeLeft = expireTime - Date.now();
+
+  if (timeLeft <= 0) return 'Expired';
+
+  const days = Math.floor(timeLeft / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((timeLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+
+  if (days > 1) {
+    return `${days} days left`;
+  } else if (days === 1) {
+    return `1 day, ${hours}h left`;
+  } else if (hours > 0) {
+    return `${hours}h, ${minutes}m left`;
+  } else {
+    return `${minutes}m left`;
+  }
+};
+
 const processPdf = (file) => {
   return new Promise((resolve, reject) => {
     if (file.size > 500 * 1024) {
@@ -158,6 +180,21 @@ export default function UserDashboard() {
   const [subAgentDisbursedApps, setSubAgentDisbursedApps] = useState([]);
   const [copied, setCopied] = useState(false);
 
+  // Agent Agreement State
+  const [agreement, setAgreement] = useState(null);
+  const [agreementLoading, setAgreementLoading] = useState(false);
+  const [signatureFile, setSignatureFile] = useState('');
+  const [signingLoading, setSigningLoading] = useState(false);
+  const [signingError, setSigningError] = useState('');
+  const [signingSuccess, setSigningSuccess] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Agreement Regeneration Request State
+  const [regenRequest, setRegenRequest] = useState(null); // latest regen request for this agent
+  const [showRegenModal, setShowRegenModal] = useState(false);
+  const [regenReason, setRegenReason] = useState('');
+  const [regenLoading, setRegenLoading] = useState(false);
+
   // Affiliate link pending status update modal state
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState(null);
   const [updatingStatusState, setUpdatingStatusState] = useState(false);
@@ -219,11 +256,31 @@ export default function UserDashboard() {
   const [payoutError, setPayoutError] = useState('');
   const [payoutSuccess, setPayoutSuccess] = useState('');
 
+  // Agent Updates (Image Board)
+  const [agentUpdates, setAgentUpdates] = useState([]);
+  const [updatesLoading, setUpdatesLoading] = useState(false);
+  const [selectedUpdate, setSelectedUpdate] = useState(null); // for lightbox
+
   const getBankLogo = (bankName) => {
     if (!bankName) return '';
     const normName = bankName.toUpperCase().replace(/\(BL\)/g, '').trim();
     const policy = policies.find(p => p.bank_name.toUpperCase().replace(/\(BL\)/g, '').trim() === normName);
     return policy ? policy.logo_url : '';
+  };
+
+  const fetchAgentUpdates = async () => {
+    setUpdatesLoading(true);
+    try {
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('agent_updates')
+        .select('*')
+        .eq('is_active', true)
+        .gte('created_at', fourteenDaysAgo)
+        .order('created_at', { ascending: false });
+      setAgentUpdates(data || []);
+    } catch (err) { console.error(err); }
+    setUpdatesLoading(false);
   };
 
   const fetchInquiries = async (userId) => {
@@ -248,6 +305,38 @@ export default function UserDashboard() {
       setInquiries(deduped);
     }
   };
+
+  const fetchAgreement = async (userId) => {
+    setAgreementLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('agent_agreements')
+        .select('*')
+        .eq('agent_id', userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        setAgreement(data);
+      } else {
+        setAgreement(null);
+      }
+
+      // Also fetch the latest regen request for this agent
+      const { data: regenData } = await supabase
+        .from('agreement_regen_requests')
+        .select('*')
+        .eq('agent_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setRegenRequest(regenData || null);
+    } catch (e) {
+      console.error('Error fetching agreement:', e);
+    } finally {
+      setAgreementLoading(false);
+    }
+  };
+
 
   const fetchAgentData = async (userId, agentCode) => {
     // 1. Fetch submitted client applications
@@ -469,6 +558,8 @@ export default function UserDashboard() {
           if (prof.role === 'agent') {
             // Agent data fetching
             await fetchAgentData(session.user.id, prof.agent_code);
+            await fetchAgreement(session.user.id);
+            await fetchAgentUpdates();
             
             // Check if profile is complete (less than 100%)
             const fieldsVal = [
@@ -658,7 +749,7 @@ export default function UserDashboard() {
       } else {
         setProfileSuccess('Profile picture updated successfully!');
         setProfile(prev => ({ ...prev, avatar: base64 }));
-        showToast('✅ Profile picture updated successfully!');
+        showToast('Profile picture updated successfully!');
       }
     } catch (err) {
       alert(err.message);
@@ -836,7 +927,7 @@ export default function UserDashboard() {
           ...prev,
           ...profileFormData
         }));
-        showToast('✅ All details updated successfully!');
+        showToast('All details updated successfully!');
 
         // Auto-clear profile update request when profile is 100% complete
         const fields = [
@@ -860,7 +951,7 @@ export default function UserDashboard() {
             profile_update_message: null
           }));
           setShowProfileUpdatePopup(false);
-          showToast('🎉 Profile 100% complete! Update request cleared.');
+          showToast('Profile 100% complete! Update request cleared.');
         }
       }
     } catch (err) {
@@ -1439,15 +1530,22 @@ export default function UserDashboard() {
                             OFFICIAL PARTNER
                           </span>
                         )}
+                        {profile?.demoted_at && (
+                          <span className="badge badge-error" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '10px', verticalAlign: 'middle' }}>
+                            PARTNERSHIP REVOKED
+                          </span>
+                        )}
                       </h1>
                       <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-                        {profile?.email} {profile?.role === 'agent' && `• Agent Code: ${profile?.agent_code}`}
+                        {profile?.email} 
+                        {profile?.role === 'agent' && `• Agent Code: ${profile?.agent_code}`}
+                        {profile?.demoted_at && ` • Former Agent Code: ${profile?.agent_code}`}
                       </p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     <Link href="/check" className="btn btn-primary">
-                      {profile?.role === 'agent' ? '🔗 Check Client Eligibility' : '+ Check New Eligibility'}
+                      {profile?.role === 'agent' ? 'Check Client Eligibility' : '+ Check New Eligibility'}
                     </Link>
                     <button onClick={handleSignOut} className="btn btn-secondary">
                       Sign Out
@@ -1462,14 +1560,14 @@ export default function UserDashboard() {
                      ======================================================== */
                   (() => {
                     const userTabs = [
-                      { id: 'inquiries', label: '📁 Inquiries' },
-                      { id: 'applications', label: '📝 My Applications' },
+                      { id: 'inquiries', label: 'Inquiries' },
+                      { id: 'applications', label: 'My Applications' },
                     ];
                     if (profile?.demoted_at) {
-                      userTabs.push({ id: 'payments', label: '💸 Payments & Balance' });
+                      userTabs.push({ id: 'payments', label: 'Payments & Balance' });
                     }
 
-                    const currentTabLabel = userTabs.find(t => t.id === activeTab)?.label || '📁 Inquiries';
+                    const currentTabLabel = userTabs.find(t => t.id === activeTab)?.label || 'Inquiries';
 
                     return (
                       <div className="tabs-container">
@@ -1685,10 +1783,13 @@ export default function UserDashboard() {
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {activeTab === 'profile' && '👤 Profile Code'}
-                          {activeTab === 'applications' && '📝 Client Applications'}
-                          {activeTab === 'earnings' && '💸 Earning & Referral'}
-                          {activeTab === 'subagents' && '👥 Sub-agents'}
+                          {activeTab === 'profile' && 'Profile Code'}
+                          {activeTab === 'applications' && 'Client Applications'}
+                          {activeTab === 'earnings' && 'Earning & Referral'}
+                          {activeTab === 'subagents' && 'Sub-agents'}
+                          {activeTab === 'leaderboard' && 'Partner Leaderboard'}
+                          {activeTab === 'agreement' && 'Agent Agreement'}
+                          {activeTab === 'updates' && 'Updates'}
                         </span>
                         <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
                       </button>
@@ -1715,11 +1816,13 @@ export default function UserDashboard() {
                           }}
                         >
                           {[
-                            { id: 'profile', label: '👤 Profile Code' },
-                            { id: 'applications', label: '📝 Client Applications' },
-                            { id: 'earnings', label: '💸 Earning & Referral' },
-                            { id: 'subagents', label: '👥 Sub-agents' },
-                            { id: 'leaderboard', label: '🏆 Partner Leaderboard' },
+                            { id: 'profile', label: 'Profile Code' },
+                            { id: 'applications', label: 'Client Applications' },
+                            { id: 'earnings', label: 'Earning & Referral' },
+                            { id: 'subagents', label: 'Sub-agents' },
+                            { id: 'leaderboard', label: 'Partner Leaderboard' },
+                            { id: 'agreement', label: 'Agent Agreement' },
+                            { id: 'updates', label: `Updates${agentUpdates.length > 0 ? ` (${agentUpdates.length})` : ''}` },
                           ].map((tab) => (
                             <button
                               key={tab.id}
@@ -1792,6 +1895,22 @@ export default function UserDashboard() {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
+                          )
+                        },
+                        { 
+                          id: 'agreement', 
+                          label: 'Agent Agreement',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+                            </svg>
+                          )
+                        },
+                        { 
+                          id: 'updates', 
+                          label: agentUpdates.length > 0 ? `Updates (${agentUpdates.length})` : 'Updates',
+                          icon: (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                           )
                         },
                       ].map((tab) => (
@@ -1882,8 +2001,7 @@ export default function UserDashboard() {
                                   margin: 0
                                 }}
                               >
-                                Join Group 💬
-                              </a>
+                                Join Group </a>
                             </div>
 
                             {/* Completion Tracker */}
@@ -1919,7 +2037,7 @@ export default function UserDashboard() {
                                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent Invitation Link</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
                                   <button onClick={handleCopyLink} className="btn btn-secondary btn-sm" style={{ gap: '8px' }}>
-                                    🔗 {copied ? 'Copied Link!' : 'Copy Referral Link'}
+                                    {copied ? 'Copied Link!' : 'Copy Referral Link'}
                                   </button>
                                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                                     Invite sub-agents & earn 0.5% commission override.
@@ -1929,7 +2047,7 @@ export default function UserDashboard() {
                             </div>
 
                             {profileSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {profileSuccess}</div>}
-                            {profileError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠️ {profileError}</div>}
+                            {profileError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>{profileError}</div>}
                             
                             {profile?.profile_locked && (
                               <div style={{
@@ -1946,7 +2064,7 @@ export default function UserDashboard() {
                                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
                                 marginBottom: '16px'
                               }}>
-                                <span>🔒 Profile Verified & Locked: Your profile details have been locked by the administrator. Contact support if you need to update them. Note: You can still update your Profile Picture (Avatar).</span>
+                                <span>Profile Verified & Locked: Your profile details have been locked by the administrator. Contact support if you need to update them. Note: You can still update your Profile Picture (Avatar).</span>
                               </div>
                             )}
 
@@ -2264,7 +2382,7 @@ export default function UserDashboard() {
 
                               {/* Live Selfie Verification */}
                               <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)', display: 'grid', gap: '16px' }}>
-                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>📸 Live Selfie Verification</h3>
+                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>Live Selfie Verification</h3>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                                   <div style={{ width: '100px', height: '100px', borderRadius: '8px', background: 'var(--color-bg-tertiary)', border: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                     {profileFormData.selfie ? (
@@ -2294,7 +2412,7 @@ export default function UserDashboard() {
 
                               {/* Bank Account Details & Payout Details */}
                               <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)', display: 'grid', gap: '16px' }}>
-                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>🏦 Bank Account & Payout Details</h3>
+                                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, borderBottom: 'var(--border-subtle)', paddingBottom: '8px', margin: 0 }}>Bank Account & Payout Details</h3>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                                   <div className="input-group">
                                     <label className="input-label">Account Holder Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
@@ -2418,14 +2536,14 @@ export default function UserDashboard() {
                                   className={`btn btn-sm`}
                                   style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'table' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: '#ffffff' }}
                                 >
-                                  📋 List View
+                                  List View
                                 </button>
                                 <button 
                                   onClick={() => setViewMode('kanban')} 
                                   className={`btn btn-sm`}
                                   style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'kanban' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: '#ffffff' }}
                                 >
-                                  📊 Kanban Board
+                                  Kanban Board
                                 </button>
                               </div>
                             )}
@@ -2632,6 +2750,862 @@ export default function UserDashboard() {
                           )}
                         </div>
                       )}
+
+                      {/* TAB 7: Updates Image Board */}
+                      {activeTab === 'updates' && (
+                        <div style={{ display: 'grid', gap: '24px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                              <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>Agent Updates</h2>
+                              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                Latest updates, offers, and banners from HandToHand Loans. Download for WhatsApp Status or share directly.
+                              </p>
+                            </div>
+                            <button onClick={fetchAgentUpdates} disabled={updatesLoading} className="btn btn-secondary btn-sm">
+                              {updatesLoading ? 'Refreshing...' : 'Refresh'}
+                            </button>
+                          </div>
+
+                          {updatesLoading ? (
+                            <div className="form-card text-center" style={{ padding: '48px', backdropFilter: 'blur(20px)' }}>
+                              <div className="spinner" style={{ margin: '0 auto 16px' }} />
+                              <p style={{ color: 'var(--color-text-secondary)' }}>Loading updates...</p>
+                            </div>
+                          ) : agentUpdates.length === 0 ? (
+                            <div className="form-card text-center" style={{ padding: '48px', backdropFilter: 'blur(20px)' }}>
+                              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-tertiary)', margin: '0 auto 16px' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                              <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No updates posted yet. Check back soon!</p>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
+                              {agentUpdates.map(update => {
+                                const catColors = {
+                                  loan_offer: { bg: 'rgba(99,102,241,0.15)', color: 'var(--color-primary)' },
+                                  policy:     { bg: 'rgba(245,158,11,0.15)', color: 'var(--color-warning)' },
+                                  promo:      { bg: 'rgba(16,185,129,0.15)', color: 'var(--color-success)' },
+                                  training:   { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6' },
+                                  general:    { bg: 'rgba(100,116,139,0.12)', color: 'var(--color-text-secondary)' },
+                                };
+                                const c = catColors[update.category] || catColors.general;
+
+                                const handleDownload = async () => {
+                                  try {
+                                    const resp = await fetch(update.image_url);
+                                    const blob = await resp.blob();
+                                    const ext = update.image_url.split('.').pop().split('?')[0] || 'jpg';
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${update.title.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                  } catch (err) {
+                                    console.warn('Direct fetch download failed, falling back to opening in a new tab:', err);
+                                    window.open(update.image_url, '_blank');
+                                  }
+                                };
+
+                                const handleShare = async () => {
+                                  if (navigator.share) {
+                                    try {
+                                      await navigator.share({ title: update.title, text: update.description || update.title, url: update.image_url });
+                                    } catch (err) { /* user cancelled */ }
+                                  } else {
+                                    await navigator.clipboard.writeText(update.image_url);
+                                    alert('Image link copied to clipboard!');
+                                  }
+                                };
+
+                                return (
+                                  <div key={update.id} className="form-card" style={{ padding: 0, overflow: 'hidden', transition: 'transform 0.2s ease, box-shadow 0.2s ease', backdropFilter: 'blur(20px)', cursor: 'pointer' }}
+                                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = ''; }}
+                                  >
+                                    {/* Image or PDF Banner */}
+                                    <div style={{ position: 'relative' }} onClick={() => {
+                                      const isPdf = update.image_url.split('?')[0].toLowerCase().endsWith('.pdf');
+                                      if (isPdf) {
+                                        window.open(update.image_url, '_blank');
+                                      } else {
+                                        setSelectedUpdate(update);
+                                      }
+                                    }}>
+                                      {update.image_url.split('?')[0].toLowerCase().endsWith('.pdf') ? (
+                                        <div style={{ width: '100%', height: '180px', background: 'rgba(239, 68, 68, 0.08)', borderBottom: 'var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#f87171' }}>PDF Document</span>
+                                        </div>
+                                      ) : (
+                                        <img
+                                          src={update.image_url}
+                                          alt={update.title}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }}
+                                        />
+                                      )}
+                                      {/* Category badge */}
+                                      <span style={{ position: 'absolute', top: '10px', left: '10px', background: c.bg, color: c.color, border: `1px solid ${c.color}50`, fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', backdropFilter: 'blur(8px)', textTransform: 'capitalize' }}>
+                                        {update.category.replace('_', ' ')}
+                                      </span>
+                                      {/* Expiration Countdown Badge */}
+                                      <span style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239, 68, 68, 0.85)', color: '#ffffff', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '99px', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        {getExpirationCountdown(update.created_at)}
+                                      </span>
+                                      {/* Expand hint */}
+                                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.25)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0)'}
+                                      >
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                                      </div>
+                                    </div>
+
+                                    {/* Info + Actions */}
+                                    <div style={{ padding: '16px' }}>
+                                      <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', marginBottom: '4px', lineHeight: 1.4 }}>{update.title}</div>
+                                      {update.description && <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginBottom: '8px', lineHeight: 1.5 }}>{update.description}</div>}
+                                      <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginBottom: '14px' }}>
+                                        {new Date(update.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                        {/* Download */}
+                                        <button
+                                          onClick={handleDownload}
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ flex: 1, fontSize: '12px', padding: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)', border: '1px solid rgba(99,102,241,0.3)' }}
+                                          title="Download image to device"
+                                        >
+                                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                          Download
+                                        </button>
+                                        {/* Share */}
+                                        <button
+                                          onClick={handleShare}
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ flex: 1, fontSize: '12px', padding: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: 'rgba(37,211,102,0.1)', color: '#25D366', border: '1px solid rgba(37,211,102,0.3)' }}
+                                          title="Share via WhatsApp or any app"
+                                        >
+                                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                          Share
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Lightbox */}
+                      {selectedUpdate && (
+                        <div
+                          onClick={() => setSelectedUpdate(null)}
+                          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+                        >
+                          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-bg-card)', borderRadius: '16px', overflow: 'hidden', maxWidth: '600px', width: '100%', boxShadow: 'var(--shadow-lg)' }}>
+                            <img src={selectedUpdate.image_url} alt={selectedUpdate.title} style={{ width: '100%', maxHeight: '65vh', objectFit: 'contain', display: 'block', background: '#000' }} />
+                            <div style={{ padding: '20px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                                <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>{selectedUpdate.title}</div>
+                                <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                  {getExpirationCountdown(selectedUpdate.created_at)}
+                                </span>
+                              </div>
+                              {selectedUpdate.description && <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', marginBottom: '16px', lineHeight: 1.5 }}>{selectedUpdate.description}</div>}
+                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                <button
+                                  className="btn btn-primary"
+                                  style={{ flex: 1, minWidth: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                  onClick={async () => {
+                                    try {
+                                      const resp = await fetch(selectedUpdate.image_url);
+                                      const blob = await resp.blob();
+                                      const ext = selectedUpdate.image_url.split('.').pop().split('?')[0] || 'jpg';
+                                      const url = URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url; a.download = `${selectedUpdate.title.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
+                                      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                                    } catch (err) {
+                                      console.warn('Lightbox direct fetch download failed, falling back to opening in a new tab:', err);
+                                      window.open(selectedUpdate.image_url, '_blank');
+                                    }
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                  Download
+                                </button>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{ flex: 1, minWidth: '120px', background: 'rgba(37,211,102,0.12)', color: '#25D366', border: '1px solid rgba(37,211,102,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                  onClick={async () => {
+                                    if (navigator.share) {
+                                      try { await navigator.share({ title: selectedUpdate.title, text: selectedUpdate.description || selectedUpdate.title, url: selectedUpdate.image_url }); }
+                                      catch { /* cancelled */ }
+                                    } else {
+                                      await navigator.clipboard.writeText(selectedUpdate.image_url);
+                                      alert('Image link copied!');
+                                    }
+                                  }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                  Share
+                                </button>
+                                <button onClick={() => setSelectedUpdate(null)} className="btn btn-secondary" style={{ minWidth: '80px' }}>Close</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* TAB 6: Agent Agreement */}
+                      {activeTab === 'agreement' && (() => {
+                        const completion = calculateCompletionPercentage();
+                        
+                        return (
+                          <div className="form-card" style={{ display: 'grid', gap: '24px', backdropFilter: 'blur(20px)', border: 'var(--border-light)' }}>
+                            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700, borderBottom: 'var(--border-subtle)', paddingBottom: '12px', marginBottom: 0 }}>
+                              DSA Partner Agreement
+                            </h2>
+
+                            {agreementLoading ? (
+                              <div style={{ padding: '48px', textAlign: 'center' }}>
+                                <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+                                <p style={{ color: 'var(--color-text-secondary)' }}>Loading agreement details...</p>
+                              </div>
+                            ) : agreement ? (
+                              /* Signed agreement display */
+                              <div style={{ display: 'grid', gap: '16px' }}>
+                                <div style={{
+                                  background: agreement.status === 'active' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+                                  border: agreement.status === 'active' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
+                                  padding: '20px',
+                                  borderRadius: '12px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '12px'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Agreement Reference Number:</div>
+                                    <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary)', fontSize: 'var(--text-sm)' }}>{agreement.agreement_no}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Date Signed:</div>
+                                    <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{new Date(agreement.signed_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Status:</div>
+                                    <span style={{
+                                      fontSize: '11px',
+                                      padding: '3px 10px',
+                                      borderRadius: '12px',
+                                      fontWeight: 800,
+                                      background: agreement.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                      color: agreement.status === 'active' ? '#34d399' : '#f87171',
+                                      textTransform: 'uppercase'
+                                    }}>
+                                      {agreement.status}
+                                    </span>
+                                  </div>
+                                  {agreement.status !== 'active' && agreement.revocation_reason && (
+                                    <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '10px', marginTop: '4px' }}>
+                                      <div style={{ fontSize: 'var(--text-xs)', color: '#f87171', fontWeight: 600 }}>Termination Reason:</div>
+                                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px', lineHeight: '1.5' }}>{agreement.revocation_reason}</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Admin-approved regen request banner */}
+                                {regenRequest && regenRequest.status === 'approved' && (
+                                  <div style={{
+                                    background: 'rgba(245, 158, 11, 0.08)',
+                                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                                    borderRadius: '10px',
+                                    padding: '16px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '10px'
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ fontSize: '20px' }}>✅</span>
+                                      <div>
+                                        <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 'var(--text-sm)' }}>Re-sign Approved!</div>
+                                        <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '2px' }}>
+                                          {regenRequest.requested_by === 'admin'
+                                            ? 'The administrator has requested you to re-sign your agreement.'
+                                            : 'Your re-sign request has been approved by the administrator.'}
+                                          {regenRequest.admin_note && ` Note: "${regenRequest.admin_note}"`}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('This will clear your current agreement and allow you to upload a new signature. Proceed?')) return;
+                                        try {
+                                          // Delete old agreement
+                                          const { error: delErr } = await supabase.from('agent_agreements').delete().eq('agent_id', user.id);
+                                          if (delErr) { alert('Failed to delete old agreement: ' + delErr.message); return; }
+                                          // Mark regen request as resolved
+                                          await supabase.from('agreement_regen_requests')
+                                            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                                            .eq('id', regenRequest.id);
+                                          // Reset all signing form states
+                                          setAgreement(null);
+                                          setRegenRequest(null);
+                                          setSignatureFile('');
+                                          setAgreeTerms(false);
+                                          setSigningError('');
+                                          setSigningSuccess('');
+                                        } catch (err) {
+                                          console.error(err);
+                                          alert('Failed to reset agreement. Please try again.');
+                                        }
+                                      }}
+                                      className="btn btn-primary"
+                                      style={{ alignSelf: 'flex-start', padding: '10px 20px', fontSize: 'var(--text-xs)', background: '#f59e0b', borderColor: '#f59e0b' }}
+                                    >
+                                      🔄 Re-sign Agreement Now
+                                    </button>
+                                  </div>
+                                )}
+
+
+                                {/* Pending regen request status */}
+                                {regenRequest && regenRequest.status === 'pending' && (
+                                  <div style={{
+                                    background: 'rgba(59, 130, 246, 0.06)',
+                                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                                    borderRadius: '10px',
+                                    padding: '14px 16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
+                                  }}>
+                                    <span style={{ fontSize: '18px' }}>⏳</span>
+                                    <div>
+                                      <div style={{ color: '#60a5fa', fontWeight: 600, fontSize: 'var(--text-xs)' }}>Re-sign Request Pending</div>
+                                      <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '2px' }}>
+                                        Your request is being reviewed by the administrator. You will be notified once approved.
+                                      </div>
+                                      {regenRequest.reason && (
+                                        <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '4px', fontStyle: 'italic' }}>Reason: "{regenRequest.reason}"</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Rejected regen request status */}
+                                {regenRequest && regenRequest.status === 'rejected' && (
+                                  <div style={{
+                                    background: 'rgba(239, 68, 68, 0.06)',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    borderRadius: '10px',
+                                    padding: '14px 16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
+                                  }}>
+                                    <span style={{ fontSize: '18px' }}>❌</span>
+                                    <div>
+                                      <div style={{ color: '#f87171', fontWeight: 600, fontSize: 'var(--text-xs)' }}>Re-sign Request Rejected</div>
+                                      <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '2px' }}>
+                                        {regenRequest.admin_note ? `Admin note: "${regenRequest.admin_note}"` : 'Your request was not approved. Contact your administrator for details.'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                  <button
+                                    onClick={() => window.open(`/agreement-print`, '_blank')}
+                                    className="btn btn-primary"
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}
+                                  >
+                                    📄 View / Download Agreement PDF
+                                  </button>
+                                  {/* Request Re-sign button — only if no pending/approved request */}
+                                  {(!regenRequest || ['rejected', 'resolved'].includes(regenRequest.status)) && (
+                                    <button
+                                      onClick={() => setShowRegenModal(true)}
+                                      className="btn btn-secondary"
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}
+                                    >
+                                      🔄 Request Re-sign
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Re-sign Request Modal */}
+                                {showRegenModal && (
+                                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                                    <div style={{ background: 'var(--color-surface)', border: 'var(--border-light)', borderRadius: '16px', padding: '28px', maxWidth: '440px', width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                      <h3 style={{ margin: 0, fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--color-text-primary)' }}>🔄 Request Agreement Re-sign</h3>
+                                      <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+                                        Please provide a reason for requesting a re-sign. The administrator will review your request and approve or reject it. Upon approval, you can upload your corrected signature.
+                                      </p>
+                                      <div className="input-group">
+                                        <label className="input-label">Reason for Re-sign Request *</label>
+                                        <textarea
+                                          className="input-field"
+                                          placeholder="E.g., I uploaded the wrong signature by mistake..."
+                                          value={regenReason}
+                                          onChange={(e) => setRegenReason(e.target.value)}
+                                          rows={3}
+                                          style={{ resize: 'vertical' }}
+                                        />
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button
+                                          className="btn btn-primary"
+                                          style={{ flex: 1, justifyContent: 'center' }}
+                                          disabled={!regenReason.trim() || regenLoading}
+                                          onClick={async () => {
+                                            if (!regenReason.trim()) return;
+                                            setRegenLoading(true);
+                                            try {
+                                              const { error } = await supabase
+                                                .from('agreement_regen_requests')
+                                                .insert({
+                                                  agent_id: user.id,
+                                                  requested_by: 'agent',
+                                                  status: 'pending',
+                                                  reason: regenReason.trim(),
+                                                });
+                                              if (error) {
+                                                alert('Failed to submit request: ' + error.message);
+                                              } else {
+                                                setShowRegenModal(false);
+                                                setRegenReason('');
+                                                await fetchAgreement(user.id);
+                                              }
+                                            } catch (err) {
+                                              console.error(err);
+                                            } finally {
+                                              setRegenLoading(false);
+                                            }
+                                          }}
+                                        >
+                                          {regenLoading ? 'Submitting…' : 'Submit Request'}
+                                        </button>
+                                        <button
+                                          className="btn btn-secondary"
+                                          style={{ flex: 1, justifyContent: 'center' }}
+                                          onClick={() => { setShowRegenModal(false); setRegenReason(''); }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                            ) : completion < 100 ? (
+                              /* Blocked view: Profile not complete */
+                              <div style={{ display: 'grid', gap: '16px' }}>
+                                <div style={{
+                                  background: 'rgba(245, 158, 11, 0.05)',
+                                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                                  padding: '20px',
+                                  borderRadius: '12px',
+                                  color: 'var(--color-text-secondary)',
+                                  lineHeight: '1.6'
+                                }}>
+                                  <h3 style={{ color: '#f59e0b', fontSize: 'var(--text-md)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
+                                    Profile Completion Required
+                                  </h3>
+                                  Before you can sign and generate the Direct Selling Agent (DSA) Partner Agreement, you must complete your agent profile. Currently, your profile is <strong>{completion}%</strong> complete.
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '8px' }}>Missing Fields:</div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {(() => {
+                                      const fieldMap = [
+                                        { key: 'full_name', label: 'Full Name' },
+                                        { key: 'email', label: 'Email Address' },
+                                        { key: 'phone', label: 'Mobile Number' },
+                                        { key: 'dob', label: 'Date of Birth' },
+                                        { key: 'fathers_name', label: "Father&apos;s Name" },
+                                        { key: 'current_address', label: 'Current Address' },
+                                        { key: 'permanent_address', label: 'Permanent Address' },
+                                        { key: 'pincode', label: 'Pincode' },
+                                        { key: 'marital_status', label: 'Marital Status' },
+                                        { key: 'avatar', label: 'Profile Picture' },
+                                        { key: 'id_type', label: 'ID Proof Type' },
+                                        { key: 'id_number', label: 'ID Proof Number' },
+                                        { key: 'id_file', label: 'ID Document File' }
+                                      ];
+                                      return fieldMap.filter(f => !profileFormData[f.key] || profileFormData[f.key].toString().trim() === '').map(f => (
+                                        <span key={f.key} style={{ fontSize: '11px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '4px 10px', borderRadius: '12px' }}>
+                                          • {f.label}
+                                        </span>
+                                      ));
+                                    })()}
+                                  </div>
+                                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '16px' }}>
+                                    Please go to the <strong>Profile Code</strong> tab and fill out all missing details to unlock agreement generation.
+                                  </p>
+                                </div>
+                              </div>
+                            ) : !profile?.profile_locked ? (
+                              /* Blocked view: Profile not locked/verified by admin */
+                              <div style={{ display: 'grid', gap: '16px' }}>
+                                <div style={{
+                                  background: 'rgba(59, 130, 246, 0.05)',
+                                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                                  padding: '20px',
+                                  borderRadius: '12px',
+                                  color: 'var(--color-text-secondary)',
+                                  lineHeight: '1.6'
+                                }}>
+                                  <h3 style={{ color: '#3b82f6', fontSize: 'var(--text-md)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
+                                    Profile Verification Pending
+                                  </h3>
+                                  Your profile details are 100% complete! However, before you can sign and generate the Direct Selling Agent (DSA) Partner Agreement, the administrator must verify and lock your profile details.
+                                </div>
+                                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                                  Your details have been submitted. Once the admin reviews and locks your profile, you will be able to sign the agreement here.
+                                </p>
+                              </div>
+                            ) : (
+                              /* Active Sign Form */
+                              <div style={{ display: 'grid', gap: '20px' }}>
+                                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: '1.6' }}>
+                                  Please read the appointment agreement document carefully below. To sign and execute the agreement, scroll to the bottom, check the confirmation box, upload a scanned image of your signature, and submit.
+                                </div>
+
+                                <div style={{
+                                  maxHeight: '300px',
+                                  overflowY: 'scroll',
+                                  padding: '20px',
+                                  background: 'rgba(0,0,0,0.25)',
+                                  border: 'var(--border-light)',
+                                  borderRadius: '8px',
+                                  fontSize: '11px',
+                                  lineHeight: '1.7',
+                                  color: 'var(--color-text-secondary)',
+                                  textAlign: 'justify'
+                                }}>
+                                  <h3 style={{ textAlign: 'center', color: '#fff', fontSize: '14px', fontWeight: 800, marginBottom: '4px', textTransform: 'uppercase' }}>
+                                    DIRECT SELLING AGENT (DSA)
+                                  </h3>
+                                  <h4 style={{ textAlign: 'center', color: 'var(--color-primary)', fontSize: '12px', fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase' }}>
+                                    LOAN AGENT / CONNECTOR APPOINTMENT AGREEMENT
+                                  </h4>
+                                  <div style={{ fontSize: '10px', textAlign: 'center', color: 'var(--color-text-tertiary)', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '6px 0', marginBottom: '16px' }}>
+                                    CONFIDENTIAL DOCUMENT — FOR INTERNAL & EXECUTION USE ONLY
+                                  </div>
+                                  <p>This Direct Selling Agent (DSA) / Loan Agent / Connector Appointment Agreement (&quot;Agreement&quot;) is executed and made effective on the date mentioned in Part A below, in accordance with Section 10 of the Indian Contract Act, 1872 and Section 10A of the Information Technology Act, 2000 (which recognises the validity of contracts formed and authenticated through electronic means), by and between:</p>
+                                  <p style={{ marginTop: '10px' }}><strong>HandToHand Loans</strong>, a business engaged in loan distribution, financial services, customer acquisition and allied lending-support activities, having its registered/business office as per its official records (hereinafter referred to as the &quot;Company&quot;, which expression shall, unless repugnant to the context, include its successors, assigns, affiliates and authorised representatives);</p>
+                                  <p style={{ textAlign: 'center', fontWeight: 'bold', margin: '12px 0' }}>AND</p>
+                                  <p>The individual / proprietorship / partnership / entity whose particulars are set out in the agent profile (hereinafter referred to as the &quot;Agent&quot; or &quot;DSA&quot;, which expression shall, unless repugnant to the context, include their legal heirs, successors and permitted assigns).</p>
+                                  <p style={{ marginTop: '14px', borderLeft: '3px solid var(--color-primary)', paddingLeft: '8px', fontStyle: 'italic', color: 'var(--color-text-secondary)' }}>
+                                    <strong>Statutory Reference:</strong> This Agreement is governed by the Indian Contract Act, 1872; the Reserve Bank of India (Digital Lending) Directions, 2025; the Digital Personal Data Protection Act, 2023; the Information Technology Act, 2000 (as amended); the Bharatiya Nyaya Sanhita, 2023; the Consumer Protection Act, 2019; and the Arbitration and Conciliation Act, 1996, as detailed in the relevant clauses below.
+                                  </p>
+
+                                  <h5 style={{ color: '#fff', fontWeight: 800, marginTop: '20px', marginBottom: '8px', textTransform: 'uppercase', fontSize: '11px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>PART B — TERMS & CONDITIONS</h5>
+                                  
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '14px', marginBottom: '6px', fontSize: '11px' }}>1. APPOINTMENT & STATUS OF THE AGENT</h6>
+                                  <p>The Company hereby appoints the Agent as a Non-Exclusive Direct Selling Agent (DSA) / Lending Service Provider (LSP)-affiliated connector for the purpose of sourcing prospective customers for various loan products offered through HandToHand Loans and its partner Regulated Entities (banks/NBFCs), in accordance with the Reserve Bank of India (Digital Lending) Directions, 2025 and the RBI Master Direction on Outsourcing of Financial Services.</p>
+                                  <p style={{ marginTop: '8px' }}>The Agent shall act strictly as an Independent Contractor and shall not, under any circumstances, be deemed or construed to be an employee, partner, co-venturer, legal representative, or agent (in the legal sense of agency under Chapter X of the Indian Contract Act, 1872) of the Company for any purpose, including taxation, labour law, or provident fund obligations.</p>
+                                  
+                                  <p style={{ fontWeight: 'bold', marginTop: '12px', marginBottom: '6px' }}>The Agent SHALL:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 12px 0', listStyleType: 'square' }}>
+                                    <li>Source eligible prospective loan customers in a fair, transparent and non-coercive manner.</li>
+                                    <li>Assist customers in accurately completing loan applications.</li>
+                                    <li>Help customers upload and submit the required KYC and supporting documents.</li>
+                                    <li>Coordinate communication between the customer and the Company / lending institution.</li>
+                                    <li>Ensure the customer is shown the Key Fact Statement (KFS) and relevant disclosures issued by the lending institution before the loan offer is accepted, in line with RBI&apos;s KFS norms under the RBI (Digital Lending) Directions, 2025.</li>
+                                  </ul>
+
+                                  <p style={{ fontWeight: 'bold', marginTop: '12px', marginBottom: '6px' }}>The Agent shall NOT:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 12px 0', listStyleType: 'square' }}>
+                                    <li>Approve, sanction, reject, or disburse any loan.</li>
+                                    <li>Commit any approval, rate, or term on behalf of the Company or the lending institution.</li>
+                                    <li>Sign any loan document, agreement, or undertaking on behalf of HandToHand Loans.</li>
+                                    <li>Collect, hold, or route any loan disbursement or repayment amount through a personal or third-party pass-through account — disbursal and repayment must flow directly between the Regulated Entity and the borrower, as mandated under the RBI (Digital Lending) Directions, 2025.</li>
+                                    <li>Represent itself as an employee, officer, or decision-making authority of the Company.</li>
+                                  </ul>
+                                  
+                                  <p style={{ marginTop: '8px' }}>All lending, underwriting, sanction, and disbursement decisions shall remain solely and exclusively with the lending institution / Regulated Entity and/or the Company, as applicable.</p>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> Reserve Bank of India (Digital Lending) Directions, 2025 (effective 8 May 2025), read with the RBI Guidelines on Managing Risks and Code of Conduct in Outsourcing of Financial Services; and Chapter X of the Indian Contract Act, 1872 (Law of Agency).
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>2. COMMISSION & PAYOUT</h6>
+                                  <p>The Agent shall be entitled to commission only upon the successful disbursement of the loan directly into the borrower&apos;s verified bank account by the Regulated Entity, and not otherwise.</p>
+                                  <p style={{ fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>No commission shall be payable merely for:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'circle' }}>
+                                    <li>Lead generation.</li>
+                                    <li>Customer registration.</li>
+                                    <li>Application submission.</li>
+                                    <li>Document collection.</li>
+                                    <li>Loan approval.</li>
+                                    <li>Loan sanction (without disbursement).</li>
+                                  </ul>
+                                  <p style={{ fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>Commission shall become payable only after:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'circle' }}>
+                                    <li>Successful and complete loan disbursement to the borrower&apos;s bank account.</li>
+                                    <li>Completion of KYC verification in compliance with RBI / PMLA norms.</li>
+                                    <li>Compliance with all applicable Company policies and the conduct requirements under the RBI (Digital Lending) Directions, 2025.</li>
+                                  </ul>
+                                  <p>The Company reserves the right to revise the commission structure at its sole discretion by providing the Agent prior written notice of not less than fifteen (15) days. Where fraud, forged documents, policy violations, mis-selling, or misrepresentation by the Agent is detected, the Company may withhold, adjust, set-off, or recover any pending or future commissions, without prejudice to its other legal remedies, including criminal action under the Bharatiya Nyaya Sanhita, 2023.</p>
+                                  <p style={{ marginTop: '8px' }}>All commission payouts shall be subject to deduction of tax at source (TDS) under the Income-tax Act, 1961, and applicable Goods and Services Tax (GST) compliance under the Central Goods and Services Tax Act, 2017, as may be applicable to the Agent.</p>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> RBI (Digital Lending) Directions, 2025; Prevention of Money Laundering Act, 2002 (PMLA) and Rules thereunder; Income-tax Act, 1961; and the Central Goods and Services Tax Act, 2017.
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>3. EMI FOLLOW-UP RESPONSIBILITY</h6>
+                                  <p>After successful loan disbursement, the Agent shall maintain reasonable customer follow-up for a period of six (6) months from the date of the first Equated Monthly Instalment (EMI), strictly within the bounds of the RBI&apos;s Fair Practices Code and the conduct norms applicable to recovery-related communication.</p>
+                                  <p style={{ fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>The Agent shall:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'square' }}>
+                                    <li>Explain the EMI schedule to the customer.</li>
+                                    <li>Inform the customer about repayment dates.</li>
+                                    <li>Remind customers regarding upcoming EMI payments through fair and non-coercive communication.</li>
+                                    <li>Immediately inform the Company of any indication or likelihood of default.</li>
+                                    <li>Cooperate with the Company / Regulated Entity in customer communication relating to repayment, without holding out as an authorised recovery agent unless separately appointed and disclosed to the borrower in advance, as required under the RBI (Digital Lending) Directions, 2025.</li>
+                                  </ul>
+                                  <p style={{ fontWeight: 'bold' }}>For the avoidance of doubt, the Agent shall not be personally liable to pay the customer&apos;s EMI or any outstanding loan amount, and shall not use any threat, coercion, undue harassment, or misrepresentation while communicating with customers, failing which the Agent may additionally be liable under the provisions of the Bharatiya Nyaya Sanhita, 2023 relating to criminal intimidation and harassment.</p>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> RBI (Digital Lending) Directions, 2025 (recovery-agent disclosure and fair-conduct norms); Bharatiya Nyaya Sanhita, 2023, Section 351 (criminal intimidation).
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>4. CUSTOMER CHARGES & UNAUTHORISED COLLECTIONS</h6>
+                                  <p>The Agent shall not collect, demand, or receive any unauthorised fee, processing charge, commission, security deposit, membership fee, or any other amount from customers in the name of HandToHand Loans or any partner Regulated Entity, unless expressly authorised in writing by the Company.</p>
+                                  <p style={{ fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>Any unauthorised collection of money shall constitute serious misconduct and may result in:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'square' }}>
+                                    <li>Immediate termination of this Agreement.</li>
+                                    <li>Cancellation and recovery of pending and future commissions.</li>
+                                    <li>Recovery of losses caused to the Company, customers, or the Regulated Entity.</li>
+                                    <li>Criminal action for cheating and dishonest inducement under Section 318 of the Bharatiya Nyaya Sanhita, 2023, and/or for criminal breach of trust, in addition to civil proceedings under applicable law.</li>
+                                    <li>Reporting to the relevant Regulated Entity and, where applicable, to the RBI&apos;s Complaint Management System (CMS) / Sachet Portal.</li>
+                                  </ul>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> Bharatiya Nyaya Sanhita, 2023, Section 318 (cheating) and provisions relating to criminal breach of trust; RBI (Digital Lending) Directions, 2025 (grievance-redressal and Sachet Portal escalation).
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>5. AGENT RESPONSIBILITIES & STANDARDS OF CONDUCT</h6>
+                                  <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>The Agent shall:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'circle' }}>
+                                    <li>Follow all applicable Indian laws, rules, and regulatory requirements at all times.</li>
+                                    <li>Follow RBI guidelines, directions, and circulars wherever applicable, including the RBI (Digital Lending) Directions, 2025.</li>
+                                    <li>Maintain accurate and complete customer records.</li>
+                                    <li>Submit documents honestly and verify their authenticity before submission.</li>
+                                    <li>Maintain professional conduct in all customer and Company interactions.</li>
+                                    <li>Protect customer interests and act in good faith at all times.</li>
+                                    <li>Immediately report any suspicious, fraudulent, or non-compliant activity to the Company.</li>
+                                  </ul>
+                                  <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>The Agent shall not:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'circle' }}>
+                                    <li>Submit fake, forged, or fabricated documents.</li>
+                                    <li>Forge signatures of customers, Company officials, or any third party.</li>
+                                    <li>Mislead customers regarding loan terms, eligibility, or approval likelihood.</li>
+                                    <li>Give false promises regarding loan approval, interest rates, or disbursement timelines.</li>
+                                    <li>Misrepresent Company policies, products, or affiliations.</li>
+                                  </ul>
+                                  <p>Any act of forgery, fabrication of documents, or impersonation by the Agent shall attract liability under the Bharatiya Nyaya Sanhita, 2023 (offences relating to forgery and false documents) and the Bharatiya Sakshya Adhiniyam, 2023 (admissibility of electronic and documentary evidence in any resulting proceedings), in addition to termination of this Agreement.</p>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> Bharatiya Nyaya Sanhita, 2023 (offences of forgery, cheating and impersonation); Bharatiya Sakshya Adhiniyam, 2023 (evidentiary value of electronic records).
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>6. CONFIDENTIALITY & DATA PROTECTION</h6>
+                                  <p>The Agent shall maintain strict confidentiality of all customer and Company information that comes into its possession in the course of this engagement, including but not limited to:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'square' }}>
+                                    <li>Customer information, PAN, Aadhaar, bank statements, income documents and other personal/financial data.</li>
+                                    <li>Login credentials, system access codes, and digital lending application (DLA) credentials.</li>
+                                    <li>Internal pricing, commission structures, and business strategy.</li>
+                                    <li>Any other confidential or proprietary business information of the Company.</li>
+                                  </ul>
+                                  <p>The Agent acknowledges that all customer personal data collected, processed, or accessed in the course of this Agreement constitutes &quot;personal data&quot; under the Digital Personal Data Protection Act, 2023 (&quot;DPDP Act&quot;), and the Agent shall act strictly as a person processing data on behalf of, and under the instructions of, the Company (as Data Fiduciary). The Agent shall:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '8px 0 10px 0', listStyleType: 'square' }}>
+                                    <li>Collect and process personal data only for the specific, lawful purpose of loan facilitation, and only with the informed consent of the customer.</li>
+                                    <li>Not retain, copy, transfer, or use customer personal data for any purpose beyond the scope of this Agreement.</li>
+                                    <li>Not store or transmit customer personal data outside India except as permitted by the Company and in compliance with the DPDP Act, 2023.</li>
+                                    <li>Immediately notify the Company of any actual or suspected personal data breach, to enable the Company to comply with its breach-notification obligations under the DPDP Act, 2023.</li>
+                                    <li>Delete or render inaccessible all customer personal data in its possession immediately upon termination of this Agreement or completion of the purpose for which it was collected, whichever is earlier.</li>
+                                  </ul>
+                                  <p>The confidentiality and data-protection obligations under this Clause shall survive termination of this Agreement. Unauthorised disclosure, misuse, or breach of customer data may result in civil liability, regulatory action by the Data Protection Board of India under the DPDP Act, 2023, and criminal prosecution under the Information Technology Act, 2000 and the Bharatiya Nyaya Sanhita, 2023.</p>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> Digital Personal Data Protection Act, 2023; Information Technology Act, 2000, Sections 43A and 72A (compensation and punishment for breach of data/privacy); Bharatiya Nyaya Sanhita, 2023.
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>7. CODE OF CONDUCT</h6>
+                                  <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>The Agent shall:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'circle' }}>
+                                    <li>Behave professionally and courteously with all customers.</li>
+                                    <li>Treat customers fairly and without discrimination.</li>
+                                    <li>Avoid misleading advertisements or promotional claims.</li>
+                                    <li>Avoid false commitments regarding loan products or outcomes.</li>
+                                    <li>Maintain and safeguard the reputation, brand, and goodwill of HandToHand Loans.</li>
+                                  </ul>
+                                  <p>The Company may terminate this Agreement immediately, without notice, if the Agent&apos;s conduct damages or is reasonably likely to damage the Company&apos;s reputation, brand, or relationships with its partner Regulated Entities.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>8. TERM & TERMINATION</h6>
+                                  <p>This Agreement shall remain valid for one (1) year from the date of execution and may be renewed by mutual written consent of both parties. Either party may terminate this Agreement by giving thirty (30) days&apos; prior written notice to the other party.</p>
+                                  <p style={{ fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>The Company may terminate this Agreement immediately, without notice, in case of:</p>
+                                  <ul style={{ paddingLeft: '16px', margin: '0 0 10px 0', listStyleType: 'square' }}>
+                                    <li>Fraud, cheating, or misrepresentation by the Agent.</li>
+                                    <li>Data theft, breach of confidentiality, or use of forged documents.</li>
+                                    <li>Any breach of the terms of this Agreement.</li>
+                                    <li>Customer complaints involving misconduct, harassment, or unauthorised collection.</li>
+                                    <li>Violation of Company policies, RBI guidelines, or applicable law.</li>
+                                  </ul>
+                                  <p>Upon termination, for any reason whatsoever, the Agent shall immediately cease using the Company&apos;s name, logo, branding, systems, login credentials, and marketing materials, and shall return or destroy (and certify destruction of) all confidential information and customer data in its possession, in accordance with Clause 6 above.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>9. INDEMNITY</h6>
+                                  <p>The Agent agrees to indemnify, defend, and keep the Company (and its officers, directors, employees, and partner Regulated Entities) fully indemnified and harmless against any and all claims, damages, losses, penalties, regulatory fines, legal expenses, or liabilities arising out of or in connection with the Agent&apos;s negligence, fraud, misconduct, breach of this Agreement, or violation of applicable law, including any liability or penalty (up to ₹1 crore or as may be prescribed) imposed on the Company under the RBI (Digital Lending) Directions, 2025 on account of the Agent&apos;s acts or omissions.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>10. INTELLECTUAL PROPERTY</h6>
+                                  <p>All trademarks, trade names, logos (including the &quot;HandToHand Loans&quot; name and logo), software, branding, websites, customer databases, and marketing materials used by the Company remain the exclusive intellectual property of HandToHand Loans, protected under the Trade Marks Act, 1999 and the Copyright Act, 1957, as applicable. The Agent shall not copy, reproduce, modify, or otherwise misuse any Company intellectual property without the Company&apos;s prior written permission, and any such unauthorised use may attract civil and criminal liability, including under the Bharatiya Nyaya Sanhita, 2023.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>11. DATA PRIVACY & DIGITAL LENDING COMPLIANCE</h6>
+                                  <p>In addition to the obligations under Clause 6, the Agent shall comply with all applicable data-protection and digital-lending norms, including the Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 (and the rules made thereunder, including the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011), and the RBI (Digital Lending) Directions, 2025. Customer information shall be used strictly for authorised business purposes connected with this Agreement and for no other purpose.</p>
+                                  <p style={{ marginTop: '8px' }}>The Agent shall not access, on behalf of any Digital Lending App (DLA), any mobile-device resource of the customer (such as files, media, contact lists, call logs, or telephony functions) except with the customer&apos;s explicit, informed, and need-based consent, in line with RBI&apos;s data-minimisation norms under the RBI (Digital Lending) Directions, 2025.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>12. LEGAL JURISDICTION</h6>
+                                  <p>Any dispute arising out of or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts situated at Agra/Firozabad, Uttar Pradesh, India. This clause is subject to the arbitration mechanism set out in Clause 13.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>13. GOVERNING LAW & DISPUTE RESOLUTION</h6>
+                                  <p>This Agreement shall be governed by and construed in accordance with the laws of India, including the Indian Contract Act, 1872. The parties shall first attempt to resolve any dispute, controversy, or claim arising out of or in connection with this Agreement amicably through good-faith negotiation. If such dispute remains unresolved within thirty (30) days, it shall be referred to and finally resolved by arbitration in accordance with the Arbitration and Conciliation Act, 1996 (as amended), by a sole arbitrator appointed by the Company. The seat and venue of arbitration shall be decided by the Company, unless otherwise mutually agreed in writing, and the arbitral proceedings shall be conducted in English.</p>
+                                  <p style={{ marginTop: '8px' }}>Subject to the arbitration clause above, the courts at the place decided by the Company shall have exclusive jurisdiction over any matter not capable of being referred to arbitration. Nothing in this Clause shall preclude the Company from pursuing criminal remedies under the Bharatiya Nyaya Sanhita, 2023 and the Bharatiya Nagarik Suraksha Sanhita, 2023 in respect of any fraudulent or criminal act by the Agent.</p>
+                                  <p style={{ fontStyle: 'italic', color: 'var(--color-text-tertiary)', marginTop: '8px' }}>
+                                    <strong>Statutory Reference:</strong> Arbitration and Conciliation Act, 1996 (as amended by the Arbitration and Conciliation (Amendment) Acts of 2015, 2019 and 2021); Bharatiya Nagarik Suraksha Sanhita, 2023 (criminal procedure).
+                                  </p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>14. STAMP DUTY & ELECTRONIC EXECUTION</h6>
+                                  <p>This Agreement shall be subject to applicable stamp duty under the Indian Stamp Act, 1899 and the corresponding State Stamp Act/Rules, to be borne as mutually agreed or as required by law. Where this Agreement is executed electronically, such execution and the electronic/digital signatures of the parties shall be valid and legally binding under Section 10A and Section 3A of the Information Technology Act, 2000, and shall be admissible as evidence under the Bharatiya Sakshya Adhiniyam, 2023.</p>
+
+                                  <h6 style={{ color: '#fff', fontWeight: 700, marginTop: '16px', marginBottom: '6px', fontSize: '11px' }}>15. ENTIRE AGREEMENT & AMENDMENT</h6>
+                                  <p>This Agreement, along with Part A and any annexures, constitutes the complete and entire understanding between the Company and the Agent in relation to its subject matter, and supersedes all prior discussions, representations, or agreements, whether oral or written. No verbal communication shall modify, waive, or supersede this Agreement. Any amendment shall be valid and binding only if made in writing and signed (including by valid electronic signature) by authorised representatives of both parties.</p>
+                                </div>
+
+                                <form onSubmit={async (e) => {
+                                  e.preventDefault();
+                                  if (!agreeTerms || !signatureFile) return;
+                                  setSigningLoading(true);
+                                  setSigningError('');
+                                  setSigningSuccess('');
+
+                                  try {
+                                    const codeNo = profile.agent_code || '';
+                                    const formattedCode = codeNo.replace('H2H-', '');
+                                    const agreementNo = `H2H-DSA-${formattedCode || Math.floor(10000 + Math.random() * 90000)}`;
+                                    
+                                    const { data, error } = await supabase
+                                      .from('agent_agreements')
+                                      .insert({
+                                        agent_id: profile.id,
+                                        agreement_no: agreementNo,
+                                        signature_base64: signatureFile,
+                                        status: 'active'
+                                      })
+                                      .select()
+                                      .single();
+
+                                    if (error) {
+                                      setSigningError(error.message);
+                                    } else {
+                                      setSigningSuccess('Agreement signed and generated successfully!');
+                                      setAgreement(data);
+
+                                      // Auto-resolve any active/pending regen request in the DB
+                                      if (regenRequest) {
+                                        await supabase.from('agreement_regen_requests')
+                                          .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                                          .eq('id', regenRequest.id);
+                                        setRegenRequest(null);
+                                      }
+                                    }
+                                  } catch (err) {
+                                    setSigningError('An unexpected error occurred. Please try again.');
+                                    console.error(err);
+                                  } finally {
+                                    setSigningLoading(false);
+                                  }
+                                }} style={{ display: 'grid', gap: '16px' }}>
+                                  
+                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                    <input
+                                      type="checkbox"
+                                      id="agree_terms_chk"
+                                      checked={agreeTerms}
+                                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                                      style={{ marginTop: '3px', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="agree_terms_chk" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+                                      I confirm that I have read, understood, and agree to be bound by all the terms, conditions, code of conduct, and statutory guidelines of the appointment agreement.
+                                    </label>
+                                  </div>
+
+                                  <div className="input-group">
+                                    <label className="input-label">Upload Scanned Signature (JPEG / PNG)</label>
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg, image/png"
+                                      className="input-field"
+                                      onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+                                        if (file.size > 1024 * 1024) {
+                                          alert("Signature image must be under 1MB.");
+                                          e.target.value = '';
+                                          return;
+                                        }
+                                        const reader = new FileReader();
+                                        reader.onload = () => {
+                                          setSignatureFile(reader.result);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }}
+                                      required={!signatureFile}
+                                    />
+                                    {signatureFile && (
+                                      <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>Signature Preview:</div>
+                                        <div style={{
+                                          background: '#fff',
+                                          border: 'var(--border-subtle)',
+                                          padding: '8px',
+                                          borderRadius: '6px',
+                                          width: 'max-content',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}>
+                                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                                          <img src={signatureFile} alt="Uploaded Signature Preview" style={{ maxHeight: '60px', width: 'auto' }} />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ width: 'max-content', padding: '4px 10px', fontSize: '10px' }}
+                                          onClick={() => setSignatureFile('')}
+                                        >
+                                          Clear Signature
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {signingError && <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-error)' }}>{signingError}</div>}
+                                  {signingSuccess && <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-success)' }}>✓ {signingSuccess}</div>}
+
+                                  <button
+                                    type="submit"
+                                    className="btn btn-primary btn-lg"
+                                    style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
+                                    disabled={!agreeTerms || !signatureFile || signingLoading}
+                                  >
+                                    {signingLoading ? 'Generating Partner Agreement...' : '✍Generate & Sign Agreement'}
+                                  </button>
+                                </form>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* TAB 3: Earnings & Payment History */}
                       {activeTab === 'earnings' && (
@@ -2855,8 +3829,7 @@ export default function UserDashboard() {
                                             className="btn btn-secondary btn-sm"
                                             style={{ margin: 0, padding: '6px 12px', fontSize: '11px' }}
                                           >
-                                            View Details 👁️
-                                          </button>
+                                            View Details 👁</button>
                                         </td>
                                       </tr>
                                     ))}
@@ -2874,7 +3847,7 @@ export default function UserDashboard() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                             <div>
                               <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                🏆 H2H Partner Leaderboard
+                                H2H Partner Leaderboard
                               </h2>
                               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
                                 Compete with our top financial partners across the network. Updates in real-time!
@@ -2904,10 +3877,10 @@ export default function UserDashboard() {
                                 marginBottom: '24px',
                                 fontSize: 'var(--text-sm)'
                               }}>
-                                ⚠️ <strong>Admin configuration pending:</strong> Live rankings query helper not yet loaded in Supabase. Showing demo partner rankings below. Run the script <code>scripts/setup-leaderboard-rpc.sql</code> inside Supabase to connect live data.
+                                <strong>Admin configuration pending:</strong> Live rankings query helper not yet loaded in Supabase. Showing demo partner rankings below. Run the script <code>scripts/setup-leaderboard-rpc.sql</code> inside Supabase to connect live data.
                               </div>
                               
-                              <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 600, marginBottom: '16px' }}>🏆 Current Demo Standings</h3>
+                              <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 600, marginBottom: '16px' }}>Current Demo Standings</h3>
                               <div style={{ display: 'grid', gap: '12px' }}>
                                 {[
                                   { agent_rank: 1, masked_name: 'Amit Sharma (You)', disbursed_volume: 8500000, is_current_user: true },
@@ -2945,7 +3918,7 @@ export default function UserDashboard() {
                                                     'rgba(255, 255, 255, 0.05)',
                                         color: item.agent_rank <= 3 ? '#ffffff' : 'var(--color-text-secondary)'
                                       }}>
-                                        {item.agent_rank === 1 ? '🥇' : item.agent_rank === 2 ? '🥈' : item.agent_rank === 3 ? '🥉' : item.agent_rank}
+                                        {item.agent_rank === 1 ? '' : item.agent_rank === 2 ? '' : item.agent_rank === 3 ? '' : item.agent_rank}
                                       </div>
                                       <div>
                                         <span style={{ fontWeight: 600, color: item.is_current_user ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
@@ -2999,7 +3972,7 @@ export default function UserDashboard() {
                                                     'rgba(255, 255, 255, 0.05)',
                                         color: item.agent_rank <= 3 ? '#ffffff' : 'var(--color-text-secondary)'
                                       }}>
-                                        {item.agent_rank === 1 ? '🥇' : item.agent_rank === 2 ? '🥈' : item.agent_rank === 3 ? '🥉' : item.agent_rank}
+                                        {item.agent_rank === 1 ? '' : item.agent_rank === 2 ? '' : item.agent_rank === 3 ? '' : item.agent_rank}
                                       </div>
                                       <div>
                                         <span style={{ fontWeight: 600, color: item.is_current_user ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
@@ -3050,20 +4023,20 @@ export default function UserDashboard() {
             <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Request Earnings Payout</h3>
-                <button onClick={() => setPayoutModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>Ã—</button>
+                <button onClick={() => setPayoutModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.05)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-success)' }}>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Available Balance:</span>
-                <span style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-success)' }}>â‚¹{availableBalance.toLocaleString('en-IN')}</span>
+                <span style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-success)' }}>₹{availableBalance.toLocaleString('en-IN')}</span>
               </div>
 
-              {payoutError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>âš  {payoutError}</div>}
-              {payoutSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>âœ“ {payoutSuccess}</div>}
+              {payoutError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>{payoutError}</div>}
+              {payoutSuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {payoutSuccess}</div>}
 
               <form onSubmit={handlePayoutSubmit} style={{ display: 'grid', gap: '16px' }}>
                 <div className="input-group">
-                  <label className="input-label">Request Amount (â‚¹)</label>
+                  <label className="input-label">Request Amount (₹)</label>
                   <input
                     type="number"
                     className="input-field"
@@ -3255,7 +4228,7 @@ export default function UserDashboard() {
                   letterSpacing: '0.05em',
                   marginBottom: '6px'
                 }}>
-                  <span>💬 MANDATORY: JOIN WHATSAPP COMMUNITY</span>
+                  <span>MANDATORY: JOIN WHATSAPP COMMUNITY</span>
                 </div>
                 <p style={{
                   fontSize: 'var(--text-xs)',
@@ -3287,8 +4260,7 @@ export default function UserDashboard() {
                     margin: 0
                   }}
                 >
-                  Join Official WhatsApp Group 💬
-                </a>
+                  Join Official WhatsApp Group </a>
               </div>
 
               {profile?.profile_update_message && (
@@ -3311,7 +4283,7 @@ export default function UserDashboard() {
                     letterSpacing: '0.05em',
                     marginBottom: '6px'
                   }}>
-                    <span>âš  Message from Administrator:</span>
+                    <span>Message from Administrator:</span>
                   </div>
                   <p style={{
                     fontSize: 'var(--text-sm)',
@@ -3364,7 +4336,7 @@ export default function UserDashboard() {
                   return (
                     <div style={{ marginTop: '12px' }}>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-error)', fontWeight: 600, marginBottom: '6px' }}>
-                        âš  Missing Fields ({missing.length}):
+                        Missing Fields ({missing.length}):
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {missing.map(f => (
@@ -3490,7 +4462,7 @@ export default function UserDashboard() {
                         {payoutRequests.map((req) => (
                           <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                             <td style={{ padding: '8px 12px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>â‚¹{Number(req.amount).toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
                             <td style={{ padding: '8px 12px' }}>{req.upi_id ? 'UPI' : 'Bank'}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                               <span className="badge" style={{ ...getStatusBadgeStyle(req.status), fontSize: '8px', padding: '2px 6px', display: 'inline-block' }}>
@@ -3648,7 +4620,7 @@ export default function UserDashboard() {
                   if (matchedPolicy?.direct_submit) {
                     return (
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)' }}>📥 Admin Processing Mode</div>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)' }}>Admin Processing Mode</div>
                         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
                           This bank uses Direct Submit. The administrator is currently applying for this loan on your behalf.
                         </div>
@@ -3682,7 +4654,7 @@ export default function UserDashboard() {
                               window.open(blobUrl, '_blank');
                             }}
                           >
-                            📄 View Policy PDF
+                            View Policy PDF
                           </button>
                         )}
                       </div>
@@ -3692,7 +4664,7 @@ export default function UserDashboard() {
                   if (hasCredentials) {
                     return (
                       <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 {selectedApplication.bank_name} Partner Portal</div>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>{selectedApplication.bank_name} Partner Portal</div>
                         
                         {(username || password) && (
                           <div style={{
@@ -3705,17 +4677,17 @@ export default function UserDashboard() {
                             display: 'grid',
                             gap: '6px'
                           }}>
-                            <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                            <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>Partner Login Details:</div>
                             {username && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <span>• <strong>Login User ID:</strong> {username}</span>
-                                <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                               </div>
                             )}
                             {password && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <span>• <strong>Password / Contact:</strong> {password}</span>
-                                <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                               </div>
                             )}
                           </div>
@@ -3740,7 +4712,7 @@ export default function UserDashboard() {
                                 margin: 0
                               }}
                             >
-                              🚀 Open Apply Portal ↗
+                              Open Apply Portal ↗
                             </a>
                             {matchedPolicy?.policy_pdf && (
                               <button
@@ -3771,7 +4743,7 @@ export default function UserDashboard() {
                                   window.open(blobUrl, '_blank');
                                 }}
                               >
-                                📄 View Policy PDF
+                                View Policy PDF
                               </button>
                             )}
                           </div>
@@ -3782,7 +4754,7 @@ export default function UserDashboard() {
 
                   return (
                     <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: 'var(--border-subtle)', padding: '12px 16px', borderRadius: '8px', fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                      ℹ️ No direct apply link or portal credentials configured for this bank.
+                      No direct apply link or portal credentials configured for this bank.
                     </div>
                   );
                 })()}
@@ -3801,7 +4773,7 @@ export default function UserDashboard() {
                     gap: '12px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>ℹ️ Status Info</span>
+                      <span style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>Status Info</span>
                       <span className="badge" style={{ ...getStatusBadgeStyle(selectedApplication.status), margin: 0, fontSize: '10px' }}>
                         {selectedApplication.status || 'Applied'}
                       </span>
@@ -3844,7 +4816,7 @@ export default function UserDashboard() {
                         alignItems: 'center',
                         gap: '6px'
                       }}>
-                        🔒 Status locked as <strong>{selectedApplication.status?.toUpperCase()}</strong> by Admin.
+                        Status locked as <strong>{selectedApplication.status?.toUpperCase()}</strong> by Admin.
                       </div>
                     ) : (
                       <div style={{ display: 'grid', gap: '12px' }}>

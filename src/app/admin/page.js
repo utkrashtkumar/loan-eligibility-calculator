@@ -11,6 +11,62 @@ import {
   CartesianGrid, Tooltip, BarChart, Bar, Cell, Legend, PieChart, Pie 
 } from 'recharts';
 
+function ExpirationTimer({ createdAt }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const createdTime = new Date(createdAt).getTime();
+      const expireTime = createdTime + 14 * 24 * 60 * 60 * 1000;
+      const diff = expireTime - Date.now();
+
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+
+      const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+      const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+      const seconds = Math.floor((diff % (60 * 1000)) / 1000);
+
+      setTimeLeft(`Expires in: ${days}d ${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  return (
+    <span style={{ fontSize: '10px', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245,158,11,0.15)', display: 'inline-flex', alignItems: 'center' }}>
+      ⏱️ {timeLeft}
+    </span>
+  );
+}
+
+const getExpirationCountdown = (createdAt) => {
+  const createdTime = new Date(createdAt).getTime();
+  const expireTime = createdTime + 14 * 24 * 60 * 60 * 1000;
+  const timeLeft = expireTime - Date.now();
+
+  if (timeLeft <= 0) return 'Expired';
+
+  const days = Math.floor(timeLeft / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((timeLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+
+  if (days > 1) {
+    return `${days} days left`;
+  } else if (days === 1) {
+    return `1 day, ${hours}h left`;
+  } else if (hours > 0) {
+    return `${hours}h, ${minutes}m left`;
+  } else {
+    return `${minutes}m left`;
+  }
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -33,6 +89,7 @@ export default function AdminDashboard() {
   const [activeAgents, setActiveAgents] = useState([]);
   const [pendingAgents, setPendingAgents] = useState([]);
   const [demotedUsers, setDemotedUsers] = useState([]);
+  const [normalUsers, setNormalUsers] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [agentActionLoading, setAgentActionLoading] = useState(null);
 
@@ -56,6 +113,15 @@ export default function AdminDashboard() {
   // Agent profile editing state
   const [isEditingAgent, setIsEditingAgent] = useState(false);
   const [editAgentData, setEditAgentData] = useState(null);
+
+  // Regen request management state
+  const [regenRequests, setRegenRequests] = useState([]); // all pending regen requests
+  const [regenAdminNote, setRegenAdminNote] = useState('');
+  const [regenActionLoading, setRegenActionLoading] = useState(null); // request id being actioned
+
+  // Activity notifications state
+  const [dbNotifications, setDbNotifications] = useState([]);
+  const [notificationActionLoading, setNotificationActionLoading] = useState(null);
 
   // Contact messages state
   const [contactMessages, setContactMessages] = useState([]);
@@ -91,16 +157,68 @@ export default function AdminDashboard() {
 
   // Pincode management state
   const [bankPincodes, setBankPincodes] = useState([]);
+
+  // Agent Agreements Management State
+  const [agreements, setAgreements] = useState([]);
+  const [loadingAgreements, setLoadingAgreements] = useState(false);
+  const [agreementSearch, setAgreementSearch] = useState('');
+  const [agreementFilter, setAgreementFilter] = useState('all'); // 'all', 'active', 'revoked'
+  const [revokingAgreement, setRevokingAgreement] = useState(null);
+  const [revocationReason, setRevocationReason] = useState('');
+  const [revokingLoading, setRevokingLoading] = useState(false);
   const [newPincodeText, setNewPincodeText] = useState('');
   const [pincodeActionLoading, setPincodeActionLoading] = useState(null);
   const [pincodeSearchTerm, setPincodeSearchTerm] = useState('');
   const [selectedPincodeIds, setSelectedPincodeIds] = useState([]);
+
+  // Agent Updates (Image Board) State
+  const [agentUpdates, setAgentUpdates] = useState([]);
+  const [updatesLoading, setUpdatesLoading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadDesc, setUploadDesc] = useState('');
+  const [uploadCategory, setUploadCategory] = useState('general');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadPreview, setUploadPreview] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState('');
 
   const handleSelectAgent = (agent) => {
     setSelectedAgent(agent);
     setProfileMsgText(agent?.profile_update_message || '');
     setIsEditingAgent(false);
     setEditAgentData(agent ? { ...agent } : null);
+  };
+
+  const exportToCSV = (data, filename, headers) => {
+    if (!data || !data.length) {
+      alert("No data available to export.");
+      return;
+    }
+    const headerRow = Object.values(headers).join(",");
+    const rows = data.map(item => {
+      return Object.keys(headers).map(key => {
+        let val = item[key];
+        if (val === null || val === undefined) {
+          val = "";
+        } else {
+          val = '"' + String(val).replace(/"/g, '""') + '"';
+        }
+        return val;
+      }).join(",");
+    });
+    const csvContent = "\uFEFF" + [headerRow, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const fetchPolicies = async () => {
@@ -158,7 +276,13 @@ export default function AdminDashboard() {
           city: editAgentData.city,
           state: editAgentData.state,
           id_type: editAgentData.id_type,
-          id_number: editAgentData.id_number
+          id_number: editAgentData.id_number,
+          id_type_2: editAgentData.id_type_2,
+          id_number_2: editAgentData.id_number_2,
+          bank_holder_name: editAgentData.bank_holder_name,
+          bank_name: editAgentData.bank_name,
+          bank_account_no: editAgentData.bank_account_no,
+          bank_ifsc: editAgentData.bank_ifsc
         })
         .eq('id', selectedAgent.id);
 
@@ -365,7 +489,7 @@ export default function AdminDashboard() {
       const duplicates = pincodesToAdd.filter(p => existingSet.has(p));
       
       if (duplicates.length > 0) {
-        alert(`⚠️ ${duplicates.length} pincode(s) already exist for ${bankName}: ${duplicates.slice(0, 10).join(', ')}${duplicates.length > 10 ? '...' : ''}`);
+        alert(`${duplicates.length} pincode(s) already exist for ${bankName}: ${duplicates.slice(0, 10).join(', ')}${duplicates.length > 10 ? '...' : ''}`);
       }
       
       if (newPins.length === 0) {
@@ -469,6 +593,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchAgreementsData = async () => {
+    setLoadingAgreements(true);
+    try {
+      const { data, error } = await supabase
+        .from('agent_agreements')
+        .select(`
+          *,
+          profiles:agent_id (
+            full_name,
+            phone,
+            email
+          )
+        `)
+        .order('signed_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching agreements:', error.message);
+      } else {
+        setAgreements(data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingAgreements(false);
+    }
+  };
+
   const fetchAgentsData = async () => {
     try {
       // 1. Fetch Active Approved Agents
@@ -503,12 +654,152 @@ export default function AdminDashboard() {
 
       if (demotedUErr) console.error('Error fetching demoted users:', demotedUErr.message);
       else setDemotedUsers(demotedU || []);
+
+      // 4. Fetch Normal Users (registered users who are not demoted agents)
+      const { data: normalU, error: normalUErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'user')
+        .is('demoted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (normalUErr) console.error('Error fetching normal users:', normalUErr.message);
+      else setNormalUsers(normalU || []);
     } catch (err) {
       console.error(err);
     }
   };
 
+  const fetchRegenRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('agreement_regen_requests')
+        .select(`
+          *,
+          profiles:agent_id (
+            full_name,
+            email,
+            phone,
+            agent_code
+          )
+        `)
+        .in('status', ['pending', 'approved'])
+        .order('created_at', { ascending: false });
+      if (!error) setRegenRequests(data || []);
+    } catch (err) {
+      console.error('Error fetching regen requests:', err);
+    }
+  };
+
+  const fetchDbNotifications = async () => {
+    try {
+      // 1. Purge database notifications older than 14 days
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase.from('notifications').delete().lt('created_at', fourteenDaysAgo);
+
+      // 2. Fetch active activity notifications
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          profiles:agent_id (
+            id,
+            full_name,
+            email,
+            agent_code
+          )
+        `)
+        .order('created_at', { ascending: false });
+      if (!error) {
+        setDbNotifications(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching db notifications:', err);
+    }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    setNotificationActionLoading(id);
+    try {
+      const { error } = await supabase.from('notifications').delete().eq('id', id);
+      if (error) {
+        alert('Failed to delete notification: ' + error.message);
+      } else {
+        setDbNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+    } finally {
+      setNotificationActionLoading(null);
+    }
+  };
+
+  const handleFollowupNotification = async (notif) => {
+    const type = notif.activity_type;
+    const refId = notif.reference_id;
+
+    if (!type || !refId) return;
+
+    try {
+      // 1. REGISTRATION
+      if (type === 'registration') {
+        let agent = pendingAgents.find(a => a.id === refId) || activeAgents.find(a => a.id === refId);
+        if (!agent) {
+          const { data } = await supabase.from('profiles').select('*').eq('id', refId).single();
+          agent = data;
+        }
+        if (agent) {
+          handleSelectAgent(agent);
+          if (agent.approved) {
+            setActiveTab('active_agents');
+          } else {
+            setActiveTab('pending_agents');
+          }
+        }
+      } 
+      // 2. APPLICATION
+      else if (type === 'application') {
+        let app = applications.find(a => a.id === refId);
+        if (!app) {
+          const { data } = await supabase.from('applications').select('*, agent:profiles(full_name, agent_code)').eq('id', refId).single();
+          app = data;
+        }
+        if (app) {
+          setSelectedApplication(app);
+          setActiveTab('agent_applications');
+        }
+      } 
+      // 3. PAYOUT
+      else if (type === 'payout') {
+        setActiveTab('payouts');
+      } 
+      // 4. AGREEMENT
+      else if (type === 'agreement') {
+        setActiveTab('agreements');
+        let agent = activeAgents.find(a => a.id === refId) || pendingAgents.find(a => a.id === refId);
+        if (agent) {
+          setAgreementSearch(agent.full_name);
+        }
+      } 
+      // 5. RESIGN
+      else if (type === 'resign') {
+        let agent = pendingAgents.find(a => a.id === refId) || activeAgents.find(a => a.id === refId);
+        if (!agent) {
+          const { data } = await supabase.from('profiles').select('*').eq('id', refId).single();
+          agent = data;
+        }
+        if (agent) {
+          handleSelectAgent(agent);
+          setActiveTab('pending_agents');
+        }
+      }
+    } catch (err) {
+      console.error('Error running followup:', err);
+    }
+  };
+
   const fetchApplications = async () => {
+
     try {
       const { data, error } = await supabase
         .from('applications')
@@ -519,6 +810,50 @@ export default function AdminDashboard() {
       else setApplications(data || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleExportApplicationsToExcel = async (appsToExport, isAgent = true) => {
+    try {
+      const XLSX = await import('xlsx');
+      
+      const formattedData = appsToExport.map(app => {
+        const row = {
+          "Application ID": app.application_id || 'N/A',
+          "Client Name": app.client_name || '',
+          "Client Mobile": app.client_mobile || '',
+          "Bank Name": app.bank_name || '',
+          "Loan Type": app.loan_type || '',
+          "Loan Amount (Lakhs)": app.loan_amount || 0,
+          "Submission Date": app.created_at ? new Date(app.created_at).toLocaleDateString() : 'N/A',
+          "Status": app.status || 'Applied',
+        };
+
+        if (isAgent) {
+          row["Agent Name"] = app.agent?.full_name || 'Deleted Agent';
+          row["Agent Email"] = app.agent?.email || '';
+          row["Agent Code"] = app.agent?.agent_code || '';
+        } else {
+          row["Customer Name"] = app.agent?.full_name || 'Deleted Customer';
+          row["Customer Email"] = app.agent?.email || '';
+        }
+
+        row["Issue/Problem"] = app.problem || '';
+        return row;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, isAgent ? "Agent Applications" : "Customer Applications");
+      
+      const filename = isAgent 
+        ? `Agent_Applications_${new Date().toISOString().split('T')[0]}.xlsx`
+        : `Customer_Applications_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      XLSX.writeFile(workbook, filename);
+    } catch (err) {
+      console.error("Failed to export to Excel:", err);
+      alert("Failed to export to Excel. Please check console for details.");
     }
   };
 
@@ -591,6 +926,99 @@ export default function AdminDashboard() {
     }
   };
 
+  // ── Agent Updates functions ──────────────────────────────────────────────
+  const fetchAgentUpdates = async () => {
+    setUpdatesLoading(true);
+    try {
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      
+      // Fetch updates older than 14 days to delete their storage files
+      const { data: oldUpdates } = await supabase
+        .from('agent_updates')
+        .select('id, image_url')
+        .lt('created_at', fourteenDaysAgo);
+        
+      if (oldUpdates && oldUpdates.length > 0) {
+        const fileNames = oldUpdates.map(u => u.image_url.split('/').pop().split('?')[0]);
+        // Delete files from storage
+        await supabase.storage.from('agent-updates').remove(fileNames);
+        // Delete rows from database
+        await supabase.from('agent_updates').delete().in('id', oldUpdates.map(u => u.id));
+      }
+
+      const { data, error } = await supabase
+        .from('agent_updates')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error) setAgentUpdates(data || []);
+    } catch (err) { console.error(err); }
+    setUpdatesLoading(false);
+  };
+
+  const handleUploadUpdate = async () => {
+    if (!uploadTitle.trim()) { setUploadError('Title is required.'); return; }
+    if (!uploadFile) { setUploadError('Please select a file.'); return; }
+    if (uploadFile.size > 5 * 1024 * 1024) { setUploadError('File must be under 5 MB.'); return; }
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess('');
+    try {
+      const ext = uploadFile.name.split('.').pop();
+      const fileName = `update-${Date.now()}.${ext}`;
+      const { error: storageError } = await supabase.storage
+        .from('agent-updates')
+        .upload(fileName, uploadFile, { cacheControl: '3600', upsert: false });
+      if (storageError) throw storageError;
+      const { data: urlData } = supabase.storage.from('agent-updates').getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl;
+      const { error: dbError } = await supabase.from('agent_updates').insert([{
+        title: uploadTitle.trim(),
+        description: uploadDesc.trim(),
+        image_url: publicUrl,
+        category: uploadCategory,
+        is_active: true
+      }]);
+      if (dbError) throw dbError;
+      setUploadSuccess('Update uploaded successfully!');
+      setUploadTitle('');
+      setUploadDesc('');
+      setUploadCategory('general');
+      setUploadFile(null);
+      setUploadPreview('');
+      logAdminAction('Upload Agent Update', `Uploaded file: ${fileName} (${uploadCategory})`);
+      await fetchAgentUpdates();
+    } catch (err) {
+      setUploadError('Upload failed: ' + (err.message || String(err)));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteUpdate = async (update) => {
+    if (!window.confirm(`Delete "${update.title}"? This cannot be undone.`)) return;
+    try {
+      const fileName = update.image_url.split('/').pop().split('?')[0];
+      await supabase.storage.from('agent-updates').remove([fileName]);
+      await supabase.from('agent_updates').delete().eq('id', update.id);
+      logAdminAction('Delete Agent Update', `Deleted update: ${update.title}`);
+      await fetchAgentUpdates();
+    } catch (err) {
+      alert('Delete failed: ' + err.message);
+    }
+  };
+
+  const handleToggleUpdate = async (update) => {
+    try {
+      await supabase.from('agent_updates')
+        .update({ is_active: !update.is_active })
+        .eq('id', update.id);
+      logAdminAction('Toggle Agent Update', `Set update "${update.title}" active=${!update.is_active}`);
+      await fetchAgentUpdates();
+    } catch (err) {
+      alert('Toggle failed: ' + err.message);
+    }
+  };
+
   const logAdminAction = async (action, details = '') => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -620,10 +1048,15 @@ export default function AdminDashboard() {
       fetchPayoutRequests(),
       fetchPolicies(),
       fetchContactMessages(),
-      fetchAuditLogs()
+      fetchAuditLogs(),
+      fetchAgreementsData(),
+      fetchAgentUpdates(),
+      fetchRegenRequests(),
+      fetchDbNotifications()
     ]);
     setLoading(false);
   };
+
 
   // Authenticate admin
   useEffect(() => {
@@ -781,12 +1214,57 @@ export default function AdminDashboard() {
       if (error) {
         alert('Demotion failed: ' + error.message);
       } else {
+        await supabase
+          .from('agent_agreements')
+          .update({
+            status: 'revoked',
+            revoked_at: new Date().toISOString(),
+            revocation_reason: 'Agent demoted by Administrator.'
+          })
+          .eq('agent_id', agentId)
+          .eq('status', 'active');
+
         logAdminAction('Demote Agent', `Demoted agent ID: ${agentId} to standard user role.`);
         handleSelectAgent(null);
+        await fetchAgentsData();
+        await fetchAgreementsData();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAgentActionLoading(null);
+    }
+  };
+
+  const handlePromoteUserToAgent = async (userProfile) => {
+    if (!confirm(`Are you sure you want to promote ${userProfile.full_name} to Agent/Partner?`)) return;
+    setAgentActionLoading(userProfile.id);
+    try {
+      let agentCode = userProfile.agent_code;
+      if (!agentCode) {
+        agentCode = `H2H-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'agent', 
+          approved: true, 
+          demoted_at: null,
+          agent_code: agentCode
+        })
+        .eq('id', userProfile.id);
+
+      if (error) {
+        alert('Failed to promote user to agent: ' + error.message);
+      } else {
+        alert('User successfully promoted to Agent!');
+        logAdminAction('Promote User to Agent', `Promoted user ${userProfile.full_name} (${userProfile.email}) to Agent with code ${agentCode}`);
         await fetchAgentsData();
       }
     } catch (err) {
       console.error(err);
+      alert('Error promoting user to agent.');
     } finally {
       setAgentActionLoading(null);
     }
@@ -806,8 +1284,19 @@ export default function AdminDashboard() {
       if (error) {
         alert('Re-promotion failed: ' + error.message);
       } else {
+        await supabase
+          .from('agent_agreements')
+          .update({
+            status: 'active',
+            revoked_at: null,
+            revocation_reason: null
+          })
+          .eq('agent_id', userId)
+          .eq('status', 'revoked');
+
         logAdminAction('Re-promote Agent', `Re-promoted user ID: ${userId} back to agent role.`);
         await fetchAgentsData();
+        await fetchAgreementsData();
       }
     } catch (err) {
       console.error(err);
@@ -854,7 +1343,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Failed to send profile update request: ' + error.message);
       } else {
-        alert(`📢 Profile update request sent to ${agent.full_name}! They will see a popup reminder every 5 minutes until their profile is 100% complete.`);
+        alert(`Profile update request sent to ${agent.full_name}! They will see a popup reminder every 5 minutes until their profile is 100% complete.`);
         await fetchAgentsData();
         setSelectedAgent(prev => prev ? { 
           ...prev, 
@@ -883,7 +1372,7 @@ export default function AdminDashboard() {
       if (error) {
         alert('Failed to cancel profile update request: ' + error.message);
       } else {
-        alert(`✅ Profile update request cancelled for ${agent.full_name}.`);
+        alert(`Profile update request cancelled for ${agent.full_name}.`);
         await fetchAgentsData();
         setSelectedAgent(prev => prev ? { 
           ...prev, 
@@ -935,7 +1424,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteApplication = async (appId) => {
-    if (!window.confirm('⚠️ Are you sure you want to permanently delete this client application? This action cannot be undone.')) return;
+    if (!window.confirm('Are you sure you want to permanently delete this client application? This action cannot be undone.')) return;
     setDeletingAppId(appId);
     try {
       const { error } = await supabase
@@ -1218,7 +1707,7 @@ export default function AdminDashboard() {
       <div style={{ display: 'grid', gap: '32px' }}>
         {/* Header Title */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>📊 Control Room Analytics</h3>
+          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>Control Room Analytics</h3>
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
             Real-time business intelligence metrics, loan disbursements, and top-performing agent metrics.
           </p>
@@ -1232,7 +1721,7 @@ export default function AdminDashboard() {
         }}>
           {/* Card 1: Total Leads */}
           <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>👤</div>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}></div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Leads Checked
             </div>
@@ -1243,7 +1732,7 @@ export default function AdminDashboard() {
 
           {/* Card 2: Total Applications */}
           <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📝</div>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}></div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Applications
             </div>
@@ -1254,7 +1743,7 @@ export default function AdminDashboard() {
 
           {/* Card 3: Total Disbursed Volume */}
           <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)', border: '1px solid rgba(16,185,129,0.2)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>💸</div>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}></div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Disbursed Volume
             </div>
@@ -1265,7 +1754,7 @@ export default function AdminDashboard() {
 
           {/* Card 4: Success Rate */}
           <div className="form-card" style={{ padding: '24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏆</div>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}></div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Disbursement Rate
             </div>
@@ -1284,7 +1773,7 @@ export default function AdminDashboard() {
           {/* Chart 1: Disbursement Trend */}
           <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
             <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
-              📈 Disbursement & Application Volume Trend
+              Disbursement & Application Volume Trend
             </h4>
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -1316,7 +1805,7 @@ export default function AdminDashboard() {
           {/* Chart 2: Status Split */}
           <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
             <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
-              🥧 Application Status Distribution
+              Application Status Distribution
             </h4>
             {statusData.length === 0 ? (
               <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
@@ -1351,7 +1840,7 @@ export default function AdminDashboard() {
           {/* Chart 3: Bank-wise Distribution */}
           <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
             <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
-              🏦 Lender Application Share (Top Banks)
+              Lender Application Share (Top Banks)
             </h4>
             {bankData.length === 0 ? (
               <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
@@ -1380,7 +1869,7 @@ export default function AdminDashboard() {
           {/* Chart 4: Top Agents Leaderboard */}
           <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
             <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: '20px', color: 'var(--color-text-primary)' }}>
-              🏆 Top Performing Partner Agents (Disbursements)
+              Top Performing Partner Agents (Disbursements)
             </h4>
             {agentLeaderboard.length === 0 ? (
               <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
@@ -1413,7 +1902,8 @@ export default function AdminDashboard() {
   const totalNotifications = actualPendingAgents.length + 
                              payoutRequests.filter(r => r.status === 'Pending').length + 
                              applications.filter(a => a.status && a.status.toLowerCase() === 'applied').length + 
-                             demotedBalances.length;
+                             demotedBalances.length +
+                             dbNotifications.length;
 
   return (
     <>
@@ -1448,7 +1938,7 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <button onClick={fetchAllData} className="btn btn-secondary" style={{ padding: '10px 16px' }}>
-                      🔄 Refresh All
+                      Refresh All
                     </button>
                     <button onClick={handleSignOut} className="btn btn-secondary" style={{ background: 'var(--color-error-bg)', color: 'var(--color-error)', border: 'var(--border-error)' }}>
                       Log Out
@@ -1505,17 +1995,21 @@ export default function AdminDashboard() {
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {[
-                          { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
-                          { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
-                          { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
-                          { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
-                          { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
-                          { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
-                          { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
-                          { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
-                          { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
-                          { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
-                          { id: 'audit_logs', label: `📋 Audit Logs (${auditLogs.length})` },
+                          { id: 'notifications', label: `Notifications (${totalNotifications})` },
+                          { id: 'customer_leads', label: `Customer Inquiries (${customerInquiries.length})` },
+                          { id: 'agent_leads', label: `Agent Inquiries (${agentInquiries.length})` },
+                          { id: 'active_agents', label: `Active Agents (${activeAgents.length})` },
+                          { id: 'pending_agents', label: `Pending Approvals (${pendingAgents.length})` },
+                          { id: 'revoked_agents', label: `Revoked Agents (${demotedUsers.length})` },
+                          { id: 'normal_users', label: `Normal Users (${normalUsers.length})` },
+                          { id: 'payouts', label: `Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
+                          { id: 'agent_applications', label: `Agent Applications (${agentApplications.length})` },
+                          { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
+                          { id: 'policies', label: `Bank Policies (${policies.length})` },
+                          { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                          { id: 'agreements', label: `Agent Agreements` },
+                          { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
+                          { id: 'audit_logs', label: `Audit Logs (${auditLogs.length})` },
                         ].find(t => t.id === activeTab)?.label || 'Select Menu Option'}
                       </span>
                       <span style={{ fontSize: '12px' }}>{isMobileTabSelectOpen ? '▲ Close' : '▼ Menu'}</span>
@@ -1543,18 +2037,22 @@ export default function AdminDashboard() {
                         }}
                       >
                         {[
-                          { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
-                          { id: 'analytics', label: `📈 Business Analytics` },
-                          { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
-                          { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
-                          { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
-                          { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
-                          { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
-                          { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
-                          { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
-                          { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
-                          { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
-                          { id: 'audit_logs', label: `📋 Audit Logs (${auditLogs.length})` },
+                          { id: 'notifications', label: `Notifications (${totalNotifications})` },
+                          { id: 'analytics', label: `Business Analytics` },
+                          { id: 'customer_leads', label: `Customer Inquiries (${customerInquiries.length})` },
+                          { id: 'agent_leads', label: `Agent Inquiries (${agentInquiries.length})` },
+                          { id: 'active_agents', label: `Active Agents (${activeAgents.length})` },
+                          { id: 'pending_agents', label: `Pending Approvals (${pendingAgents.length})` },
+                          { id: 'revoked_agents', label: `Revoked Agents (${demotedUsers.length})` },
+                          { id: 'normal_users', label: `Normal Users (${normalUsers.length})` },
+                          { id: 'payouts', label: `Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
+                          { id: 'agent_applications', label: `Agent Applications (${agentApplications.length})` },
+                          { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
+                          { id: 'policies', label: `Bank Policies (${policies.length})` },
+                          { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                          { id: 'agreements', label: `Agent Agreements` },
+                          { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
+                          { id: 'audit_logs', label: `Audit Logs (${auditLogs.length})` },
                         ].map((tab) => (
                           <button
                             key={tab.id}
@@ -1585,18 +2083,22 @@ export default function AdminDashboard() {
                   {/* DESKTOP TABS SIDEBAR (vertical sidebar layout) */}
                   <div className="desktop-tabs-sidebar tabs-sidebar" style={{ marginBottom: '24px' }}>
                     {[
-                      { id: 'notifications', label: `🔔 Notifications (${totalNotifications})` },
-                      { id: 'analytics', label: `📈 Business Analytics` },
-                      { id: 'customer_leads', label: `👤 Customer Inquiries (${customerInquiries.length})` },
-                      { id: 'agent_leads', label: `💼 Agent Inquiries (${agentInquiries.length})` },
-                      { id: 'active_agents', label: `👥 Active Agents (${activeAgents.length})` },
-                      { id: 'pending_agents', label: `⏳ Approval & Re-promotion (${pendingAgents.length + demotedUsers.length})` },
-                      { id: 'payouts', label: `💸 Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
-                      { id: 'agent_applications', label: `📝 Agent Applications (${agentApplications.length})` },
-                      { id: 'customer_applications', label: `👤 Customer Applications (${customerApplications.length})` },
-                      { id: 'policies', label: `🏦 Bank Policies (${policies.length})` },
-                      { id: 'contacts', label: `💌 Contact Messages (${contactMessages.length})` },
-                      { id: 'audit_logs', label: `📋 Audit Logs (${auditLogs.length})` },
+                      { id: 'notifications', label: `Notifications (${totalNotifications})` },
+                      { id: 'analytics', label: `Business Analytics` },
+                      { id: 'customer_leads', label: `Customer Inquiries (${customerInquiries.length})` },
+                      { id: 'agent_leads', label: `Agent Inquiries (${agentInquiries.length})` },
+                      { id: 'active_agents', label: `Active Agents (${activeAgents.length})` },
+                      { id: 'pending_agents', label: `Pending Approvals (${pendingAgents.length})` },
+                      { id: 'revoked_agents', label: `Revoked Agents (${demotedUsers.length})` },
+                      { id: 'normal_users', label: `Normal Users (${normalUsers.length})` },
+                      { id: 'payouts', label: `Payout Requests (${payoutRequests.filter(r=>r.status==='Pending').length})` },
+                      { id: 'agent_applications', label: `Agent Applications (${agentApplications.length})` },
+                      { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
+                      { id: 'policies', label: `Bank Policies (${policies.length})` },
+                      { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                      { id: 'agreements', label: `Agent Agreements` },
+                      { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
+                      { id: 'audit_logs', label: `Audit Logs (${auditLogs.length})` },
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -1627,10 +2129,88 @@ export default function AdminDashboard() {
                   {activeTab === 'notifications' && (
                    <div style={{ display: 'grid', gap: '32px' }}>
                      
+                     {/* SECTION 0: Agent Activity Feed */}
+                     <div>
+                       <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                         🔔 Agent Activity Feed
+                         <span className="badge badge-warning" style={{ fontSize: '10px', background: '#3b82f6', color: '#fff' }}>{dbNotifications.length}</span>
+                       </h3>
+                       {dbNotifications.length === 0 ? (
+                         <div className="form-card text-center" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+                           <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No recent agent activity notifications.</p>
+                         </div>
+                       ) : (
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                           {dbNotifications.map((notif) => (
+                             <div 
+                               key={notif.id} 
+                               style={{ 
+                                 background: 'rgba(17, 24, 39, 0.4)', 
+                                 border: 'var(--border-light)', 
+                                 borderRadius: '12px', 
+                                 padding: '16px 20px', 
+                                 display: 'flex', 
+                                 justifyContent: 'space-between', 
+                                 alignItems: 'center', 
+                                 gap: '16px',
+                                 transition: 'all 0.2s',
+                               }}
+                             >
+                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                   <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{notif.title}</span>
+                                   <ExpirationTimer createdAt={notif.created_at} />
+                                 </div>
+                                 <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
+                                   {notif.message}
+                                 </p>
+                                 <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                                   {new Date(notif.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                                 </div>
+                               </div>
+                               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                 {notif.activity_type && notif.reference_id && (
+                                   <button
+                                     onClick={() => handleFollowupNotification(notif)}
+                                     className="btn btn-primary btn-sm"
+                                     style={{ margin: 0, padding: '6px 14px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                                   >
+                                     🔍 Follow Up
+                                   </button>
+                                 )}
+                                 <button
+                                   onClick={() => {
+                                     if (confirm('Delete this notification?')) {
+                                       handleDeleteNotification(notif.id);
+                                     }
+                                   }}
+                                   disabled={notificationActionLoading === notif.id}
+                                   className="btn btn-secondary btn-sm"
+                                   style={{ 
+                                     margin: 0, 
+                                     padding: '6px 10px', 
+                                     backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                                     border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                     color: '#ef4444',
+                                     minWidth: '34px',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     justifyContent: 'center'
+                                   }}
+                                 >
+                                   🗑️
+                                 </button>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+
                      {/* SECTION 1: Unapproved agent registrations */}
                      <div>
                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                         ⏳ Pending Agent Registrations
+                         Pending Agent Registrations
                          <span className="badge badge-warning" style={{ fontSize: '10px' }}>{actualPendingAgents.length}</span>
                        </h3>
                        {actualPendingAgents.length === 0 ? (
@@ -1689,7 +2269,7 @@ export default function AdminDashboard() {
                      {/* SECTION 2: Pending agent payout requests */}
                      <div>
                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                         💸 Pending Agent Payout Requests
+                         Pending Agent Payout Requests
                          <span className="badge badge-warning" style={{ fontSize: '10px' }}>{payoutRequests.filter(r => r.status === 'Pending').length}</span>
                        </h3>
                        {payoutRequests.filter(r => r.status === 'Pending').length === 0 ? (
@@ -1760,7 +2340,7 @@ export default function AdminDashboard() {
                      {/* SECTION 3: Client applications with status Applied */}
                      <div>
                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                         📝 New Client Applications (Applied)
+                         New Client Applications (Applied)
                          <span className="badge badge-warning" style={{ fontSize: '10px' }}>{applications.filter(a => a.status === 'Applied').length}</span>
                        </h3>
                        {applications.filter(a => a.status === 'Applied').length === 0 ? (
@@ -1785,7 +2365,7 @@ export default function AdminDashboard() {
                                    <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                      <td style={{ padding: '16px 24px' }}>
                                        <div style={{ fontWeight: 500 }}>{app.client_name}</div>
-                                       <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                       <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{app.client_mobile}</div>
                                        {app.problem && (
                                          <div style={{ 
                                            fontSize: '11px', 
@@ -1799,7 +2379,7 @@ export default function AdminDashboard() {
                                            wordBreak: 'break-word',
                                            textAlign: 'left'
                                          }}>
-                                           ⚠️ <strong>Issue:</strong> {app.problem}
+                                           <strong>Issue:</strong> {app.problem}
                                          </div>
                                        )}
                                      </td>
@@ -1857,7 +2437,7 @@ export default function AdminDashboard() {
                      {/* SECTION 4: Outstanding demoted agent balances */}
                      <div>
                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                         ⚖️ Outstanding Demoted Agent Balances
+                         ⚖Outstanding Demoted Agent Balances
                          <span className="badge badge-warning" style={{ fontSize: '10px' }}>{demotedBalances.length}</span>
                        </h3>
                        {demotedBalances.length === 0 ? (
@@ -2087,8 +2667,7 @@ export default function AdminDashboard() {
                                           setSelectedInquiry(inq);
                                         }}
                                       >
-                                        Details 👁️
-                                      </button>
+                                        Details 👁</button>
                                     </td>
                                   </tr>
                                 );
@@ -2251,8 +2830,7 @@ export default function AdminDashboard() {
                                           setSelectedInquiry(inq);
                                         }}
                                       >
-                                        Details 👁️
-                                      </button>
+                                        Details 👁</button>
                                     </td>
                                   </tr>
                                 );
@@ -2279,19 +2857,61 @@ export default function AdminDashboard() {
 
                   return (
                     <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
-                      {/* Search Bar */}
-                      <div style={{ padding: '16px 24px', borderBottom: 'var(--border-subtle)' }}>
-                        <div style={{ position: 'relative', width: '100%' }}>
-                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                      {/* Search Bar & Export */}
+                      <div style={{ padding: '16px 24px', borderBottom: 'var(--border-subtle)', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
                           <input
                             type="text"
                             className="input-field"
                             placeholder="Search active agents by name, email, phone, or code..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                            style={{ paddingLeft: '20px', margin: 0, fontSize: 'var(--text-sm)' }}
                           />
                         </div>
+                        <button
+                          onClick={() => {
+                            const headers = {
+                              full_name: 'Agent Name',
+                              email: 'Email',
+                              phone: 'Phone Number',
+                              agent_code: 'Unique Code',
+                              created_at: 'Approved On',
+                              dob: 'Date of Birth',
+                              fathers_name: "Father's Name",
+                              marital_status: 'Marital Status',
+                              current_address: 'Current Address',
+                              permanent_address: 'Permanent Address',
+                              pincode: 'Pincode',
+                              city: 'City',
+                              state: 'State',
+                              bank_name: 'Bank Name',
+                              bank_account_no: 'Account Number',
+                              bank_ifsc: 'IFSC Code'
+                            };
+                            const dataToExport = filtered.map(agent => ({
+                              ...agent,
+                              created_at: new Date(agent.created_at).toLocaleDateString('en-IN')
+                            }));
+                            exportToCSV(dataToExport, 'active_agents.csv', headers);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            margin: 0,
+                            padding: '10px 18px',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            color: 'var(--color-success)',
+                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          Export to Excel (CSV)
+                        </button>
                       </div>
 
                       <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -2332,15 +2952,135 @@ export default function AdminDashboard() {
                                         className="btn btn-secondary btn-sm"
                                         style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
                                       >
-                                        Inspect Profile 👁️
-                                      </button>
+                                        Inspect Profile 👁</button>
                                       <button
                                         onClick={() => handleDemoteAgent(agent.id)}
                                         className="btn btn-secondary btn-sm"
                                         style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', border: 'var(--border-error)' }}
                                       >
-                                        Demote to User 👤
-                                      </button>
+                                        Demote to User </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* PANEL: NORMAL USERS */}
+                {activeTab === 'normal_users' && (() => {
+                  const filtered = normalUsers.filter(user => {
+                    const query = searchTerm.toLowerCase().trim();
+                    return (
+                      user.full_name?.toLowerCase().includes(query) ||
+                      user.email?.toLowerCase().includes(query) ||
+                      user.phone?.includes(query)
+                    );
+                  });
+
+                  return (
+                    <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                      {/* Search Bar & Export */}
+                      <div style={{ padding: '16px 24px', borderBottom: 'var(--border-subtle)', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search normal users by name, email, or phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '20px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const headers = {
+                              full_name: 'User Name',
+                              email: 'Email',
+                              phone: 'Phone Number',
+                              created_at: 'Signed Up On',
+                              dob: 'Date of Birth',
+                              fathers_name: "Father's Name",
+                              marital_status: 'Marital Status',
+                              current_address: 'Current Address',
+                              permanent_address: 'Permanent Address',
+                              pincode: 'Pincode',
+                              city: 'City',
+                              state: 'State',
+                              bank_name: 'Bank Name',
+                              bank_account_no: 'Account Number',
+                              bank_ifsc: 'IFSC Code'
+                            };
+                            const dataToExport = filtered.map(user => ({
+                              ...user,
+                              created_at: new Date(user.created_at).toLocaleDateString('en-IN')
+                            }));
+                            exportToCSV(dataToExport, 'registered_users.csv', headers);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            margin: 0,
+                            padding: '10px 18px',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            color: 'var(--color-success)',
+                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          Export to Excel (CSV)
+                        </button>
+                      </div>
+
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>User Name</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Email</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Phone Number</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Signed Up On</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                  No normal users match your search criteria.
+                                </td>
+                              </tr>
+                            ) : (
+                              filtered.map((user) => (
+                                <tr key={user.id} onClick={() => handleSelectAgent(user)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
+                                  <td style={{ padding: '16px 24px', fontWeight: 500 }}>{user.full_name}</td>
+                                  <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{user.email}</td>
+                                  <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{user.phone || 'Not provided'}</td>
+                                  <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
+                                    {new Date(user.created_at).toLocaleDateString('en-IN')}
+                                  </td>
+                                  <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                      <button
+                                        onClick={() => handleSelectAgent(user)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                                      >
+                                        Inspect Profile 👁</button>
+                                      <button
+                                        onClick={() => handlePromoteUserToAgent(user)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                                      >
+                                        Promote to Agent ⚡</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -2378,7 +3118,7 @@ export default function AdminDashboard() {
                       {/* Search Bar */}
                       <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
                         <div style={{ position: 'relative', width: '100%' }}>
-                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}></span>
                           <input
                             type="text"
                             className="input-field"
@@ -2513,7 +3253,7 @@ export default function AdminDashboard() {
                                   }
 
                                   return (
-                                    <tr key={du.id} style={{ borderBottom: 'var(--border-subtle)' }}>
+                                    <tr key={du.id} onClick={() => handleSelectAgent(du)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
                                       <td style={{ padding: '16px 24px', fontWeight: 500 }}>{du.full_name}</td>
                                       <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{du.email}</td>
                                       <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>
@@ -2522,19 +3262,27 @@ export default function AdminDashboard() {
                                       <td style={{ padding: '16px 24px', color: eligible ? 'var(--color-warning)' : 'var(--color-error)', fontWeight: 500 }}>
                                         {remainingText}
                                       </td>
-                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                        {eligible ? (
+                                      <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                                           <button
-                                            onClick={() => handleRepromoteAgent(du.id)}
-                                            disabled={agentActionLoading === du.id}
+                                            onClick={() => handleSelectAgent(du)}
                                             className="btn btn-secondary btn-sm"
-                                            style={{ margin: 0, borderColor: 'var(--color-success)', color: 'var(--color-success)', background: 'var(--color-success-bg)' }}
+                                            style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
                                           >
-                                            💼 Restore to Agent
-                                          </button>
-                                        ) : (
-                                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Locked</span>
-                                        )}
+                                            Inspect Profile 👁</button>
+                                          {eligible ? (
+                                            <button
+                                              onClick={() => handleRepromoteAgent(du.id)}
+                                              disabled={agentActionLoading === du.id}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ margin: 0, borderColor: 'var(--color-success)', color: 'var(--color-success)', background: 'var(--color-success-bg)', padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                                            >
+                                              Restore Agent
+                                            </button>
+                                          ) : (
+                                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', paddingRight: '8px' }}>Locked</span>
+                                          )}
+                                        </div>
                                       </td>
                                     </tr>
                                   );
@@ -2548,6 +3296,116 @@ export default function AdminDashboard() {
                   </div>
                 );
               })()}
+
+                {/* PANEL 3.5: REVOKED AGENTS LIST */}
+                {activeTab === 'revoked_agents' && (() => {
+                  const query = searchTerm.toLowerCase().trim();
+                  const filteredDemoted = demotedUsers.filter(du => {
+                    if (!query) return true;
+                    return (
+                      du.full_name?.toLowerCase().includes(query) ||
+                      du.email?.toLowerCase().includes(query)
+                    );
+                  });
+
+                  return (
+                    <div style={{ display: 'grid', gap: '32px' }}>
+                      {/* Search Bar */}
+                      <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}></span>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Search revoked agents by name or email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Demoted Re-promotions queue */}
+                      <div>
+                        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          Revoked Agents
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', fontWeight: 400 }}>(Allows restoring user profiles back to agents within 30 days)</span>
+                        </h2>
+                        <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                              <thead>
+                                <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                                  <th style={{ padding: '16px 24px' }}>Customer Name</th>
+                                  <th style={{ padding: '16px 24px' }}>Email</th>
+                                  <th style={{ padding: '16px 24px' }}>Demoted Date</th>
+                                  <th style={{ padding: '16px 24px' }}>Time Remaining</th>
+                                  <th style={{ padding: '16px 24px', textAlign: 'right' }}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredDemoted.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={5} style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                      No revoked agent profiles found.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  filteredDemoted.map((du) => {
+                                    const eligible = isWithin30Days(du.demoted_at);
+                                    
+                                    // Calculate remaining days
+                                    let remainingText = 'Expired';
+                                    if (eligible) {
+                                      const diffTime = (30 * 24 * 60 * 60 * 1000) - (new Date().getTime() - new Date(du.demoted_at).getTime());
+                                      const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                      remainingText = `${remainingDays} Day${remainingDays > 1 ? 's' : ''} Left`;
+                                    }
+
+                                    return (
+                                      <tr key={du.id} onClick={() => handleSelectAgent(du)} className="table-row-hover" style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }}>
+                                        <td style={{ padding: '16px 24px', fontWeight: 500 }}>{du.full_name}</td>
+                                        <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{du.email}</td>
+                                        <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>
+                                          {new Date(du.demoted_at).toLocaleDateString('en-IN')}
+                                        </td>
+                                        <td style={{ padding: '16px 24px', color: eligible ? 'var(--color-warning)' : 'var(--color-error)', fontWeight: 500 }}>
+                                          {remainingText}
+                                        </td>
+                                        <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                            <button
+                                              onClick={() => handleSelectAgent(du)}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                                            >
+                                              Inspect Profile 👁</button>
+                                            {eligible ? (
+                                              <button
+                                                onClick={() => handleRepromoteAgent(du.id)}
+                                                disabled={agentActionLoading === du.id}
+                                                className="btn btn-secondary btn-sm"
+                                                style={{ margin: 0, borderColor: 'var(--color-success)', color: 'var(--color-success)', background: 'var(--color-success-bg)', padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                                              >
+                                                Restore Agent
+                                              </button>
+                                            ) : (
+                                              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', paddingRight: '8px' }}>Locked</span>
+                                            )}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* PANEL 4: PAYOUT REQUESTS PROCESSOR */}
                 {activeTab === 'payouts' && (() => {
@@ -2571,7 +3429,7 @@ export default function AdminDashboard() {
                       {/* Search Bar */}
                       <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
                         <div style={{ position: 'relative', width: '100%' }}>
-                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
+                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}></span>
                           <input
                             type="text"
                             className="input-field"
@@ -2684,18 +3542,41 @@ export default function AdminDashboard() {
                   );
                   return (
                     <div style={{ display: 'grid', gap: '16px' }}>
-                      {/* Search Bar */}
+                      {/* Search Bar & Export */}
                       <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
-                        <div style={{ position: 'relative', width: '100%' }}>
-                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
-                          <input
-                            type="text"
-                            className="input-field"
-                            placeholder="Search applications by client, mobile, bank, agent, or Application ID..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
-                          />
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}></span>
+                            <input
+                              type="text"
+                              className="input-field"
+                              placeholder="Search applications by client, mobile, bank, agent, or Application ID..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleExportApplicationsToExcel(displayApps, true)}
+                            className="btn btn-secondary"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '12px 20px',
+                              margin: 0,
+                              whiteSpace: 'nowrap',
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              color: 'var(--color-accent)',
+                              fontWeight: 600,
+                              borderRadius: 'var(--border-radius-md)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            Export to Excel
+                          </button>
                         </div>
                       </div>
 
@@ -2771,7 +3652,7 @@ export default function AdminDashboard() {
                                   <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }} onClick={() => setSelectedApplication(app)}>
                                     <td style={{ padding: '16px 24px' }}>
                                       <div style={{ fontWeight: 600 }}>{app.client_name}</div>
-                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{app.client_mobile}</div>
                                       {app.application_id && (
                                         <div style={{ fontSize: '11px', color: 'var(--color-primary)', marginTop: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
                                           ID: {app.application_id}
@@ -2790,7 +3671,7 @@ export default function AdminDashboard() {
                                           wordBreak: 'break-word',
                                           textAlign: 'left'
                                         }}>
-                                          ⚠️ <strong>Issue:</strong> {app.problem}
+                                          <strong>Issue:</strong> {app.problem}
                                         </div>
                                       )}
                                     </td>
@@ -2840,7 +3721,7 @@ export default function AdminDashboard() {
                                             fontWeight: 600
                                           }}
                                         >
-                                          🔍 Inspect
+                                          Inspect
                                         </button>
                                         <button
                                           onClick={() => handleDeleteApplication(app.id)}
@@ -2860,8 +3741,7 @@ export default function AdminDashboard() {
                                           }}
                                           title="Delete application"
                                         >
-                                          🗑️
-                                        </button>
+                                          Delete</button>
                                       </div>
                                     </td>
                                   </tr>
@@ -2895,18 +3775,41 @@ export default function AdminDashboard() {
                   );
                   return (
                     <div style={{ display: 'grid', gap: '16px' }}>
-                      {/* Search Bar */}
+                      {/* Search Bar & Export */}
                       <div className="form-card" style={{ padding: '16px 24px', backdropFilter: 'blur(20px)' }}>
-                        <div style={{ position: 'relative', width: '100%' }}>
-                          <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}>🔍</span>
-                          <input
-                            type="text"
-                            className="input-field"
-                            placeholder="Search applications by client, mobile, bank, customer, or Application ID..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
-                          />
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontSize: '14px' }}></span>
+                            <input
+                              type="text"
+                              className="input-field"
+                              placeholder="Search applications by client, mobile, bank, customer, or Application ID..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              style={{ paddingLeft: '44px', margin: 0, fontSize: 'var(--text-sm)' }}
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleExportApplicationsToExcel(displayApps, false)}
+                            className="btn btn-secondary"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '12px 20px',
+                              margin: 0,
+                              whiteSpace: 'nowrap',
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              color: 'var(--color-accent)',
+                              fontWeight: 600,
+                              borderRadius: 'var(--border-radius-md)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            Export to Excel
+                          </button>
                         </div>
                       </div>
 
@@ -2981,7 +3884,7 @@ export default function AdminDashboard() {
                                   <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)', cursor: 'pointer' }} onClick={() => setSelectedApplication(app)}>
                                     <td style={{ padding: '16px 24px' }}>
                                       <div style={{ fontWeight: 600 }}>{app.client_name}</div>
-                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>📞 {app.client_mobile}</div>
+                                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>{app.client_mobile}</div>
                                       {app.application_id && (
                                         <div style={{ fontSize: '11px', color: 'var(--color-primary)', marginTop: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
                                           ID: {app.application_id}
@@ -3000,7 +3903,7 @@ export default function AdminDashboard() {
                                           wordBreak: 'break-word',
                                           textAlign: 'left'
                                         }}>
-                                          ⚠️ <strong>Issue:</strong> {app.problem}
+                                          <strong>Issue:</strong> {app.problem}
                                         </div>
                                       )}
                                     </td>
@@ -3049,7 +3952,7 @@ export default function AdminDashboard() {
                                             fontWeight: 600
                                           }}
                                         >
-                                          🔍 Inspect
+                                          Inspect
                                         </button>
                                         <button
                                           onClick={() => handleDeleteApplication(app.id)}
@@ -3069,8 +3972,7 @@ export default function AdminDashboard() {
                                           }}
                                           title="Delete application"
                                         >
-                                          🗑️
-                                        </button>
+                                          Delete</button>
                                       </div>
                                     </td>
                                   </tr>
@@ -3095,9 +3997,9 @@ export default function AdminDashboard() {
                   );
                   
                   const subTabs = [
-                    { id: 'salary', label: 'Salary PL', count: salaryCount, emoji: '💼' },
-                    { id: 'instant', label: 'Instant PL', count: instantCount, emoji: '⚡' },
-                    { id: 'business', label: 'Business Loans', count: businessCount, emoji: '🏢' }
+                    { id: 'salary', label: 'Salary PL', count: salaryCount, emoji: '' },
+                    { id: 'instant', label: 'Instant PL', count: instantCount, emoji: '' },
+                    { id: 'business', label: 'Business Loans', count: businessCount, emoji: '' }
                   ];
 
                   return (
@@ -3105,7 +4007,7 @@ export default function AdminDashboard() {
                       {/* Header Row */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                         <div>
-                          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>🏦 Bank & NBFC Policies</h3>
+                          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>Bank & NBFC Policies</h3>
                           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
                             Manage lender eligibility criteria — CIBIL, salary, FOIR, age, PF, pincodes and more
                           </p>
@@ -3162,7 +4064,7 @@ export default function AdminDashboard() {
                       {/* Policies Table */}
                       {displayPolicies.length === 0 ? (
                         <div className="form-card" style={{ padding: '48px 24px', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
-                          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏦</div>
+                          <div style={{ fontSize: '40px', marginBottom: '12px' }}></div>
                           <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No policies found in this category.</p>
                           <p style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>Click &quot;Add New Policy&quot; to define a criteria for this category.</p>
                         </div>
@@ -3198,7 +4100,7 @@ export default function AdminDashboard() {
                                     </td>
                                     <td data-label="Type" style={{ padding: '12px 10px' }}>
                                       <span className={`badge ${policy.loan_type === 'PL' ? 'badge-primary' : 'badge-info'}`}>
-                                        {policy.loan_type === 'PL' ? '💳 Personal' : '💼 Business'}
+                                        {policy.loan_type === 'PL' ? 'Personal' : 'Business'}
                                       </span>
                                     </td>
                                     <td data-label="Emp. Type" style={{ padding: '12px 10px' }}>
@@ -3211,7 +4113,7 @@ export default function AdminDashboard() {
                                         fontWeight: 600,
                                         fontSize: '10px'
                                       }}>
-                                        {policy.employment_type === 'self_employed' ? '🏢 Self Emp' : policy.employment_type === 'both' ? '🔄 Both' : '💼 Salaried'}
+                                        {policy.employment_type === 'self_employed' ? 'Self Emp' : policy.employment_type === 'both' ? 'Both' : 'Salaried'}
                                       </span>
                                     </td>
                                     <td data-label="Min Salary" style={{ padding: '12px 10px', fontWeight: 500 }}>
@@ -3228,9 +4130,9 @@ export default function AdminDashboard() {
                                     </td>
                                     <td data-label="Pincodes" style={{ padding: '12px 10px' }}>
                                       {policy.all_pincodes ? (
-                                        <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>🌍 All India</span>
+                                        <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>All India</span>
                                       ) : (
-                                        <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>📍 Limited</span>
+                                        <span style={{ color: 'var(--color-warning)', fontWeight: 600, fontSize: '11px' }}>Limited</span>
                                       )}
                                     </td>
                                     <td data-label="PDF" style={{ padding: '12px 10px' }}>
@@ -3252,7 +4154,7 @@ export default function AdminDashboard() {
                                             window.open(blobUrl, '_blank');
                                           }}
                                         >
-                                          📄 View PDF
+                                          View PDF
                                         </span>
                                       ) : (
                                         <span style={{ color: 'var(--color-text-tertiary)', fontSize: '11px' }}>None</span>
@@ -3265,7 +4167,7 @@ export default function AdminDashboard() {
                                           style={{ padding: '5px 12px', fontSize: '11px' }}
                                           onClick={() => handleOpenEditPolicy(policy)}
                                         >
-                                          ✏️ Edit
+                                          Edit
                                         </button>
                                         <button
                                           className="btn btn-sm"
@@ -3273,7 +4175,7 @@ export default function AdminDashboard() {
                                           onClick={() => handleDeletePolicy(policy.id)}
                                           disabled={agentActionLoading === 'deleting-policy'}
                                         >
-                                          🗑️ Delete
+                                          Delete
                                         </button>
                                       </div>
                                     </td>
@@ -3305,7 +4207,7 @@ export default function AdminDashboard() {
                       <input
                         type="text"
                         className="input-field"
-                        placeholder="🔍 Search messages by sender, email, subject, or content..."
+                        placeholder="Search messages by sender, email, subject, or content..."
                         value={contactSearch || ''}
                         onChange={(e) => setContactSearch(e.target.value)}
                       />
@@ -3352,7 +4254,7 @@ export default function AdminDashboard() {
                                   <div style={{ fontWeight: 600 }}>{msg.name}</div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
                                     <a href={`mailto:${msg.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontSize: 'var(--text-xs)' }}>{msg.email}</a>
-                                    {msg.mobile && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>📱 {msg.mobile}</span>}
+                                    {msg.mobile && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>{msg.mobile}</span>}
                                   </div>
                                 </td>
                                 <td style={{ padding: '16px', fontWeight: 500 }}>
@@ -3399,19 +4301,204 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
+                 {/* PANEL 12: AGENT UPDATES IMAGE BOARD */}
+                 {activeTab === 'agent_updates' && (
+                   <div style={{ display: 'grid', gap: '32px' }}>
+
+                     {/* Upload Form */}
+                     <div className="form-card" style={{ padding: '28px', backdropFilter: 'blur(20px)' }}>
+                       <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>Upload New Image Update</h3>
+                       <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', marginBottom: '24px' }}>
+                         Upload promotional images, loan offer banners, or policy circulars for your agents. They will appear on agent dashboards.
+                       </p>
+
+                       {uploadError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', padding: '12px 16px', borderRadius: '8px', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>{uploadError}</div>}
+                       {uploadSuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--color-success)', padding: '12px 16px', borderRadius: '8px', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>{uploadSuccess}</div>}
+
+                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+                         <div style={{ display: 'grid', gap: '16px' }}>
+                           <div>
+                             <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Title *</label>
+                             <input
+                               type="text"
+                               value={uploadTitle}
+                               onChange={e => setUploadTitle(e.target.value)}
+                               placeholder="e.g. New Loan Offer — July 2025"
+                               className="form-input"
+                               style={{ width: '100%' }}
+                             />
+                           </div>
+                           <div>
+                             <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Category</label>
+                             <select
+                               value={uploadCategory}
+                               onChange={e => setUploadCategory(e.target.value)}
+                               className="form-input"
+                               style={{ width: '100%' }}
+                             >
+                               <option value="general">General</option>
+                               <option value="loan_offer">Loan Offer</option>
+                               <option value="policy">Policy Update</option>
+                               <option value="promo">Promotion</option>
+                               <option value="training">Training</option>
+                             </select>
+                           </div>
+                           <div>
+                             <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Description (optional)</label>
+                             <textarea
+                               value={uploadDesc}
+                               onChange={e => setUploadDesc(e.target.value)}
+                               placeholder="Brief details about this update..."
+                               className="form-input"
+                               rows={3}
+                               style={{ width: '100%', resize: 'vertical' }}
+                             />
+                           </div>
+                         </div>
+
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Image or PDF File * (max 5 MB)</label>
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={e => {
+                                  const f = e.target.files?.[0];
+                                  if (f) {
+                                    setUploadFile(f);
+                                    if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+                                      setUploadPreview('PDF_FILE');
+                                    } else {
+                                      const reader = new FileReader();
+                                      reader.onload = ev => setUploadPreview(ev.target.result);
+                                      reader.readAsDataURL(f);
+                                    }
+                                  }
+                                }}
+                                className="form-input"
+                                style={{ width: '100%' }}
+                              />
+                            </div>
+                            {uploadPreview === 'PDF_FILE' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '180px', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed rgba(239, 68, 68, 0.3)', borderRadius: '12px', gap: '8px', padding: '16px' }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile?.name}</span>
+                                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>PDF Document</span>
+                              </div>
+                            ) : uploadPreview && (
+                              <div style={{ borderRadius: '12px', overflow: 'hidden', border: 'var(--border-light)', maxHeight: '200px' }}>
+                                <img src={uploadPreview} alt="Preview" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                              </div>
+                            )}
+                           <button
+                             onClick={handleUploadUpdate}
+                             disabled={uploading}
+                             className="btn btn-primary"
+                             style={{ marginTop: 'auto', padding: '14px', fontSize: 'var(--text-sm)', fontWeight: 700 }}
+                           >
+                             {uploading ? 'Uploading...' : 'Upload Image'}
+                           </button>
+                         </div>
+                       </div>
+                     </div>
+
+                     {/* Uploaded Images Grid */}
+                     <div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                         <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Uploaded Images ({agentUpdates.length})</h3>
+                         <button onClick={fetchAgentUpdates} className="btn btn-secondary btn-sm" disabled={updatesLoading}>
+                           {updatesLoading ? 'Refreshing...' : 'Refresh'}
+                         </button>
+                       </div>
+
+                       {agentUpdates.length === 0 ? (
+                         <div className="form-card text-center" style={{ padding: '48px', backdropFilter: 'blur(20px)' }}>
+                           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-tertiary)', margin: '0 auto 16px' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                           <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>No images uploaded yet. Upload your first update above.</p>
+                         </div>
+                       ) : (
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                           {agentUpdates.map(update => {
+                             const catColors = {
+                               loan_offer:  { bg: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)' },
+                               policy:      { bg: 'rgba(245,158,11,0.1)', color: 'var(--color-warning)' },
+                               promo:       { bg: 'rgba(16,185,129,0.1)', color: 'var(--color-success)' },
+                               training:    { bg: 'rgba(59,130,246,0.1)', color: '#3b82f6' },
+                               general:     { bg: 'rgba(100,116,139,0.1)', color: 'var(--color-text-secondary)' },
+                             };
+                             const c = catColors[update.category] || catColors.general;
+                             return (
+                               <div key={update.id} className="form-card" style={{ padding: 0, overflow: 'hidden', opacity: update.is_active ? 1 : 0.55, backdropFilter: 'blur(20px)' }}>
+                                 <div style={{ position: 'relative' }}>
+                                    {update.image_url.split('?')[0].toLowerCase().endsWith('.pdf') ? (
+                                      <div style={{ width: '100%', height: '180px', background: 'rgba(239, 68, 68, 0.08)', borderBottom: 'var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f87171' }}>PDF Document</span>
+                                      </div>
+                                    ) : (
+                                      <img
+                                        src={update.image_url}
+                                        alt={update.title}
+                                        style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }}
+                                      />
+                                    )}
+                                   {!update.is_active && (
+                                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                       <span style={{ color: '#fff', fontWeight: 700, fontSize: '13px', letterSpacing: '0.05em' }}>HIDDEN FROM AGENTS</span>
+                                     </div>
+                                   )}
+                                   {/* Expiration Countdown Badge */}
+                                   <span style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239, 68, 68, 0.85)', color: '#ffffff', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '99px', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 10 }}>
+                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                     {getExpirationCountdown(update.created_at)}
+                                   </span>
+                                   <span style={{ position: 'absolute', top: '10px', left: '10px', background: c.bg, color: c.color, border: `1px solid ${c.color}40`, fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', backdropFilter: 'blur(8px)', textTransform: 'capitalize' }}>
+                                     {update.category.replace('_', ' ')}
+                                   </span>
+                                 </div>
+                                 <div style={{ padding: '16px' }}>
+                                   <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>{update.title}</div>
+                                   {update.description && <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginBottom: '8px', lineHeight: 1.5 }}>{update.description}</div>}
+                                   <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginBottom: '16px' }}>{new Date(update.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                   <div style={{ display: 'flex', gap: '8px' }}>
+                                     <button
+                                       onClick={() => handleToggleUpdate(update)}
+                                       className="btn btn-secondary btn-sm"
+                                       style={{ flex: 1, fontSize: '12px', padding: '8px', background: update.is_active ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)', color: update.is_active ? 'var(--color-success)' : 'var(--color-text-secondary)', border: `1px solid ${update.is_active ? 'rgba(16,185,129,0.3)' : 'rgba(100,116,139,0.3)'}` }}
+                                     >
+                                       {update.is_active ? 'Active' : 'Hidden'}
+                                     </button>
+                                     <button
+                                       onClick={() => handleDeleteUpdate(update)}
+                                       className="btn btn-secondary btn-sm"
+                                       style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                                     >
+                                       Delete
+                                     </button>
+                                   </div>
+                                 </div>
+                               </div>
+                             );
+                           })}
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 )}
+
                  {/* PANEL 11: AUDIT LOGS */}
                  {activeTab === 'audit_logs' && (
                    <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                        <div>
-                         <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>📋 Administrative Audit Logs</h3>
+                         <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Administrative Audit Logs</h3>
                          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>
                            Chronological list of all actions performed by administrators in the control room panel.
                          </p>
                        </div>
                        <div>
                          <button onClick={fetchAuditLogs} className="btn btn-secondary btn-sm" disabled={loadingAuditLogs}>
-                           {loadingAuditLogs ? 'Refreshing...' : '🔄 Refresh Logs'}
+                           {loadingAuditLogs ? 'Refreshing...' : 'Refresh Logs'}
                          </button>
                        </div>
                      </div>
@@ -3489,6 +4576,215 @@ export default function AdminDashboard() {
                      )}
                    </div>
                  )}
+
+                  {activeTab === 'agreements' && (
+                    <div style={{ display: 'grid', gap: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <div>
+                          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>DSA Agent Agreements Ledger</h3>
+                          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                            View details, print documents, or revoke signed connector/DSA agent agreements.
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {/* Filter Pills */}
+                          <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.03)', padding: '4px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                            {[
+                              { id: 'all', label: 'All Agreements' },
+                              { id: 'active', label: 'Active' },
+                              { id: 'revoked', label: 'Revoked' }
+                            ].map(filter => (
+                              <button
+                                key={filter.id}
+                                onClick={() => setAgreementFilter(filter.id)}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: 'var(--text-xs)',
+                                  fontWeight: 600,
+                                  background: agreementFilter === filter.id ? 'var(--gradient-primary)' : 'transparent',
+                                  border: 'none',
+                                  color: agreementFilter === filter.id ? '#fff' : 'var(--color-text-secondary)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                {filter.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div style={{ width: '250px' }}>
+                            <input
+                              type="text"
+                              placeholder="Search by name or number..."
+                              className="input-field"
+                              value={agreementSearch}
+                              onChange={(e) => setAgreementSearch(e.target.value)}
+                              style={{ margin: 0 }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {loadingAgreements ? (
+                        <div style={{ padding: '60px', textAlign: 'center' }}>
+                          <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+                          <p style={{ color: 'var(--color-text-secondary)' }}>Loading agreements database...</p>
+                        </div>
+                      ) : (() => {
+                        const filteredAgreements = agreements.filter(a => {
+                          const q = agreementSearch.toLowerCase();
+                          const matchesSearch = (
+                            a.agreement_no?.toLowerCase().includes(q) ||
+                            a.profiles?.full_name?.toLowerCase().includes(q) ||
+                            a.profiles?.phone?.includes(q) ||
+                            a.profiles?.email?.toLowerCase().includes(q)
+                          );
+                          if (!matchesSearch) return false;
+                          if (agreementFilter === 'active') return a.status === 'active';
+                          if (agreementFilter === 'revoked') return a.status === 'revoked';
+                          return true;
+                        });
+
+                        return (
+                          <div className="table-scroll-x" style={{ background: 'var(--color-bg-card)', border: 'var(--border-light)', borderRadius: '8px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                              <thead>
+                                <tr style={{ borderBottom: 'var(--border-subtle)', color: 'var(--color-text-tertiary)' }}>
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Agreement No</th>
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Agent Name</th>
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Phone</th>
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{agreementFilter === 'revoked' ? 'Date Revoked' : 'Date Signed'}</th>
+                                  {agreementFilter === 'revoked' && <th style={{ padding: '12px 16px', fontWeight: 600 }}>Revocation Reason</th>}
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredAgreements.map(a => (
+                                  <tr key={a.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--color-text-primary)' }}>
+                                    <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 600 }}>{a.agreement_no}</td>
+                                    <td style={{ padding: '12px 16px', fontWeight: 500 }}>{a.profiles?.full_name}</td>
+                                    <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>{a.profiles?.phone}</td>
+                                    <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>{a.profiles?.email}</td>
+                                    <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>
+                                      {agreementFilter === 'revoked' && a.revoked_at
+                                        ? new Date(a.revoked_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+                                        : new Date(a.signed_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+                                      }
+                                    </td>
+                                    {agreementFilter === 'revoked' && (
+                                      <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={a.revocation_reason}>
+                                        {a.revocation_reason || 'N/A'}
+                                      </td>
+                                    )}
+                                    <td style={{ padding: '12px 16px' }}>
+                                      <span style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        fontSize: '10px',
+                                        fontWeight: 800,
+                                        background: a.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                        color: a.status === 'active' ? 'var(--color-success)' : '#ef4444',
+                                        textTransform: 'uppercase'
+                                      }}>
+                                        {a.status}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '12px 16px', display: 'flex', gap: '8px' }}>
+                                      <button
+                                        onClick={() => {
+                                          window.open(`/agreement-print?id=${a.agent_id}`, '_blank');
+                                        }}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ margin: 0, padding: '4px 10px', fontSize: '11px' }}
+                                      >
+                                        Download / Print
+                                      </button>
+                                      <button
+                                        onClick={async () => {
+                                          if (!confirm(`Are you sure you want to delete agreement ${a.agreement_no} and allow the agent to sign a new one?`)) return;
+                                          try {
+                                            const { error } = await supabase
+                                              .from('agent_agreements')
+                                              .delete()
+                                              .eq('id', a.id);
+                                            if (error) {
+                                              alert("Failed to regenerate agreement: " + error.message);
+                                            } else {
+                                              alert("Agreement deleted successfully! The agent is now prompted to sign a new agreement.");
+                                              logAdminAction('Regenerate Agreement', `Deleted agreement ${a.agreement_no} to allow re-signing.`);
+                                              await fetchAgreementsData();
+                                            }
+                                          } catch(err) {
+                                            console.error(err);
+                                          }
+                                        }}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}
+                                      >
+                                        Regenerate
+                                      </button>
+                                      {a.status === 'active' ? (
+                                        <button
+                                          onClick={() => setRevokingAgreement(a)}
+                                          className="btn btn-sm"
+                                          style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: '#ef4444', color: '#fff' }}
+                                        >
+                                          Revoke
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={async () => {
+                                            if (!confirm(`Are you sure you want to reactivate agreement ${a.agreement_no}?`)) return;
+                                            try {
+                                              const { error } = await supabase
+                                                .from('agent_agreements')
+                                                .update({ status: 'active', revoked_at: null, revocation_reason: null })
+                                                .eq('id', a.id);
+                                              if (error) alert(error.message);
+                                              else {
+                                                // Promote profile back to agent
+                                                const { error: promoteErr } = await supabase
+                                                  .from('profiles')
+                                                  .update({ role: 'agent', demoted_at: null })
+                                                  .eq('id', a.agent_id);
+
+                                                if (promoteErr) {
+                                                  console.error('Failed to promote user back to agent on agreement reactivation:', promoteErr.message);
+                                                }
+
+                                                alert('Agreement reactivated and agent restored successfully.');
+                                                logAdminAction('Reactivate Agreement', `Reactivated agreement ${a.agreement_no} for agent ${a.profiles?.full_name}.`);
+                                                await fetchAgreementsData();
+                                                await fetchAgentsData();
+                                              }
+                                            } catch (err) { console.error(err); }
+                                          }}
+                                          className="btn btn-sm"
+                                          style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                                        >
+                                          Reactivate
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                                {filteredAgreements.length === 0 && (
+                                  <tr>
+                                    <td colSpan={agreementFilter === 'revoked' ? 8 : 7} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                      No agreements found in the database.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
               </div>
             </div>
           </>
@@ -3496,6 +4792,102 @@ export default function AdminDashboard() {
           </div>
         </section>
       </main>
+
+      {/* Revoke Agreement Modal */}
+      {revokingAgreement && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(10px)',
+          overflowY: 'auto',
+          padding: '40px 16px',
+          zIndex: 99999,
+          WebkitOverflowScrolling: 'touch'
+        }} onClick={() => setRevokingAgreement(null)}>
+          <div className="form-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-error)' }}>Revoke Agent Agreement</h3>
+              <button onClick={() => setRevokingAgreement(null)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+              Are you sure you want to revoke/terminate the agreement for <strong>{revokingAgreement.profiles?.full_name}</strong> (No: {revokingAgreement.agreement_no})?
+              Once revoked, the agreement QR code will no longer verify on the website.
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!revocationReason.trim()) return;
+              setRevokingLoading(true);
+
+              try {
+                const { error } = await supabase
+                  .from('agent_agreements')
+                  .update({
+                    status: 'revoked',
+                    revoked_at: new Date().toISOString(),
+                    revocation_reason: revocationReason.trim()
+                  })
+                  .eq('id', revokingAgreement.id);
+
+                if (error) {
+                  alert('Failed to revoke agreement: ' + error.message);
+                } else {
+                  // Automatically demote the agent to standard user
+                  const { error: demoteErr } = await supabase
+                    .from('profiles')
+                    .update({
+                      role: 'user',
+                      demoted_at: new Date().toISOString()
+                    })
+                    .eq('id', revokingAgreement.agent_id);
+
+                  if (demoteErr) {
+                    console.error('Failed to demote agent on revocation:', demoteErr.message);
+                  }
+
+                  alert('Agreement revoked and agent demoted successfully.');
+                  logAdminAction('Revoke Agreement', `Revoked agreement ${revokingAgreement.agreement_no} for agent ${revokingAgreement.profiles?.full_name}. Reason: ${revocationReason.trim()}`);
+                  setRevokingAgreement(null);
+                  setRevocationReason('');
+                  await fetchAgreementsData();
+                  await fetchAgentsData();
+                }
+              } catch (err) {
+                console.error(err);
+                alert('Error revoking agreement.');
+              } finally {
+                setRevokingLoading(false);
+              }
+            }} style={{ display: 'grid', gap: '16px' }}>
+              <div className="input-group">
+                <label className="input-label">Reason for Revocation / Termination</label>
+                <textarea
+                  className="input-field"
+                  placeholder="Explain why this agreement is being terminated..."
+                  value={revocationReason}
+                  onChange={(e) => setRevocationReason(e.target.value)}
+                  style={{ minHeight: '100px', resize: 'vertical' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setRevokingAgreement(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn" style={{ background: '#ef4444', color: '#fff' }} disabled={revokingLoading}>
+                  {revokingLoading ? 'Revoking...' : 'Confirm Revoke'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Contact Message Detail Modal */}
       {selectedMessage && (
@@ -3941,9 +5333,9 @@ export default function AdminDashboard() {
                       value={policyForm.employment_type || 'salaried'}
                       onChange={(e) => setPolicyForm({ ...policyForm, employment_type: e.target.value })}
                     >
-                      <option value="salaried">💼 Salaried Only</option>
-                      <option value="self_employed">🏢 Self Employed Only</option>
-                      <option value="both">🔄 Both (Salaried & Self Employed)</option>
+                      <option value="salaried">Salaried Only</option>
+                      <option value="self_employed">Self Employed Only</option>
+                      <option value="both">Both (Salaried & Self Employed)</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -4063,7 +5455,7 @@ export default function AdminDashboard() {
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
                   <label htmlFor="direct_submit_checkbox" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)', fontWeight: 600, cursor: 'pointer' }}>
-                    📥 Direct Submit to Admin (Admin will apply on behalf of Agent)
+                    Direct Submit to Admin (Admin will apply on behalf of Agent)
                   </label>
                 </div>
 
@@ -4184,7 +5576,7 @@ export default function AdminDashboard() {
                             window.open(blobUrl, '_blank');
                           }}
                         >
-                          👁️ Preview
+                          👁Preview
                         </button>
                         <button
                           type="button"
@@ -4216,7 +5608,7 @@ export default function AdminDashboard() {
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
                   <label htmlFor="all_pincodes_checkbox" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', fontWeight: 600, cursor: 'pointer' }}>
-                    🌍 Serves all Pincodes in India (No mapping needed)
+                    Serves all Pincodes in India (No mapping needed)
                   </label>
                 </div>
 
@@ -4249,7 +5641,7 @@ export default function AdminDashboard() {
                     minWidth: '320px'
                   }}>
                     <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      📍 Serviced Pincodes ({filteredPincodes.length} / {bankPincodes.length})
+                      Serviced Pincodes ({filteredPincodes.length} / {bankPincodes.length})
                     </h4>
 
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -4274,7 +5666,7 @@ export default function AdminDashboard() {
                     <input
                       type="text"
                       className="input-field"
-                      placeholder="🔍 Search mapped pincodes..."
+                      placeholder="Search mapped pincodes..."
                       value={pincodeSearchTerm}
                       onChange={(e) => setPincodeSearchTerm(e.target.value)}
                       style={{ fontSize: 'var(--text-xs)', padding: '8px 12px' }}
@@ -4314,7 +5706,7 @@ export default function AdminDashboard() {
                             }}
                             disabled={pincodeActionLoading === 'bulk-deleting'}
                           >
-                            🗑️ Delete Selected ({selectedPincodeIds.length})
+                            Delete Selected ({selectedPincodeIds.length})
                           </button>
                         )}
                       </div>
@@ -4498,12 +5890,14 @@ export default function AdminDashboard() {
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={selectedAgent.avatar} alt="Agent Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <span style={{ fontSize: '24px' }}>👤</span>
+                  <span style={{ fontSize: '24px' }}></span>
                 )}
               </div>
               <div>
                 <h4 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{selectedAgent.full_name}</h4>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Official Partner</p>
+                <p style={{ fontSize: 'var(--text-xs)', color: selectedAgent.demoted_at ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: selectedAgent.demoted_at ? 600 : 400 }}>
+                  {selectedAgent.demoted_at ? 'Revoked / Demoted Partner' : 'Official Partner'}
+                </p>
               </div>
             </div>
 
@@ -4514,7 +5908,7 @@ export default function AdminDashboard() {
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Current Status</div>
                   <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: selectedAgent.profile_locked ? 'var(--color-error)' : 'var(--color-success)', marginTop: '4px' }}>
-                    {selectedAgent.profile_locked ? '🔒 Locked' : '🔓 Unlocked'}
+                    {selectedAgent.profile_locked ? 'Locked' : 'Unlocked'}
                   </div>
                 </div>
                 <button
@@ -4531,12 +5925,308 @@ export default function AdminDashboard() {
                     fontWeight: 600
                   }}
                 >
-                  {selectedAgent.profile_locked ? '🔓 Unlock Agent Profile' : '🔒 Lock Agent Profile'}
+                  {selectedAgent.profile_locked ? 'Unlock Agent Profile' : 'Lock Agent Profile'}
                 </button>
               </div>
             </div>
 
+            {/* Agent Partner Agreement Status */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>DSA Appointment Agreement</h4>
+              <div className="form-card" style={{ display: 'grid', gap: '12px', padding: '20px', background: 'var(--color-bg-card)' }}>
+                {(() => {
+                  const ag = agreements.find(x => x.agent_id === selectedAgent.id);
+                  if (!ag) {
+                    return (
+                      <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
+                        No signed partner agreement found in database for this agent.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Number:</span>
+                        <strong style={{ fontFamily: 'monospace', color: 'var(--color-primary)' }}>{ag.agreement_no}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Signed On:</span>
+                        <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(ag.signed_at).toLocaleDateString('en-IN')}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Status:</span>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          background: ag.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                          color: ag.status === 'active' ? 'var(--color-success)' : '#ef4444',
+                          textTransform: 'uppercase'
+                        }}>{ag.status}</span>
+                      </div>
+                      {ag.status !== 'active' && ag.revocation_reason && (
+                        <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '10px', marginTop: '4px' }}>
+                          <span style={{ color: '#ef4444', fontWeight: 600, fontSize: 'var(--text-xs)' }}>Revocation Reason:</span>
+                          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px', lineHeight: '1.5' }}>{ag.revocation_reason}</p>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <button
+                          onClick={() => window.open(`/agreement-print?id=${selectedAgent.id}`, '_blank')}
+                          className="btn btn-secondary btn-sm"
+                          style={{ margin: 0, flex: 1, padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                        >
+                          Download / Print PDF
+                        </button>
+                        {ag.status === 'active' ? (
+                          <button
+                            onClick={() => {
+                              setSelectedAgent(null); // close drawer to reveal modal cleanly
+                              setRevokingAgreement(ag);
+                            }}
+                            className="btn btn-sm"
+                            style={{ margin: 0, flex: 1, padding: '6px 12px', fontSize: 'var(--text-xs)', background: '#ef4444', color: '#fff' }}
+                          >
+                            Revoke
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Are you sure you want to reactivate agreement ${ag.agreement_no}?`)) return;
+                              try {
+                                const { error } = await supabase
+                                  .from('agent_agreements')
+                                  .update({ status: 'active', revoked_at: null, revocation_reason: null })
+                                  .eq('id', ag.id);
+                                if (error) alert(error.message);
+                                else {
+                                  // Promote profile back to agent
+                                  const { error: promoteErr } = await supabase
+                                    .from('profiles')
+                                    .update({ role: 'agent', demoted_at: null })
+                                    .eq('id', ag.agent_id);
+
+                                  if (promoteErr) {
+                                    console.error('Failed to promote user back to agent on agreement reactivation:', promoteErr.message);
+                                  }
+
+                                  alert('Agreement reactivated and agent restored successfully.');
+                                  logAdminAction('Reactivate Agreement', `Reactivated agreement ${ag.agreement_no} for agent ${selectedAgent.full_name}.`);
+                                  await fetchAgreementsData();
+                                  await fetchAgentsData();
+
+                                  // Update local selectedAgent state to reflect re-promotion
+                                  setSelectedAgent(prev => prev ? { ...prev, role: 'agent', demoted_at: null } : null);
+                                }
+                              } catch (err) { console.error(err); }
+                            }}
+                            className="btn btn-sm"
+                            style={{ margin: 0, flex: 1, padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                          >
+                            Reactivate
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Are you sure you want to delete this agreement and allow the agent to sign a new one? This will completely clear their current signature and agreement details.\n\nThe agent will see a re-sign prompt on their dashboard.")) return;
+                            try {
+                              const { error } = await supabase
+                                .from('agent_agreements')
+                                .delete()
+                                .eq('id', ag.id);
+                              if (error) {
+                                alert("Failed to regenerate agreement: " + error.message);
+                              } else {
+                                // Create an approved admin-pushed regen request so the agent sees the re-sign prompt
+                                await supabase.from('agreement_regen_requests').insert({
+                                  agent_id: ag.agent_id,
+                                  requested_by: 'admin',
+                                  status: 'approved',
+                                  admin_note: 'Agreement reset by administrator from ledger.',
+                                });
+                                alert("Agreement deleted successfully! The agent will now see a re-sign prompt on their dashboard.");
+                                logAdminAction('Regenerate Agreement', `Deleted agreement ${ag.agreement_no} for agent ${selectedAgent.full_name} to allow re-signing.`);
+                                await fetchAgreementsData();
+                                await fetchRegenRequests();
+                                handleSelectAgent(null);
+                              }
+                            } catch(err) {
+                              console.error(err);
+                            }
+                          }}
+
+                          className="btn btn-sm"
+                          style={{
+                            margin: 0,
+                            flex: 1,
+                            padding: '6px 12px',
+                            fontSize: 'var(--text-xs)',
+                            background: 'rgba(245, 158, 11, 0.1)',
+                            color: '#f59e0b',
+                            border: '1px solid rgba(245, 158, 11, 0.2)'
+                          }}
+                        >
+                          Regenerate (Re-sign) 🔄
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Regen Request Management Panel */}
+            {(() => {
+              const agentRegenReqs = regenRequests.filter(r => r.agent_id === selectedAgent?.id);
+              return agentRegenReqs.length > 0 ? (
+                <div>
+                  <h4 style={{ fontSize: 'var(--text-sm)', color: '#f59e0b', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🔄 Re-sign Requests
+                    <span style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>{agentRegenReqs.length}</span>
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {agentRegenReqs.map(req => (
+                      <div key={req.id} style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                          <div>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
+                              {req.requested_by === 'agent' ? '👤 Agent Request' : '🔧 Admin Request'}
+                            </span>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
+                              {new Date(req.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase',
+                            background: req.status === 'pending' ? 'rgba(59,130,246,0.15)' : 'rgba(16,185,129,0.15)',
+                            color: req.status === 'pending' ? '#60a5fa' : '#34d399'
+                          }}>{req.status}</span>
+                        </div>
+                        {req.reason && (
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '10px', fontStyle: 'italic' }}>
+                            Reason: "{req.reason}"
+                          </div>
+                        )}
+                        {req.status === 'pending' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <input
+                              type="text"
+                              placeholder="Admin note (Required if rejecting)"
+                              className="input-field"
+                              style={{ fontSize: '11px', padding: '6px 10px' }}
+                              onChange={e => setRegenAdminNote(e.target.value)}
+                              value={regenAdminNote}
+                            />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                disabled={regenActionLoading === req.id}
+                                onClick={async () => {
+                                  setRegenActionLoading(req.id);
+                                  try {
+                                    // Approve: delete current agreement + mark request approved
+                                    await supabase.from('agent_agreements').delete().eq('agent_id', req.agent_id);
+                                    const { error } = await supabase.from('agreement_regen_requests')
+                                      .update({ status: 'approved', admin_note: regenAdminNote || null, resolved_at: new Date().toISOString() })
+                                      .eq('id', req.id);
+                                    if (error) { alert(error.message); return; }
+                                    logAdminAction('Approve Regen Request', `Approved re-sign request for agent ${selectedAgent?.full_name}.`);
+                                    setRegenAdminNote('');
+                                    await fetchRegenRequests();
+                                    await fetchAgreementsData();
+                                  } catch(err) { console.error(err); }
+                                  finally { setRegenActionLoading(null); }
+                                }}
+                                className="btn btn-sm"
+                                style={{ flex: 1, margin: 0, padding: '6px 10px', fontSize: '11px', background: 'rgba(16,185,129,0.15)', color: '#34d399', borderColor: 'rgba(16,185,129,0.25)' }}
+                              >
+                                {regenActionLoading === req.id ? '…' : '✅ Approve'}
+                              </button>
+                              <button
+                                disabled={regenActionLoading === req.id}
+                                onClick={async () => {
+                                  if (!regenAdminNote || !regenAdminNote.trim()) {
+                                    alert("Please enter the reason for rejection in the Admin Note field.");
+                                    return;
+                                  }
+                                  setRegenActionLoading(req.id);
+                                  try {
+                                    const { error } = await supabase.from('agreement_regen_requests')
+                                      .update({ status: 'rejected', admin_note: regenAdminNote.trim(), resolved_at: new Date().toISOString() })
+                                      .eq('id', req.id);
+                                    if (error) { alert(error.message); return; }
+                                    logAdminAction('Reject Regen Request', `Rejected re-sign request for agent ${selectedAgent?.full_name}.`);
+                                    setRegenAdminNote('');
+                                    await fetchRegenRequests();
+                                  } catch(err) { console.error(err); }
+                                  finally { setRegenActionLoading(null); }
+                                }}
+                                className="btn btn-sm"
+                                style={{ flex: 1, margin: 0, padding: '6px 10px', fontSize: '11px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}
+                              >
+                                {regenActionLoading === req.id ? '…' : '❌ Reject'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* No pending regen requests — admin can push one */
+                <div>
+                  <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Push Re-sign to Agent</h4>
+                  <div style={{ background: 'var(--color-bg-card)', border: 'var(--border-subtle)', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+                      Push a re-sign request to this agent. Their current agreement will be deleted immediately and they will be prompted to upload a new signature.
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Admin note / reason (optional)"
+                      className="input-field"
+                      style={{ fontSize: '11px', padding: '6px 10px' }}
+                      value={regenAdminNote}
+                      onChange={e => setRegenAdminNote(e.target.value)}
+                    />
+                    <button
+                      disabled={!selectedAgent}
+                      onClick={async () => {
+                        if (!confirm(`Push re-sign request to ${selectedAgent?.full_name}? Their current agreement will be deleted immediately.`)) return;
+                        try {
+                          // Delete current agreement
+                          await supabase.from('agent_agreements').delete().eq('agent_id', selectedAgent.id);
+                          // Create an approved admin-pushed regen request
+                          await supabase.from('agreement_regen_requests').insert({
+                            agent_id: selectedAgent.id,
+                            requested_by: 'admin',
+                            status: 'approved',
+                            admin_note: regenAdminNote || null,
+                          });
+                          logAdminAction('Admin Push Re-sign', `Pushed re-sign request to agent ${selectedAgent?.full_name}.`);
+                          setRegenAdminNote('');
+                          await fetchRegenRequests();
+                          await fetchAgreementsData();
+                          alert(`Re-sign request pushed to ${selectedAgent?.full_name}. They will see a prompt to re-sign on their dashboard.`);
+                        } catch(err) {
+                          console.error(err);
+                          alert('Failed to push re-sign request.');
+                        }
+                      }}
+                      className="btn btn-sm"
+                      style={{ margin: 0, padding: '8px 14px', fontSize: '11px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.2)' }}
+                    >
+                      🔄 Push Re-sign Request to Agent
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Profile Update Request */}
+
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Profile Update Request</h4>
               <div className="form-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', background: 'var(--color-bg-card)' }}>
@@ -4544,7 +6234,7 @@ export default function AdminDashboard() {
                   <div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Request Status</div>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: selectedAgent.profile_update_requested ? 'var(--color-warning)' : 'var(--color-text-secondary)', marginTop: '4px' }}>
-                      {selectedAgent.profile_update_requested ? '📢 Update Requested — Agent will see reminders every 5 min' : '✅ No pending request'}
+                      {selectedAgent.profile_update_requested ? 'Update Requested — Agent will see reminders every 5 min' : 'No pending request'}
                     </div>
                   </div>
                   {selectedAgent.profile_update_requested && (
@@ -4619,7 +6309,7 @@ export default function AdminDashboard() {
                         cursor: 'pointer'
                       }}
                     >
-                      📢 Request Profile Update
+                      Request Profile Update
                     </button>
                   </div>
                 )}
@@ -4637,8 +6327,7 @@ export default function AdminDashboard() {
                   className="btn btn-secondary btn-sm"
                   style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(239, 68, 68, 0.05)', color: 'var(--color-error)', border: 'var(--border-error)' }}
                 >
-                  Demote to Normal User 👤
-                </button>
+                  Demote to Normal User </button>
               </div>
               {isEditingAgent ? (
                 <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
@@ -4837,9 +6526,42 @@ export default function AdminDashboard() {
                       onChange={(e) => setEditAgentData({ ...editAgentData, id_number: e.target.value.replace(/[^a-zA-Z0-9]/g, '') })}
                     />
                   </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Secondary ID Proof Type</label>
+                    <select
+                      className="input-field"
+                      value={editAgentData.id_type_2 || 'Aadhaar Card'}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, id_type_2: e.target.value })}
+                    >
+                      <option value="Aadhaar Card">Aadhaar Card</option>
+                      <option value="PAN Card">PAN Card</option>
+                      <option value="Passport">Passport</option>
+                      <option value="Voter ID Card">Voter ID Card</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Secondary ID Number</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      maxLength={12}
+                      value={editAgentData.id_number_2 || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, id_number_2: e.target.value.replace(/[^a-zA-Z0-9]/g, '') })}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="form-card" style={{ display: 'grid', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+                  {/* Selfie block (Top of IDs for better layout) */}
+                  {selectedAgent.selfie && (
+                    <div style={{ paddingBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Agent Live Selfie</div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedAgent.selfie} alt="Selfie" style={{ maxWidth: '160px', maxHeight: '160px', borderRadius: '8px', border: 'var(--border-light)', objectFit: 'cover' }} />
+                    </div>
+                  )}
+
+                  <h5 style={{ fontSize: '11px', color: 'var(--color-primary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Primary Identity Proof</h5>
                   <div className="responsive-grid-2" style={{ gap: '16px' }}>
                     <div>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity Proof Type</div>
@@ -4872,6 +6594,135 @@ export default function AdminDashboard() {
                       )
                     ) : (
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                    )}
+                  </div>
+
+                  {/* Secondary ID Block */}
+                  <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '16px' }}>
+                    <h5 style={{ fontSize: '11px', color: 'var(--color-primary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '12px' }}>Secondary Identity Proof</h5>
+                    <div className="responsive-grid-2" style={{ gap: '16px', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity Proof Type</div>
+                        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_type_2 || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Identity ID Number</div>
+                        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.id_number_2 || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File</div>
+                      {selectedAgent.id_file_2 ? (
+                        selectedAgent.id_file_2.startsWith('data:application/pdf') || !selectedAgent.id_file_2.startsWith('data:image/') ? (
+                          <a
+                            href={selectedAgent.id_file_2}
+                            download={`secondary-identity-${selectedAgent.id_type_2 || 'verification'}`}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                            View / Download Secondary Identity Proof PDF
+                          </a>
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={selectedAgent.id_file_2} alt="Secondary ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                        )
+                      ) : (
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Financial Details */}
+            <div>
+              <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Bank & Payout Details</h4>
+              {isEditingAgent ? (
+                <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Bank Account Holder Name</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.bank_holder_name || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, bank_holder_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Bank Name</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.bank_name || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, bank_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Bank Account Number</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.bank_account_no || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, bank_account_no: e.target.value.replace(/\D/g, '') })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>IFSC Code</label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      value={editAgentData.bank_ifsc || ''}
+                      onChange={(e) => setEditAgentData({ ...editAgentData, bank_ifsc: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="form-card" style={{ display: 'grid', gap: '16px', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
+                  <div className="responsive-grid-2" style={{ gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Account Holder Name</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.bank_holder_name || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Bank Name</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.bank_name || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Account Number</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.bank_account_no || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>IFSC Code</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.bank_ifsc || 'N/A'}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Cancelled Cheque File</div>
+                    {selectedAgent.cancelled_cheque ? (
+                      selectedAgent.cancelled_cheque.startsWith('data:application/pdf') || !selectedAgent.cancelled_cheque.startsWith('data:image/') ? (
+                        <a
+                          href={selectedAgent.cancelled_cheque}
+                          download={`cancelled-cheque-${selectedAgent.bank_name || 'bank'}`}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          View / Download Cancelled Cheque PDF
+                        </a>
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={selectedAgent.cancelled_cheque} alt="Cancelled Cheque" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                      )
+                    ) : (
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No cheque uploaded</span>
                     )}
                   </div>
                 </div>
@@ -4934,8 +6785,7 @@ export default function AdminDashboard() {
                           className="btn btn-secondary btn-sm"
                           style={{ margin: 0, padding: '4px 8px', fontSize: '9px' }}
                         >
-                          Inspect 👁️
-                        </button>
+                          Inspect 👁</button>
                       </div>
                     </div>
                   ))}
@@ -4966,7 +6816,7 @@ export default function AdminDashboard() {
                             borderLeft: '2px solid var(--color-error)',
                             wordBreak: 'break-word'
                           }}>
-                            ⚠️ {app.problem}
+                            {app.problem}
                           </div>
                         )}
                       </div>
@@ -5182,11 +7032,11 @@ export default function AdminDashboard() {
                 <div>
                   <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Lender Portal & Credentials</h4>
                   <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>🔗 {selectedApplication.bank_name} Partner Portal</div>
+                    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-primary)' }}>{selectedApplication.bank_name} Partner Portal</div>
                     
                     {matchedPolicy.direct_submit && (
                       <div style={{ fontSize: '11px', color: 'var(--color-warning)', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '8px 12px', borderRadius: '6px' }}>
-                        📥 <strong>Direct Submission Force Enabled</strong>: The agent submitted this client directly. You must log in and submit it on the partner portal below.
+                        <strong>Direct Submission Force Enabled</strong>: The agent submitted this client directly. You must log in and submit it on the partner portal below.
                       </div>
                     )}
                     
@@ -5201,17 +7051,17 @@ export default function AdminDashboard() {
                         display: 'grid',
                         gap: '6px'
                       }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Login Credentials for Portal:</div>
+                        <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>Login Credentials for Portal:</div>
                         {username && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span>• <strong>Username / ID:</strong> {username}</span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                           </div>
                         )}
                         {password && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span>• <strong>Password / OTP:</strong> {password}</span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                           </div>
                         )}
                       </div>
@@ -5235,7 +7085,7 @@ export default function AdminDashboard() {
                           marginTop: '4px'
                         }}
                       >
-                        🚀 Open Bank Partner Portal ↗
+                        Open Bank Partner Portal ↗
                       </a>
                     )}
                   </div>
@@ -5279,7 +7129,7 @@ export default function AdminDashboard() {
                       <option value="kyc verification">KYC Waiting</option>
                       <option value="disbursed">Disbursed</option>
                       <option value="rejected">Rejected</option>
-                      <option value="not interested">🚫 Not Interested</option>
+                      <option value="not interested">Not Interested</option>
                     </select>
                   </div>
                 </div>
@@ -5346,7 +7196,7 @@ export default function AdminDashboard() {
                       cursor: 'pointer'
                     }}
                   >
-                    💾 Save Status Notes
+                    Save Status Notes
                   </button>
                 </div>
               </div>

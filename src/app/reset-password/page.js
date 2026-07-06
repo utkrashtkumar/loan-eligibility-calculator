@@ -104,7 +104,7 @@ function ResetPasswordContent() {
           lineHeight: '1.5'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-            <span style={{ marginTop: '2px' }}>⚠</span>
+            <span style={{ marginTop: '2px' }}></span>
             <span>{error}</span>
           </div>
         </div>

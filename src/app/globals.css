@@ -339,9 +339,9 @@ p {
   align-items: center;
   justify-content: space-between;
   height: 100%;
-  max-width: var(--container-max);
+  max-width: 96% !important; /* Spread the content to occupy left and right space */
   margin: 0 auto;
-  padding: 0 clamp(12px, 4vw, 48px);
+  padding: 0 clamp(12px, 2vw, 24px);
   position: relative;
 }
 
@@ -358,10 +358,19 @@ p {
   transition: transform var(--transition-fast);
   position: relative;
   z-index: 1;
+  flex-shrink: 0; /* Prevent the logo from shrinking or overlapping */
 }
 
 .logo:hover {
   transform: scale(1.02);
+}
+
+
+.logo-text-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .logo-text {
@@ -369,6 +378,31 @@ p {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.logo-badge-fintech {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  background: var(--gradient-brand);
+  border-radius: 20px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25), 0 0 20px rgba(59, 130, 246, 0.15);
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: pulseGlow 2s infinite alternate;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+  -webkit-text-fill-color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .logo-badge {
@@ -1856,7 +1890,7 @@ textarea.input-field {
 }
 
 .tips-list li::before {
-  content: '💡';
+  content: '';
   font-size: var(--text-base);
 }
 
@@ -2651,13 +2685,15 @@ textarea.input-field {
   border: var(--border-light);
   color: var(--color-text-primary);
   cursor: pointer;
-  width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 20px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
   transition: all var(--transition-base);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -2667,8 +2703,53 @@ textarea.input-field {
 .theme-toggle-btn:hover {
   background: var(--color-bg-card-hover);
   border-color: var(--color-accent-indigo);
-  transform: scale(1.08) rotate(15deg);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-glow-indigo);
+}
+
+.theme-toggle-btn svg {
+  transition: transform var(--transition-base);
+  flex-shrink: 0;
+}
+
+.theme-toggle-btn:hover svg {
+  transform: scale(1.1) rotate(15deg);
+}
+
+.theme-toggle-text {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .theme-toggle-text {
+    display: none !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .logo-text-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .logo-badge-fintech {
+    font-size: 8px;
+    padding: 1px 6px;
+    transform: none;
+    margin-left: 0;
+  }
+  .logo-text {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-toggle-btn {
+    padding: 0 10px;
+    font-size: 11px;
+    height: 36px;
+    gap: 5px;
+  }
 }
 
 /* ---------- Navigation Logout Button ---------- */
@@ -3672,4 +3753,62 @@ main, article, aside {
   outline: none;
 }
 
+/* Dropdown item styling */
+.dropdown-item {
+  color: var(--color-text-secondary) !important;
+  font-weight: 500;
+  border-radius: 6px;
+}
+.dropdown-item:hover {
+  background: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
+}
 
+/* Mobile dropdown sub-menu item styling */
+.mobile-dropdown-item {
+  display: block !important;
+  text-align: left !important;
+  padding: 10px 16px 10px 32px !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  transition: all 0.2s ease !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.mobile-dropdown-item:hover,
+.mobile-dropdown-item:active {
+  color: var(--color-primary) !important;
+  padding-left: 38px !important; /* Premium slide-right effect on hover */
+  background: none !important;
+}
+
+/* Laptop View Responsive Breakpoint for Navigation */
+@media (max-width: 1200px) {
+  .nav-links {
+    display: none !important;
+  }
+  .hamburger {
+    display: flex !important;
+  }
+}
+
+/* Hide CIBIL partnership details and compress menu gap on laptop screens to prevent header overflow */
+@media (max-width: 1440px) {
+  .cibil-subtext {
+    display: none !important;
+  }
+  .nav-links {
+    gap: 16px !important; /* Reduce space between links on laptop view */
+  }
+  .nav-link {
+    font-size: 13px !important;
+  }
+}

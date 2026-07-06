@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -539,10 +540,10 @@ export default function CheckPage() {
                           : 'var(--color-accent)' 
                     }}>
                       {formData.employmentType === 'salaried' 
-                        ? '💼 Salary Loan' 
+                        ? 'Salary Loan' 
                         : formData.loanType === 'BL' 
-                          ? '🏢 Business Loan' 
-                          : '⚡ Instant Loan'}
+                          ? 'Business Loan' 
+                          : 'Instant Loan'}
                     </div>
                   </div>
                 </div>
@@ -665,7 +666,7 @@ export default function CheckPage() {
                         onChange={(e) => updateField('name', e.target.value)}
                         required
                       />
-                      {errors.name && <p className="input-error-text">⚠ {errors.name}</p>}
+                      {errors.name && <p className="input-error-text">{errors.name}</p>}
                     </div>
 
                     <div className="input-group">
@@ -680,7 +681,7 @@ export default function CheckPage() {
                         onChange={(e) => updateField('mobile', e.target.value.replace(/\D/g, ''))}
                         required
                       />
-                      {errors.mobile && <p className="input-error-text">⚠ {errors.mobile}</p>}
+                      {errors.mobile && <p className="input-error-text">{errors.mobile}</p>}
                       <p className="input-hint">Will be shared only with matching lenders</p>
                     </div>
 
@@ -694,7 +695,7 @@ export default function CheckPage() {
                         onChange={(e) => updateField('dob', e.target.value)}
                         required
                       />
-                      {errors.dob && <p className="input-error-text">⚠ {errors.dob}</p>}
+                      {errors.dob && <p className="input-error-text">{errors.dob}</p>}
                     </div>
 
                     <div className="input-group">
@@ -734,7 +735,7 @@ export default function CheckPage() {
                         rows={2}
                         required
                       />
-                      {errors.currentAddress && <p className="input-error-text">⚠ {errors.currentAddress}</p>}
+                      {errors.currentAddress && <p className="input-error-text">{errors.currentAddress}</p>}
                     </div>
 
                     <label className="checkbox-wrapper" style={{ margin: '16px 0' }}>
@@ -774,7 +775,7 @@ export default function CheckPage() {
                         value={formData.pincode}
                         onChange={(e) => updateField('pincode', e.target.value.replace(/\D/g, ''))}
                       />
-                      {errors.pincode && <p className="input-error-text">⚠ {errors.pincode}</p>}
+                      {errors.pincode && <p className="input-error-text">{errors.pincode}</p>}
                       <p className="input-hint">Used for checking serviceable regions</p>
                     </div>
                   </div>
@@ -816,7 +817,7 @@ export default function CheckPage() {
                             gap: '8px'
                           }}
                         >
-                          💼 Salary Loan
+                          Salary Loan
                         </button>
                         <button
                           type="button"
@@ -840,7 +841,7 @@ export default function CheckPage() {
                             gap: '8px'
                           }}
                         >
-                          ⚡ Instant Loan
+                          Instant Loan
                         </button>
                         <button
                           type="button"
@@ -864,7 +865,7 @@ export default function CheckPage() {
                             gap: '8px'
                           }}
                         >
-                          🏢 Business Loan
+                          Business Loan
                         </button>
                       </div>
                     </div>
@@ -885,7 +886,7 @@ export default function CheckPage() {
                           onChange={(e) => updateField('salary', e.target.value)}
                         />
                       </div>
-                      {errors.salary && <p className="input-error-text">⚠ {errors.salary}</p>}
+                      {errors.salary && <p className="input-error-text">{errors.salary}</p>}
                     </div>
 
                     <div className="input-group">
@@ -924,7 +925,7 @@ export default function CheckPage() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                           }}
                         >
-                          ✅ Yes, PF Deducted
+                          Yes, PF Deducted
                         </button>
                         <button
                           type="button"
@@ -942,7 +943,7 @@ export default function CheckPage() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                           }}
                         >
-                          ❌ No PF Deduction
+                          No PF Deduction
                         </button>
                       </div>
                       <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
@@ -965,7 +966,7 @@ export default function CheckPage() {
                         color: formData.loanType === 'BL' ? 'var(--color-warning)' : 'var(--color-accent)',
                         lineHeight: 1.5
                       }}>
-                        <span style={{ fontSize: '16px' }}>{formData.loanType === 'BL' ? '🏢' : '⚡'}</span>
+                        <span style={{ fontSize: '16px' }}>{formData.loanType === 'BL' ? '' : ''}</span>
                         {formData.loanType === 'BL'
                           ? 'Business loans require: Annual Turnover ≥ ₹50 Lac, Monthly Profit ≥ 10%, Business age ≥ 1 year, and CIBIL ≥ 700 (waived for PROTIUM).'
                           : 'Instant loans do not require salary information. Eligibility is based on your pincode and CIBIL score.'}
@@ -1004,7 +1005,7 @@ export default function CheckPage() {
                                   gap: '6px'
                                 }}
                               >
-                                {type === 'Manufacturing' ? '🏭' : type === 'Trading' ? '🤝' : type === 'Retail' ? '🛒' : '🛠️'}
+                                {type === 'Manufacturing' ? '' : type === 'Trading' ? '' : type === 'Retail' ? '' : ''}
                                 {type}
                               </button>
                             ))}
@@ -1077,7 +1078,7 @@ export default function CheckPage() {
                               fontSize: '12px',
                               fontWeight: 600,
                             }}>
-                              <span>📊 Business FOIR:</span>
+                              <span>Business FOIR:</span>
                               <span style={{
                                 color: (() => {
                                   const monthlyProfitAmt = (Number(formData.annualTurnover) / 12) * (Number(formData.monthlyProfitPct) / 100);
@@ -1122,10 +1123,9 @@ export default function CheckPage() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
                         <label className="input-label" style={{ margin: 0 }}>CIBIL / Credit Score <span className="required">*</span></label>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                          <a
-                            href={user ? "https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369" : `/login?redirect=${encodeURIComponent("https://consumer.experian.in/ecv-jet/affinityFlowController/affinityFlow?affinityId=369")}`}
-                            target={user ? "_blank" : "_self"}
-                            rel="noopener noreferrer"
+                          <Link
+                            href="/cibil"
+                            target="_blank"
                             className="button-82-pushable"
                             style={{ display: 'inline-block', textDecoration: 'none' }}
                           >
@@ -1134,7 +1134,7 @@ export default function CheckPage() {
                             <span className="button-82-front text">
                               Click Here For Free Credit Report
                             </span>
-                          </a>
+                          </Link>
                           <span style={{ 
                             fontSize: '10.5px', 
                             color: 'var(--color-text-secondary)', 
@@ -1148,7 +1148,7 @@ export default function CheckPage() {
                             borderRadius: '4px',
                             border: '1px solid rgba(255, 255, 255, 0.05)'
                           }}>
-                            🤝 In partnership with Punjab National Bank &nbsp;|&nbsp; 🛡️ Powered by Experian
+                            In partnership with Punjab National Bank &nbsp;|&nbsp; 🛡Powered by Experian
                           </span>
                         </div>
                       </div>
@@ -1162,7 +1162,7 @@ export default function CheckPage() {
                         value={formData.creditScore}
                         onChange={(e) => updateField('creditScore', e.target.value)}
                       />
-                      {errors.creditScore && <p className="input-error-text">⚠ {errors.creditScore}</p>}
+                      {errors.creditScore && <p className="input-error-text">{errors.creditScore}</p>}
                     </div>
                   </div>
 
@@ -1217,7 +1217,7 @@ export default function CheckPage() {
                 </div>
               </div>
 
-              {applyError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠ {applyError}</div>}
+              {applyError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>{applyError}</div>}
               {applySuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {applySuccess}</div>}
 
               <form onSubmit={handleApplySubmit} style={{ display: 'grid', gap: '16px' }}>
@@ -1316,17 +1316,17 @@ export default function CheckPage() {
                         display: 'grid',
                         gap: '6px'
                       }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                        <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>Partner Login Details:</div>
                         {username && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span>• <strong>Login ID / Username:</strong> {username}</span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                           </div>
                         )}
                         {password && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span>• <strong>Password / OTP Contact:</strong> {password}</span>
-                            <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                            <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                           </div>
                         )}
                       </div>
@@ -1354,7 +1354,7 @@ export default function CheckPage() {
                       lineHeight: '1.4'
                     }}>
                       <span>
-                        📥 Direct Submission: This application will be submitted directly to the administrator who will apply for you on the partner portal.
+                        Direct Submission: This application will be submitted directly to the administrator who will apply for you on the partner portal.
                       </span>
                     </div>
                   );
@@ -1519,7 +1519,7 @@ function ResultCard({ bank, isAgent, onApply, isApplied = false, onToggleApplied
               className="btn btn-secondary btn-sm"
               style={{ width: '100%', justifyContent: 'center', margin: 0 }}
             >
-              📄 View PDF
+              View PDF
             </button>
           )}
           <button

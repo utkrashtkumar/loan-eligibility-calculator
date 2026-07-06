@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -55,9 +55,9 @@ const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily', d
 const CategoryBadge = ({ category, loanType }) => {
   const cat = category || (loanType === 'BL' ? 'business' : 'salary');
   const map = {
-    salary: { label: '💼 Salary Loan', color: 'var(--color-primary)', bg: 'rgba(99, 102, 241, 0.1)' },
-    instant: { label: '⚡ Instant Loan', color: 'var(--color-success)', bg: 'rgba(16, 185, 129, 0.1)' },
-    business: { label: '🏢 Business Loan', color: 'var(--color-warning)', bg: 'rgba(245, 158, 11, 0.15)' },
+    salary: { label: 'Salary Loan', color: 'var(--color-primary)', bg: 'rgba(99, 102, 241, 0.1)' },
+    instant: { label: 'Instant Loan', color: 'var(--color-success)', bg: 'rgba(16, 185, 129, 0.1)' },
+    business: { label: 'Business Loan', color: 'var(--color-warning)', bg: 'rgba(245, 158, 11, 0.15)' },
   };
   const m = map[cat] || map.salary;
   return (
@@ -120,7 +120,7 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
             )}
             {bank.all_pincodes && (
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-success)', background: 'rgba(74,222,128,0.1)', padding: '1px 7px', borderRadius: '99px' }}>
-                🌐 All Pincodes
+                All Pincodes
               </span>
             )}
           </div>
@@ -130,7 +130,7 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
       {/* Pincode availability badge */}
       {showPincodeStatus && (
         <div style={{ margin: '0 20px 12px', padding: '8px 12px', borderRadius: '8px', background: available ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)', border: available ? '1px solid rgba(74,222,128,0.25)' : '1px solid rgba(248,113,113,0.25)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '14px' }}>{available ? '✅' : '❌'}</span>
+          <span style={{ fontSize: '14px' }}>{available ? '' : ''}</span>
           <span style={{ fontSize: '12px', fontWeight: 600, color: available ? 'var(--color-success)' : 'var(--color-error)' }}>
             {available ? 'Available at searched pincode' : 'Not available at searched pincode'}
           </span>
@@ -190,18 +190,18 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
               
               return (
                 <div style={{ gridColumn: '1 / -1', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '8px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>🔑 Partner Portal Login Credentials:</div>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>Partner Portal Login Credentials:</div>
                   <div style={{ display: 'grid', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                     {username && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span>• <strong>Login ID / Username:</strong> {username}</span>
-                        <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                       </div>
                     )}
                     {password && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span>• <strong>Password / OTP Contact:</strong> {password}</span>
-                        <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                       </div>
                     )}
                     {affiliateLink && (
@@ -263,7 +263,7 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
                 e.currentTarget.style.color = 'var(--color-text-secondary)';
               }}
             >
-              📄 View PDF
+              View PDF
             </button>
           )}
           <button
@@ -298,7 +298,7 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
               }
             }}
           >
-            {(affiliateLink || userRole === 'user') ? '🚀 Apply Now' : '📩 Apply for Client'}
+            {(affiliateLink || userRole === 'user') ? 'Apply Now' : 'Apply for Client'}
           </button>
         </div>
       </div>
@@ -309,6 +309,7 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function BanksPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -320,6 +321,13 @@ export default function BanksPage() {
   // Filters
   const [searchName, setSearchName] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+
+  useEffect(() => {
+    const categoryParam = searchParams ? searchParams.get('category') : null;
+    if (categoryParam) {
+      setFilterCategory(categoryParam);
+    }
+  }, [searchParams]);
 
   // Pincode check
   const [pincodeInput, setPincodeInput] = useState('');
@@ -530,7 +538,7 @@ export default function BanksPage() {
               </span>
             </div>
             <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '12px', lineHeight: 1.15 }}>
-              🏦 All Partner Banks
+              All Partner Banks
             </h1>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-base)', maxWidth: '560px', lineHeight: 1.6 }}>
               Browse all available bank policies, check pincode serviceability, and apply directly.
@@ -578,9 +586,9 @@ export default function BanksPage() {
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--border-radius-sm)', background: 'var(--color-bg-input)', border: 'var(--border-subtle)', color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', outline: 'none', cursor: 'pointer' }}
               >
                 <option value="ALL">All Categories</option>
-                <option value="salary">💼 Salary Loans</option>
-                <option value="instant">⚡ Instant Loans</option>
-                <option value="business">🏢 Business Loans</option>
+                <option value="salary">Salary Loans</option>
+                <option value="instant">Instant Loans</option>
+                <option value="business">Business Loans</option>
               </select>
             </div>
 
@@ -590,7 +598,7 @@ export default function BanksPage() {
             {/* Pincode search */}
             <div style={{ flex: '1 1 200px' }}>
               <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                📍 Pincode Availability Check
+                Pincode Availability Check
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
@@ -608,7 +616,7 @@ export default function BanksPage() {
                   disabled={pincodeChecking || pincodeInput.length !== 6}
                   style={{ padding: '10px 18px', borderRadius: 'var(--border-radius-sm)', background: pincodeInput.length === 6 ? 'var(--gradient-primary)' : 'var(--color-bg-tertiary)', border: 'none', color: pincodeInput.length === 6 ? '#fff' : 'var(--color-text-muted)', fontWeight: 700, fontSize: '13px', cursor: pincodeInput.length === 6 ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
                 >
-                  {pincodeChecking ? '⏳' : '🔍 Check'}
+                  {pincodeChecking ? '' : 'Check'}
                 </button>
               </div>
             </div>
@@ -628,13 +636,13 @@ export default function BanksPage() {
           {pincodeResults && (
             <div style={{ maxWidth: 'var(--container-max)', margin: '16px auto 0', padding: '12px 16px', background: 'rgba(45,212,191,0.07)', border: '1px solid rgba(45,212,191,0.2)', borderRadius: 'var(--border-radius-md)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary)' }}>
-                📍 Pincode {pincodeSearched} Results:
+                Pincode {pincodeSearched} Results:
               </span>
               <span style={{ fontSize: '12px', color: 'var(--color-success)', fontWeight: 600 }}>
-                ✅ {Object.values(pincodeResults).filter(Boolean).length} banks available
+                {Object.values(pincodeResults).filter(Boolean).length} banks available
               </span>
               <span style={{ fontSize: '12px', color: 'var(--color-error)', fontWeight: 600 }}>
-                ❌ {Object.values(pincodeResults).filter(v => !v).length} banks not available
+                {Object.values(pincodeResults).filter(v => !v).length} banks not available
               </span>
               <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                 (Cards highlighted — green = available, dimmed = not available)
@@ -665,7 +673,7 @@ export default function BanksPage() {
             </div>
           ) : filteredBanks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--color-text-muted)' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '8px' }}>No banks found</h3>
               <p style={{ fontSize: 'var(--text-sm)' }}>Try adjusting your search or filters.</p>
             </div>
@@ -717,7 +725,7 @@ export default function BanksPage() {
               </div>
             </div>
 
-            {applyError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>⚠ {applyError}</div>}
+            {applyError && <div style={{ padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-error)' }}>{applyError}</div>}
             {applySuccess && <div style={{ padding: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>✓ {applySuccess}</div>}
 
             <form onSubmit={handleApplySubmit} style={{ display: 'grid', gap: '16px' }}>
@@ -816,17 +824,17 @@ export default function BanksPage() {
                       display: 'grid',
                       gap: '6px'
                     }}>
-                      <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>🔑 Partner Login Details:</div>
+                      <div style={{ fontWeight: 600, color: 'var(--color-accent-violet)' }}>Partner Login Details:</div>
                       {username && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span>• <strong>Login ID / Username:</strong> {username}</span>
-                          <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(username); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                         </div>
                       )}
                       {password && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span>• <strong>Password / OTP Contact:</strong> {password}</span>
-                          <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>📋 Copy</button>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(password); }} style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', flexShrink: 0 }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'}>Copy</button>
                         </div>
                       )}
                     </div>
@@ -854,7 +862,7 @@ export default function BanksPage() {
                     lineHeight: '1.4'
                   }}>
                     <span>
-                      📥 Direct Submission: This application will be submitted directly to the administrator who will apply for you on the partner portal.
+                      Direct Submission: This application will be submitted directly to the administrator who will apply for you on the partner portal.
                     </span>
                   </div>
                 );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -54,6 +54,162 @@ export default function Home() {
   const [banks, setBanks] = useState([]);
   const [loadingBanks, setLoadingBanks] = useState(true);
   const [user, setUser] = useState(null);
+
+  // Verification and QR Scanner State
+  const [agreementNo, setAgreementNo] = useState('');
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [verificationError, setVerificationError] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanningError, setScanningError] = useState('');
+
+  const isScanningRef = useRef(isScanning);
+  const scanTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    isScanningRef.current = isScanning;
+  }, [isScanning]);
+
+  const loadHtml5Qrcode = () => {
+    return new Promise((resolve, reject) => {
+      if (window.Html5Qrcode) {
+        resolve(window.Html5Qrcode);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+      script.async = true;
+      script.onload = () => resolve(window.Html5Qrcode);
+      script.onerror = (e) => reject(e);
+      document.body.appendChild(script);
+    });
+  };
+
+  const startScanner = async () => {
+    setScanningError('');
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+    }
+    try {
+      const Html5QrcodeLib = await loadHtml5Qrcode();
+      scanTimeoutRef.current = setTimeout(async () => {
+        if (!isScanningRef.current) return;
+        try {
+          const html5QrCode = new Html5QrcodeLib("home-qr-reader");
+          window.homeQrScannerInstance = html5QrCode;
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 }
+            },
+            (decodedText) => {
+              let refNo = decodedText;
+              try {
+                if (decodedText.includes('verify-agreement') || decodedText.includes('no=')) {
+                  const urlObj = new URL(decodedText.startsWith('http') ? decodedText : `http://localhost/${decodedText}`);
+                  const noParam = urlObj.searchParams.get('no');
+                  if (noParam) {
+                    refNo = noParam;
+                  }
+                }
+              } catch (e) {
+                // ignore parsing error
+              }
+              setAgreementNo(refNo);
+              setIsScanning(false);
+              handleVerifyAgent(refNo);
+            },
+            (errorMessage) => {
+              // silent scanning errors
+            }
+          );
+        } catch (initErr) {
+          console.error("Camera init error:", initErr);
+          setScanningError("Could not initialize camera scanner. Please check device permissions.");
+          setIsScanning(false);
+        }
+      }, 300);
+    } catch (err) {
+      console.error("Library load error:", err);
+      setScanningError("Failed to load QR scanner library.");
+      setIsScanning(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
+    if (window.homeQrScannerInstance) {
+      try {
+        if (window.homeQrScannerInstance.isScanning) {
+          await window.homeQrScannerInstance.stop();
+        }
+        window.homeQrScannerInstance = null;
+      } catch (e) {
+        console.error("Error stopping scanner:", e);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isScanning) {
+      startScanner();
+    } else {
+      stopScanner();
+    }
+    return () => {
+      stopScanner();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScanning]);
+
+  const handleVerifyAgent = async (codeToVerify) => {
+    const code = (codeToVerify || agreementNo).trim().toUpperCase();
+    if (!code) {
+      alert("Please enter or scan an Agreement Number.");
+      return;
+    }
+    setVerificationLoading(true);
+    setVerificationError('');
+    setVerificationResult(null);
+
+    try {
+      const { data: agreementData, error: fetchErr } = await supabase
+        .from('agent_agreements')
+        .select('*')
+        .eq('agreement_no', code)
+        .maybeSingle();
+
+      if (fetchErr) {
+        setVerificationError('Query error: ' + fetchErr.message);
+      } else if (!agreementData) {
+        setVerificationError(`Agreement number "${code}" is invalid or does not exist in our official records.`);
+      } else {
+        const { data: profileData, error: profErr } = await supabase
+          .from('profiles')
+          .select('full_name, phone, created_at')
+          .eq('id', agreementData.agent_id)
+          .single();
+
+        if (profErr) {
+          setVerificationError('Failed to fetch agent profile details.');
+        } else {
+          setVerificationResult({
+            agreement: agreementData,
+            profile: profileData
+          });
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setVerificationError('An unexpected error occurred during verification.');
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -168,7 +324,7 @@ export default function Home() {
             "@context": "https://schema.org",
             "@type": "FinancialProduct",
             "name": "Hand to Hand Fintech Loan Checker & EMI Calculator",
-            "description": "Calculate loan EMIs and check eligibility for Personal, Business, and Instant loans in collaboration with Punjab National Bank.",
+            "description": "Calculate loan EMIs and check eligibility for Personal, Business, and Instant loans in collaboration with PNB.",
             "offers": {
               "@type": "Offer",
               "price": "0",
@@ -430,27 +586,27 @@ export default function Home() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Pill 1 */}
                 <div className="white-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderRadius: '12px' }}>
-                  <span style={{ fontSize: '20px' }}>📈</span>
+                  <span style={{ fontSize: '20px' }}></span>
                   <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Financial Consultants & Loan Connectors</span>
                 </div>
                 {/* Pill 2 */}
                 <div className="white-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderRadius: '12px' }}>
-                  <span style={{ fontSize: '20px' }}>🎁</span>
+                  <span style={{ fontSize: '20px' }}></span>
                   <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Insurance Agents — natural cross-sell opportunity</span>
                 </div>
                 {/* Pill 3 */}
                 <div className="white-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderRadius: '12px' }}>
-                  <span style={{ fontSize: '20px' }}>📖</span>
+                  <span style={{ fontSize: '20px' }}></span>
                   <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Chartered Accountants — finance-ready client base</span>
                 </div>
                 {/* Pill 4 */}
                 <div className="white-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderRadius: '12px' }}>
-                  <span style={{ fontSize: '20px' }}>👥</span>
+                  <span style={{ fontSize: '20px' }}></span>
                   <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Students and Homemakers — passive income</span>
                 </div>
                 {/* Pill 5 */}
                 <div className="white-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderRadius: '12px' }}>
-                  <span style={{ fontSize: '20px' }}>💬</span>
+                  <span style={{ fontSize: '20px' }}></span>
                   <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Real Estate Agents — connect buyers to loans</span>
                 </div>
               </div>
@@ -466,7 +622,7 @@ export default function Home() {
                 {/* Silver Tier */}
                 <div className="white-card tier-card-silver" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                    🥈 Silver
+                    Silver
                   </div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
                     ₹<AnimatedCounter target={0} /> - ₹<AnimatedCounter target={25} suffix="L/mo" /> monthly disbursal
@@ -475,7 +631,7 @@ export default function Home() {
                 {/* Gold Tier */}
                 <div className="white-card tier-card-gold" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-warning)' }}>
-                    🥇 Gold
+                    Gold
                   </div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning)', fontWeight: 500 }}>
                     ₹<AnimatedCounter target={25} />L - ₹<AnimatedCounter target={75} suffix="L/mo" /> monthly disbursal
@@ -484,7 +640,7 @@ export default function Home() {
                 {/* Platinum Tier */}
                 <div className="white-card tier-card-platinum" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-accent)' }}>
-                    💎 Platinum
+                    Platinum
                   </div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)', fontWeight: 500 }}>
                     ₹<AnimatedCounter target={75} suffix="L+" /> — Unlimited monthly disbursal
@@ -1166,7 +1322,7 @@ export default function Home() {
                     className="btn btn-primary btn-sm"
                     style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
                   >
-                    🚀 Apply Now
+                    Apply Now
                   </Link>
                 </div>
               ))}
@@ -1786,7 +1942,7 @@ export default function Home() {
             {/* Card 1: AI Chatbot */}
             <div className="white-card" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-base)' }}>
-                🤖 AI Chatbot 24/7
+                AI Chatbot 24/7
               </div>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 Any policy question answered instantly in Hinglish. Zero dependency on human training.
@@ -1796,7 +1952,7 @@ export default function Home() {
             {/* Card 2: Dedicated RM */}
             <div className="white-card" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-base)' }}>
-                👤 Dedicated RM
+                Dedicated RM
               </div>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 Each major agent gets a Relationship Manager — one call away for any issue.
@@ -1806,7 +1962,7 @@ export default function Home() {
             {/* Card 3: Weekly Webinars */}
             <div className="white-card" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-base)' }}>
-                📅 Weekly Webinars
+                Weekly Webinars
               </div>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 3-4 training sessions weekly on new bank policies, product updates, and case studies.
@@ -1816,7 +1972,7 @@ export default function Home() {
             {/* Card 4: Agent Academy */}
             <div className="white-card" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-base)' }}>
-                🎓 Agent Academy
+                Agent Academy
               </div>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 Pre-recorded video tutorials for beginners. Step-by-step guides to close files fast.
@@ -1826,7 +1982,7 @@ export default function Home() {
             {/* Card 5: Marketing Kit */}
             <div className="white-card" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-base)' }}>
-                📣 Marketing Kit
+                Marketing Kit
               </div>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 Authorized Partner posters, social media banners, digital content — personal branding managed.
@@ -1836,7 +1992,7 @@ export default function Home() {
             {/* Card 6: Community Forums */}
             <div className="white-card" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-base)' }}>
-                💬 Community Forums
+                Community Forums
               </div>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 WhatsApp groups + forums for agents to share knowledge and best practices.
@@ -1913,8 +2069,251 @@ export default function Home() {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Register as Agent 🏅
-            </Link>
+              Register as Agent </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Verify Agent Partner Agreement Section */}
+      <section className="section verify-partner-section" id="verify-partner" style={{ borderTop: 'var(--border-subtle)', background: 'rgba(255, 255, 255, 0.01)', padding: '60px 0' }}>
+        <div className="container" style={{ maxWidth: '640px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h2 className="light-title" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', color: 'var(--color-text-primary)', marginBottom: '12px' }}>
+              Verify <span style={{ color: 'var(--color-primary)' }}>Agent Partner</span>
+            </h2>
+            <p className="light-subtitle" style={{ maxWidth: '580px', margin: '0 auto', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
+              Scan the QR code on an agent&apos;s agreement or manually enter their Agreement Reference Number to verify their active DSA status.
+            </p>
+          </div>
+
+          <div className="form-card" style={{ backdropFilter: 'blur(25px)', border: 'var(--border-light)', padding: '28px 24px', borderRadius: '16px' }}>
+            
+            {/* Toggle Buttons */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsScanning(false);
+                  setScanningError('');
+                }}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: !isScanning ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                  background: !isScanning ? 'rgba(99, 102, 241, 0.1)' : 'var(--color-bg-input)',
+                  color: !isScanning ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: 'var(--text-sm)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                Manual Entry
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsScanning(true)}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: isScanning ? '2px solid var(--color-accent)' : 'var(--border-light)',
+                  background: isScanning ? 'rgba(16, 185, 129, 0.1)' : 'var(--color-bg-input)',
+                  color: isScanning ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: 'var(--text-sm)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                Scan QR Code
+              </button>
+            </div>
+
+            {/* Manual Entry View */}
+            {!isScanning && (
+              <form onSubmit={(e) => { e.preventDefault(); handleVerifyAgent(); }} style={{ display: 'flex', gap: '10px', textAlign: 'left' }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Enter Agreement No (e.g. H2H-DSA-13147)"
+                    value={agreementNo}
+                    onChange={(e) => setAgreementNo(e.target.value)}
+                    style={{ textTransform: 'uppercase' }}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ height: '100%', padding: '12px 24px' }} disabled={verificationLoading}>
+                  {verificationLoading ? 'Searching...' : 'Verify'}
+                </button>
+              </form>
+            )}
+
+            {/* QR Scanner View */}
+            {isScanning && (
+              <div style={{ textAlign: 'center', display: 'grid', gap: '12px' }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+                  Point your camera at the QR code printed on the agent&apos;s agreement document.
+                </p>
+                <div id="home-qr-reader" style={{ width: '100%', maxWidth: '350px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000' }}></div>
+                {scanningError && (
+                  <p style={{ color: 'var(--color-error)', fontSize: 'var(--text-xs)' }}>{scanningError}</p>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ justifySelf: 'center', marginTop: '8px' }}
+                  onClick={() => setIsScanning(false)}
+                >
+                  Cancel Scan
+                </button>
+              </div>
+            )}
+
+            {/* Verification Loading */}
+            {verificationLoading && (
+              <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>Verifying agreement details...</p>
+              </div>
+            )}
+
+            {/* Verification Failure / Error */}
+            {!verificationLoading && verificationError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: '12px',
+                padding: '20px',
+                textAlign: 'center',
+                color: '#ef4444',
+                margin: '20px 0'
+              }}>
+                <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}></span>
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', marginBottom: '4px' }}>Verification Failed</div>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.5' }}>{verificationError}</p>
+              </div>
+            )}
+
+            {/* Verification Success Results */}
+            {!verificationLoading && verificationResult && (
+              <div style={{ marginTop: '20px', textAlign: 'left' }}>
+                {verificationResult.agreement.status === 'active' ? (
+                  /* Active Success Banner */
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '2px solid #10b981',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                    boxShadow: '0 0 15px rgba(16, 185, 129, 0.15)'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 10px auto',
+                      color: '#10b981',
+                      fontSize: '24px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
+                    </div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#10b981', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Verified Active Partner
+                    </h3>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.4' }}>
+                      This agent partner agreement is active and officially recognized by HandToHand Loans.
+                    </p>
+                  </div>
+                ) : (
+                  /* Revoked/Terminated Banner */
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '2px solid #ef4444',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                    boxShadow: '0 0 15px rgba(239, 68, 68, 0.15)'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 10px auto',
+                      color: '#ef4444',
+                      fontSize: '24px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✕
+                    </div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#ef4444', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Agreement Revoked / Terminated
+                    </h3>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.4' }}>
+                      This agreement has been revoked or terminated by the administrator and is no longer valid.
+                    </p>
+                  </div>
+                )}
+
+                {/* Details Table */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: 'var(--border-light)',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  display: 'grid',
+                  gap: '10px',
+                  fontSize: 'var(--text-sm)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Agent Partner Name:</span>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>{verificationResult.profile.full_name}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Mobile Number:</span>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>{verificationResult.profile.phone}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Number:</span>
+                    <strong style={{ fontFamily: 'monospace', color: 'var(--color-primary)' }}>{verificationResult.agreement.agreement_no}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Execution Date:</span>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(verificationResult.agreement.signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Status:</span>
+                    <strong style={{ color: verificationResult.agreement.status === 'active' ? '#10b981' : '#ef4444', textTransform: 'uppercase' }}>{verificationResult.agreement.status}</strong>
+                  </div>
+
+                  {verificationResult.agreement.status !== 'active' && verificationResult.agreement.revocation_reason && (
+                    <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '8px', marginTop: '4px' }}>
+                      <span style={{ color: '#ef4444', fontWeight: 600, fontSize: 'var(--text-xs)' }}>Revocation Reason:</span>
+                      <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px', lineHeight: '1.4' }}>{verificationResult.agreement.revocation_reason}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

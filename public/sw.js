@@ -1,8 +1,8 @@
 // HandToHand Loans — Service Worker
 // Handles caching, offline support, and background sync
 
-const CACHE_NAME = 'h2h-loans-v1';
-const STATIC_CACHE = 'h2h-static-v1';
+const CACHE_NAME = 'h2h-loans-v2';
+const STATIC_CACHE = 'h2h-static-v2';
 
 // Pages to cache immediately on install (app shell)
 const APP_SHELL = [

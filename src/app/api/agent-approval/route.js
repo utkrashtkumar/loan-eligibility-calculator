@@ -27,7 +27,7 @@ export async function POST(request) {
     let html = '';
 
     if (action === 'approved') {
-      subject = '🎉 Congratulations! Your Agent Account is Approved';
+      subject = 'Congratulations! Your Agent Account is Approved';
       html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -188,7 +188,7 @@ export async function POST(request) {
 </html>
 `;
     } else if (action === 'rejected') {
-      subject = '⚠️ Update on your Agent Application';
+      subject = 'Update on your Agent Application';
       html = `
 <!DOCTYPE html>
 <html lang="en">
