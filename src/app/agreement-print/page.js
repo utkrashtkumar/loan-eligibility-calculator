@@ -116,7 +116,9 @@ export default function AgreementPrintPage() {
       const agreementNo = agr.agreement_no || 'N/A';
       const signedDate = new Date(agr.signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
       const signedDateTime = `${signedDate} at ${new Date(agr.signed_at).toLocaleTimeString('en-IN', { hour12: false })}`;
-      const joiningDate = prof.created_at ? new Date(prof.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' }) : 'N/A';
+      const joiningDateObj = prof.created_at ? new Date(prof.created_at) : null;
+      const joiningDateStr = joiningDateObj ? joiningDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
+      const joiningDateTime = joiningDateObj ? `${joiningDateStr} at ${joiningDateObj.toLocaleTimeString('en-IN', { hour12: false })}` : 'N/A';
       const bankDetails = [
         prof.bank_name ? `Bank: ${prof.bank_name}` : '',
         prof.bank_account_no ? `A/c: ${prof.bank_account_no}` : '',
@@ -126,13 +128,7 @@ export default function AgreementPrintPage() {
       // ---- 5. Overlay agent details on Page 2 ----
       // Clear placeholders helper with exact vertical centering
       const clearRowOnPage2 = (yCenter) => {
-        page2.drawRectangle({
-          x: 219,
-          y: yCenter - 4,
-          width: 320,
-          height: 15,
-          color: rgb(1, 1, 1),
-        });
+        // No-op to avoid drawing solid white boxes that obscure the background watermark
       };
 
       // Agreement Date
@@ -183,16 +179,16 @@ export default function AgreementPrintPage() {
 
       // Joining Date
       clearRowOnPage2(160.8);
-      page2.drawText(joiningDate, { x: 222.2, y: 160.8, size: 11, font: timesNormal, color: darkText });
+      page2.drawText(joiningDateTime, { x: 222.2, y: 160.8, size: 11, font: timesNormal, color: darkText });
 
 
       // ---- 6. Overlay agent signature & details on Page 11 ----
       // Clear Agent Name placeholder on page 11 (original label 'Agent Name' at y=524.7)
-      page11.drawRectangle({ x: 62, y: 520, width: 220, height: 16, color: rgb(1, 1, 1) });
+      // page11.drawRectangle({ x: 62, y: 520, width: 220, height: 16, color: rgb(1, 1, 1) });
       page11.drawText(agentName, { x: 65.1, y: 524.7, size: 11, font: timesBold, color: darkText });
 
       // Clear DSA Partner designation placeholder on page 11 (original label at y=514.5)
-      page11.drawRectangle({ x: 62, y: 510, width: 220, height: 10, color: rgb(1, 1, 1) });
+      // page11.drawRectangle({ x: 62, y: 510, width: 220, height: 10, color: rgb(1, 1, 1) });
       page11.drawText('DSA Partner', { x: 65.1, y: 514.5, size: 9, font: timesNormal, color: midText });
 
       // Draw Date next to the label 'Date:' at y=497.9 (no placeholder needs clearing)

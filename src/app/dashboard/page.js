@@ -175,6 +175,7 @@ export default function UserDashboard() {
   const [applications, setApplications] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'kanban'
   const [subAgents, setSubAgents] = useState([]);
   const [subAgentDisbursedApps, setSubAgentDisbursedApps] = useState([]);
@@ -351,15 +352,18 @@ export default function UserDashboard() {
 
     // Fetch Leaderboard
     setLeaderboardLoading(true);
+    setLeaderboardError(false);
     try {
       const { data: lbData, error: lbErr } = await supabase.rpc('get_agent_leaderboard');
-      if (!lbErr && lbData) {
-        setLeaderboard(lbData);
-      } else {
+      if (lbErr) {
         console.warn('Leaderboard function not found or failed:', lbErr);
+        setLeaderboardError(true);
+      } else if (lbData) {
+        setLeaderboard(lbData);
       }
     } catch (e) {
       console.warn('Leaderboard fetching error:', e);
+      setLeaderboardError(true);
     } finally {
       setLeaderboardLoading(false);
     }
@@ -616,6 +620,53 @@ export default function UserDashboard() {
 
     checkAuthAndFetch();
   }, [router]);
+
+  // Realtime subscription for leaderboard and applications
+  useEffect(() => {
+    if (!user || !profile || profile.role !== 'agent') return;
+
+    const channel = supabase
+      .channel('realtime_applications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'applications'
+        },
+        async (payload) => {
+          console.log('Realtime change detected in applications:', payload);
+          // 1. Refresh global leaderboard data
+          try {
+            const { data: lbData, error: lbErr } = await supabase.rpc('get_agent_leaderboard');
+            if (!lbErr && lbData) {
+              setLeaderboard(lbData);
+              setLeaderboardError(false);
+            }
+          } catch (e) {
+            console.error('Error updating leaderboard in realtime:', e);
+          }
+
+          // 2. Refresh current agent's applications if the change belongs to them
+          const app = payload.new || payload.old;
+          if (app && app.agent_id === user.id) {
+            const { data: appData } = await supabase
+              .from('applications')
+              .select('*')
+              .eq('agent_id', user.id)
+              .order('created_at', { ascending: false });
+            if (appData) {
+              setApplications(appData);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, profile]);
 
   const handleSignOut = async () => {
     try {
@@ -3865,7 +3916,7 @@ export default function UserDashboard() {
                               <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
                               <p style={{ color: 'var(--color-text-secondary)' }}>Loading live rankings...</p>
                             </div>
-                          ) : leaderboard.length === 0 ? (
+                          ) : leaderboardError ? (
                             /* Fallback Mock Data if RPC not deployed yet */
                             <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
                               <div style={{ 
@@ -3937,6 +3988,15 @@ export default function UserDashboard() {
                                   </div>
                                 ))}
                               </div>
+                            </div>
+                          ) : leaderboard.length === 0 ? (
+                            /* Empty Live Leaderboard State */
+                            <div className="form-card text-center" style={{ padding: '48px', backdropFilter: 'blur(20px)' }}>
+                              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏆</div>
+                              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-primary)' }}>No active disbursements yet</h3>
+                              <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', maxWidth: '400px', margin: '0 auto' }}>
+                                Leaderboard rankings are calculated dynamically based on disbursed loan volumes. Get your applications disbursed to lead the board!
+                              </p>
                             </div>
                           ) : (
                             /* Live Leaderboard list */

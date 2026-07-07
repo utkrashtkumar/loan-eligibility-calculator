@@ -58,6 +58,7 @@ export default function EmiCalculator() {
   const [showAmortization, setShowAmortization] = useState(false);
   const [amortizationTab, setAmortizationTab]   = useState('reducing'); // 'reducing' or 'flat'
   const [copied, setCopied]                     = useState(false);
+  const [generatingPdf, setGeneratingPdf]       = useState(false);
 
   // ─── Calculator math variables ──────────────────────────────────────────
   const P = Number(loanAmount) || 0;
@@ -186,19 +187,255 @@ export default function EmiCalculator() {
   const handleCopyLink = () => {
     if (typeof window === 'undefined') return;
     try {
-      const url = new URL(window.location.origin);
+      const url = new URL(window.location.origin + '/');
       url.searchParams.set('amount', loanAmount.toString());
       url.searchParams.set('rate', interestRate.toString());
       url.searchParams.set('tenure', tenure.toString());
       url.searchParams.set('tenureType', tenureType);
       if (monthlyIncome) url.searchParams.set('income', monthlyIncome);
       if (existingEmi) url.searchParams.set('existingEmi', existingEmi);
+      url.hash = 'emi-calculator';
 
       navigator.clipboard.writeText(url.toString());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       console.error('Failed to copy share link:', e);
+    }
+  };
+
+  const handleGeneratePdf = async () => {
+    setGeneratingPdf(true);
+    try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
+      const pdfDoc = await PDFDocument.create();
+      
+      const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const helveticaNormal = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      
+      // Page size configuration (A4)
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      
+      let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      let y = pageHeight - 50;
+      
+      // Helpers
+      const drawHeader = (pg) => {
+        pg.drawText('Hand to Hand Loans - Loan Calculation & EMI Summary', {
+          x: 40,
+          y: pageHeight - 30,
+          size: 8,
+          font: helveticaNormal,
+          color: rgb(0.5, 0.5, 0.5)
+        });
+        pg.drawLine({
+          start: { x: 40, y: pageHeight - 34 },
+          end: { x: pageWidth - 40, y: pageHeight - 34 },
+          thickness: 0.5,
+          color: rgb(0.8, 0.8, 0.8)
+        });
+      };
+      
+      const checkPageBreak = (neededHeight) => {
+        if (y - neededHeight < 40) {
+          page = pdfDoc.addPage([pageWidth, pageHeight]);
+          y = pageHeight - 75;
+          drawHeader(page);
+          return true;
+        }
+        return false;
+      };
+      
+      // Draw Page 1 header
+      drawHeader(page);
+      
+      // Draw Title on page 1
+      page.drawText('LOAN CALCULATION & EMI REPORT', {
+        x: 40,
+        y: y,
+        size: 16,
+        font: helveticaBold,
+        color: rgb(0.04, 0.47, 0.34)
+      });
+      y -= 20;
+      
+      // Draw Date
+      const dateStr = new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+      page.drawText(`Generated on: ${dateStr}`, {
+        x: 40,
+        y: y,
+        size: 9,
+        font: helveticaNormal,
+        color: rgb(0.4, 0.4, 0.4)
+      });
+      y -= 25;
+      
+      // 1. Inputs Summary Section
+      page.drawText('1. Input Parameter Summary', { x: 40, y: y, size: 11, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+      y -= 15;
+      
+      const inputs = [
+        { label: 'Loan Amount', val: `Rs. ${P.toLocaleString('en-IN')}` },
+        { label: 'Interest Rate', val: `${R}% p.a.` },
+        { label: 'Loan Tenure', val: `${tenure} ${tenureType}` },
+      ];
+      if (monthlyIncome) {
+        inputs.push({ label: 'Monthly Income', val: `Rs. ${Number(monthlyIncome).toLocaleString('en-IN')}` });
+      }
+      if (existingEmi) {
+        inputs.push({ label: 'Existing Monthly EMIs', val: `Rs. ${Number(existingEmi).toLocaleString('en-IN')}` });
+      }
+      
+      inputs.forEach(item => {
+        page.drawText(item.label, { x: 50, y: y, size: 9.5, font: helveticaNormal, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(item.val, { x: 220, y: y, size: 9.5, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+        y -= 15;
+      });
+      
+      y -= 10;
+      
+      // 2. Comparison Summary Table
+      page.drawText('2. EMI Calculation Summary Comparison', { x: 40, y: y, size: 11, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+      y -= 25;
+      
+      // Draw Table Header
+      const colX = [40, 200, 380];
+      page.drawRectangle({
+        x: colX[0],
+        y: y - 5,
+        width: pageWidth - colX[0] - 40,
+        height: 20,
+        color: rgb(0.93, 0.98, 0.96)
+      });
+      page.drawText('Metric', { x: colX[0] + 10, y: y, size: 9.5, font: helveticaBold, color: rgb(0.04, 0.47, 0.34) });
+      page.drawText('Reducing Balance Method', { x: colX[1] + 10, y: y, size: 9.5, font: helveticaBold, color: rgb(0.04, 0.47, 0.34) });
+      page.drawText('Flat Rate Method', { x: colX[2] + 10, y: y, size: 9.5, font: helveticaBold, color: rgb(0.04, 0.47, 0.34) });
+      y -= 25;
+      
+      const comparisonRows = [
+        { label: 'Monthly EMI', red: `Rs. ${reducingEmi.toLocaleString('en-IN')}`, flat: `Rs. ${flatEmi.toLocaleString('en-IN')}` },
+        { label: 'Total Interest Payable', red: `Rs. ${reducingTotalInterest.toLocaleString('en-IN')}`, flat: `Rs. ${flatTotalInterest.toLocaleString('en-IN')}` },
+        { label: 'Total Payment (P + I)', red: `Rs. ${reducingTotalPayment.toLocaleString('en-IN')}`, flat: `Rs. ${flatTotalPayment.toLocaleString('en-IN')}` },
+      ];
+      
+      if (monthlyIncome) {
+        comparisonRows.push({
+          label: 'Obligation FOIR %',
+          red: `${foir}% (${eligibilityStatus.toUpperCase()})`,
+          flat: 'N/A'
+        });
+      }
+      
+      comparisonRows.forEach((row, idx) => {
+        if (idx % 2 === 1) {
+          page.drawRectangle({
+            x: colX[0],
+            y: y - 5,
+            width: pageWidth - colX[0] - 40,
+            height: 20,
+            color: rgb(0.97, 0.97, 0.97)
+          });
+        }
+        page.drawText(row.label, { x: colX[0] + 10, y: y, size: 9.5, font: helveticaNormal, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(row.red, { x: colX[1] + 10, y: y, size: 9.5, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(row.flat, { x: colX[2] + 10, y: y, size: 9.5, font: helveticaNormal, color: rgb(0.2, 0.2, 0.2) });
+        y -= 20;
+      });
+      
+      y -= 15;
+      
+      // 3. Detailed Amortization Monthly Breakup Schedule
+      page.drawText('3. Monthly Amortization Breakup Schedule', { x: 40, y: y, size: 11, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+      y -= 30;
+      
+      // Coordinates for 9 columns: Mth | Red EMI | Red Int | Red Prin | Red Bal | Flat EMI | Flat Int | Flat Prin | Flat Bal
+      const schedX = [40, 65, 120, 175, 230, 290, 345, 400, 455];
+      
+      const drawTableHeader = (pg, currentY) => {
+        pg.drawRectangle({
+          x: schedX[0],
+          y: currentY - 5,
+          width: pageWidth - schedX[0] - 40,
+          height: 25,
+          color: rgb(0.04, 0.47, 0.34)
+        });
+        
+        pg.drawText('Mth', { x: schedX[0] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Red. EMI', { x: schedX[1] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Red. Int', { x: schedX[2] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Red. Prin', { x: schedX[3] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Red. Bal', { x: schedX[4] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Flat EMI', { x: schedX[5] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Flat Int', { x: schedX[6] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Flat Prin', { x: schedX[7] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+        pg.drawText('Flat Bal', { x: schedX[8] + 2, y: currentY + 7, size: 7.5, font: helveticaBold, color: rgb(1, 1, 1) });
+      };
+      
+      drawTableHeader(page, y);
+      y -= 20;
+      
+      for (let i = 0; i < N; i++) {
+        const redRow = reducingSchedule[i] || { emi: 0, interest: 0, principal: 0, closing: 0 };
+        const flatRow = flatSchedule[i] || { emi: 0, interest: 0, principal: 0, closing: 0 };
+        
+        const didBreak = checkPageBreak(18);
+        if (didBreak) {
+          drawTableHeader(page, y);
+          y -= 20;
+        }
+        
+        if (i % 2 === 1) {
+          page.drawRectangle({
+            x: schedX[0],
+            y: y - 3,
+            width: pageWidth - schedX[0] - 40,
+            height: 14,
+            color: rgb(0.96, 0.98, 0.97)
+          });
+        }
+        
+        page.drawText(String(i + 1), { x: schedX[0] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.2, 0.2, 0.2) });
+        page.drawText(redRow.emi.toLocaleString('en-IN'), { x: schedX[1] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(redRow.interest.toLocaleString('en-IN'), { x: schedX[2] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(redRow.principal.toLocaleString('en-IN'), { x: schedX[3] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(redRow.closing.toLocaleString('en-IN'), { x: schedX[4] + 2, y: y, size: 7, font: helveticaBold, color: rgb(0.04, 0.47, 0.34) });
+        page.drawText(flatRow.emi.toLocaleString('en-IN'), { x: schedX[5] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(flatRow.interest.toLocaleString('en-IN'), { x: schedX[6] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(flatRow.principal.toLocaleString('en-IN'), { x: schedX[7] + 2, y: y, size: 7, font: helveticaNormal, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(flatRow.closing.toLocaleString('en-IN'), { x: schedX[8] + 2, y: y, size: 7, font: helveticaBold, color: rgb(0.2, 0.2, 0.2) });
+        
+        y -= 14;
+      }
+      
+      // Draw footers with page numbers
+      const pages = pdfDoc.getPages();
+      for (let i = 0; i < pages.length; i++) {
+        const pg = pages[i];
+        pg.drawText(`Page ${i + 1} of ${pages.length}`, {
+          x: pageWidth - 90,
+          y: 20,
+          size: 8,
+          font: helveticaNormal,
+          color: rgb(0.5, 0.5, 0.5)
+        });
+      }
+      
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HandToHand-EMI-Breakup-${Math.round(P)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to generate EMI PDF:', err);
+      alert('Failed to generate EMI Breakup PDF: ' + err.message);
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -410,27 +647,52 @@ export default function EmiCalculator() {
               Calculate EMIs, compare flat vs reducing methods, and check income obligations in real-time.
             </p>
           </div>
-          <button
-            onClick={handleCopyLink}
-            style={{
-              padding: '8px 16px',
-              background: 'rgba(99, 102, 241, 0.1)',
-              border: '1px solid rgba(99, 102, 241, 0.25)',
-              borderRadius: '8px',
-              color: 'var(--color-primary)',
-              fontWeight: 600,
-              fontSize: 'var(--text-xs)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'}
-          >
-            {copied ? 'Pre-filled Link Copied!' : 'Copy Share Link'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleGeneratePdf}
+              disabled={generatingPdf}
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                borderRadius: '8px',
+                color: '#10b981',
+                fontWeight: 600,
+                fontSize: 'var(--text-xs)',
+                cursor: generatingPdf ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+                opacity: generatingPdf ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => { if (!generatingPdf) e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'; }}
+              onMouseLeave={(e) => { if (!generatingPdf) e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }}
+            >
+              {generatingPdf ? 'Generating PDF...' : '📄 Generate PDF'}
+            </button>
+            <button
+              onClick={handleCopyLink}
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(99, 102, 241, 0.1)',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
+                borderRadius: '8px',
+                color: 'var(--color-primary)',
+                fontWeight: 600,
+                fontSize: 'var(--text-xs)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'}
+            >
+              🔗 {copied ? 'Link Copied!' : 'Share Link'}
+            </button>
+          </div>
         </div>
 
         {/* ─── Top Section: Main Calculator Inputs ──────────────────────────── */}
