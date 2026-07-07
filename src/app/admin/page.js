@@ -67,6 +67,12 @@ const getExpirationCountdown = (createdAt) => {
   }
 };
 
+// Helper functions to keep component pure and avoid calling impure functions during render
+const getFourteenDaysAgoString = () => new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+const generateRandomAgentCode = () => `H2H-${Math.floor(1000 + Math.random() * 9000)}`;
+const generateUpdateFileName = (ext) => `update-${Date.now()}.${ext}`;
+const generateBlogFileName = (ext) => `blog-${Date.now()}.${ext}`;
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -75,7 +81,8 @@ export default function AdminDashboard() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    const timer = setTimeout(() => setIsMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Leads state
@@ -182,6 +189,25 @@ export default function AdminDashboard() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState('');
+
+  // Blogs Management State
+  const [blogs, setBlogs] = useState([]);
+  const [blogsLoading, setBlogsLoading] = useState(false);
+  const [selectedBlog, setSelectedBlog] = useState(null);
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [blogForm, setBlogForm] = useState({
+    title: '',
+    slug: '',
+    excerpt: '',
+    content: '',
+    published: false,
+    author: 'Admin'
+  });
+  const [blogImageFile, setBlogImageFile] = useState(null);
+  const [blogImagePreview, setBlogImagePreview] = useState('');
+  const [blogUploading, setBlogUploading] = useState(false);
+  const [blogError, setBlogError] = useState('');
+  const [blogSuccess, setBlogSuccess] = useState('');
 
   const handleSelectAgent = (agent) => {
     setSelectedAgent(agent);
@@ -694,7 +720,7 @@ export default function AdminDashboard() {
   const fetchDbNotifications = async () => {
     try {
       // 1. Purge database notifications older than 14 days
-      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const fourteenDaysAgo = getFourteenDaysAgoString();
       await supabase.from('notifications').delete().lt('created_at', fourteenDaysAgo);
 
       // 2. Fetch active activity notifications
@@ -930,7 +956,7 @@ export default function AdminDashboard() {
   const fetchAgentUpdates = async () => {
     setUpdatesLoading(true);
     try {
-      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const fourteenDaysAgo = getFourteenDaysAgoString();
       
       // Fetch updates older than 14 days to delete their storage files
       const { data: oldUpdates } = await supabase
@@ -964,7 +990,7 @@ export default function AdminDashboard() {
     setUploadSuccess('');
     try {
       const ext = uploadFile.name.split('.').pop();
-      const fileName = `update-${Date.now()}.${ext}`;
+      const fileName = generateUpdateFileName(ext);
       const { error: storageError } = await supabase.storage
         .from('agent-updates')
         .upload(fileName, uploadFile, { cacheControl: '3600', upsert: false });
@@ -1019,6 +1045,139 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchBlogs = async () => {
+    setBlogsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error) setBlogs(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+    setBlogsLoading(false);
+  };
+
+  const handleSaveBlog = async (e) => {
+    e.preventDefault();
+    if (!blogForm.title.trim()) { setBlogError('Title is required.'); return; }
+    if (!blogForm.excerpt.trim()) { setBlogError('Excerpt is required.'); return; }
+    if (!blogForm.content.trim()) { setBlogError('Content is required.'); return; }
+
+    setBlogUploading(true);
+    setBlogError('');
+    setBlogSuccess('');
+
+    try {
+      let finalCoverImage = selectedBlog ? selectedBlog.cover_image : '';
+
+      // Upload cover image if a new file is attached
+      if (blogImageFile) {
+        const ext = blogImageFile.name.split('.').pop();
+        const fileName = generateBlogFileName(ext);
+        const { error: storageError } = await supabase.storage
+          .from('agent-updates')
+          .upload(fileName, blogImageFile, { cacheControl: '3600', upsert: false });
+        if (storageError) throw storageError;
+
+        const { data: urlData } = supabase.storage.from('agent-updates').getPublicUrl(fileName);
+        finalCoverImage = urlData.publicUrl;
+
+        // If editing and previous image existed, clean it up
+        if (selectedBlog && selectedBlog.cover_image && selectedBlog.cover_image.includes('/agent-updates/')) {
+          const oldFileName = selectedBlog.cover_image.split('/').pop().split('?')[0];
+          await supabase.storage.from('agent-updates').remove([oldFileName]);
+        }
+      }
+
+      // Format Slug (lowercase alphanumeric and hyphens only)
+      let slug = blogForm.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      if (!slug) {
+        slug = blogForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      }
+
+      const blogPayload = {
+        title: blogForm.title.trim(),
+        slug,
+        excerpt: blogForm.excerpt.trim(),
+        content: blogForm.content.trim(),
+        cover_image: finalCoverImage,
+        published: blogForm.published,
+        author: blogForm.author.trim() || 'Admin',
+        updated_at: new Date().toISOString()
+      };
+
+      if (selectedBlog) {
+        // Update existing blog
+        const { error } = await supabase
+          .from('blogs')
+          .update(blogPayload)
+          .eq('id', selectedBlog.id);
+        if (error) throw error;
+        setBlogSuccess('Blog updated successfully!');
+        logAdminAction('Edit Blog', `Edited blog: ${blogPayload.title}`);
+      } else {
+        // Create new blog
+        const { error } = await supabase
+          .from('blogs')
+          .insert([blogPayload]);
+        if (error) throw error;
+        setBlogSuccess('Blog created successfully!');
+        logAdminAction('Create Blog', `Created new blog: ${blogPayload.title}`);
+      }
+
+      setIsBlogModalOpen(false);
+      setSelectedBlog(null);
+      setBlogForm({
+        title: '',
+        slug: '',
+        excerpt: '',
+        content: '',
+        published: false,
+        author: 'Admin'
+      });
+      setBlogImageFile(null);
+      setBlogImagePreview('');
+      await fetchBlogs();
+    } catch (err) {
+      setBlogError('Operation failed: ' + (err.message || String(err)));
+    } finally {
+      setBlogUploading(false);
+    }
+  };
+
+  const handleDeleteBlog = async (blog) => {
+    if (!window.confirm(`Are you sure you want to delete the blog "${blog.title}"? This action cannot be undone.`)) return;
+    try {
+      if (blog.cover_image && blog.cover_image.includes('/agent-updates/')) {
+        const fileName = blog.cover_image.split('/').pop().split('?')[0];
+        await supabase.storage.from('agent-updates').remove([fileName]);
+      }
+      const { error } = await supabase.from('blogs').delete().eq('id', blog.id);
+      if (error) throw error;
+      logAdminAction('Delete Blog', `Deleted blog: ${blog.title}`);
+      await fetchBlogs();
+    } catch (err) {
+      alert('Failed to delete blog: ' + err.message);
+    }
+  };
+
+  const handleTogglePublishBlog = async (blog) => {
+    try {
+      const newPublished = !blog.published;
+      const { error } = await supabase
+        .from('blogs')
+        .update({ published: newPublished, updated_at: new Date().toISOString() })
+        .eq('id', blog.id);
+      if (error) throw error;
+      logAdminAction(newPublished ? 'Publish Blog' : 'Unpublish Blog', `Toggled blog publish: ${blog.title}`);
+      await fetchBlogs();
+    } catch (err) {
+      alert('Failed to toggle publication status: ' + err.message);
+    }
+  };
+
   const logAdminAction = async (action, details = '') => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -1052,7 +1211,8 @@ export default function AdminDashboard() {
       fetchAgreementsData(),
       fetchAgentUpdates(),
       fetchRegenRequests(),
-      fetchDbNotifications()
+      fetchDbNotifications(),
+      fetchBlogs()
     ]);
     setLoading(false);
   };
@@ -1072,6 +1232,62 @@ export default function AdminDashboard() {
     authenticateAdmin();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  // Handle URL query parameters to select agent or application from notifications
+  useEffect(() => {
+    if (loading || typeof window === 'undefined') return;
+
+    const parseQuery = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      const agentId = params.get('agentId');
+      const appId = params.get('appId');
+
+      if (tab) {
+        setActiveTab(tab);
+      }
+
+      try {
+        if (agentId) {
+          let agent = pendingAgents.find(a => a.id === agentId) || 
+                      activeAgents.find(a => a.id === agentId) ||
+                      demotedUsers.find(a => a.id === agentId);
+          if (!agent) {
+            const { data } = await supabase.from('profiles').select('*').eq('id', agentId).single();
+            agent = data;
+          }
+          if (agent) {
+            handleSelectAgent(agent);
+          }
+        }
+
+        if (appId) {
+          let app = applications.find(a => a.id === appId);
+          if (!app) {
+            const { data } = await supabase.from('applications').select('*, agent:profiles(full_name, agent_code)').eq('id', appId).single();
+            app = data;
+          }
+          if (app) {
+            setSelectedApplication(app);
+          }
+        }
+      } catch (err) {
+        console.error('Error selecting from URL query:', err);
+      }
+    };
+
+    parseQuery();
+
+    // Listen to custom navigation changes from the Header component
+    const handleUrlChange = () => {
+      setTimeout(parseQuery, 50);
+    };
+
+    window.addEventListener('admin-query-change', handleUrlChange);
+    return () => {
+      window.removeEventListener('admin-query-change', handleUrlChange);
+    };
+  }, [loading, pendingAgents, activeAgents, demotedUsers, applications]);
 
 
 
@@ -1242,7 +1458,7 @@ export default function AdminDashboard() {
     try {
       let agentCode = userProfile.agent_code;
       if (!agentCode) {
-        agentCode = `H2H-${Math.floor(1000 + Math.random() * 9000)}`;
+        agentCode = generateRandomAgentCode();
       }
       
       const { error } = await supabase
@@ -1767,7 +1983,7 @@ export default function AdminDashboard() {
         {/* Charts Layout Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 450px), 1fr))',
           gap: '32px'
         }}>
           {/* Chart 1: Disbursement Trend */}
@@ -2007,6 +2223,7 @@ export default function AdminDashboard() {
                           { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                          { id: 'blogs', label: `Manage Blogs (${blogs.length})` },
                           { id: 'agreements', label: `Agent Agreements` },
                           { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
                           { id: 'audit_logs', label: `Audit Logs (${auditLogs.length})` },
@@ -2050,6 +2267,7 @@ export default function AdminDashboard() {
                           { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                          { id: 'blogs', label: `Manage Blogs (${blogs.length})` },
                           { id: 'agreements', label: `Agent Agreements` },
                           { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
                           { id: 'audit_logs', label: `Audit Logs (${auditLogs.length})` },
@@ -2096,6 +2314,7 @@ export default function AdminDashboard() {
                       { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
                       { id: 'policies', label: `Bank Policies (${policies.length})` },
                       { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                      { id: 'blogs', label: `Manage Blogs (${blogs.length})` },
                       { id: 'agreements', label: `Agent Agreements` },
                       { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
                       { id: 'audit_logs', label: `Audit Logs (${auditLogs.length})` },
@@ -4577,6 +4796,164 @@ export default function AdminDashboard() {
                    </div>
                  )}
 
+                  {activeTab === 'blogs' && (
+                    <div className="form-card" style={{ padding: '24px', backdropFilter: 'blur(20px)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                        <div>
+                          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Manage Portal Blogs</h3>
+                          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>
+                            Create, publish, edit, or delete articles that will appear publicly on the website.
+                          </p>
+                        </div>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedBlog(null);
+                              setBlogForm({
+                                title: '',
+                                slug: '',
+                                excerpt: '',
+                                content: '',
+                                published: false,
+                                author: 'Admin'
+                              });
+                              setBlogImageFile(null);
+                              setBlogImagePreview('');
+                              setBlogError('');
+                              setBlogSuccess('');
+                              setIsBlogModalOpen(true);
+                            }}
+                            className="btn btn-primary btn-sm"
+                            style={{ background: 'var(--gradient-primary)', border: 'none', color: '#fff', padding: '10px 20px', borderRadius: '8px' }}
+                          >
+                            + Write New Blog
+                          </button>
+                        </div>
+                      </div>
+
+                      {blogsLoading ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                          <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                          <p style={{ marginTop: '12px', color: 'var(--color-text-secondary)' }}>Loading blogs...</p>
+                        </div>
+                      ) : blogs.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 0', border: '1px dashed rgba(255, 255, 255, 0.1)', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.02)' }}>
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-tertiary)', marginBottom: '16px' }}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                          </svg>
+                          <h4 style={{ fontSize: 'var(--text-base)', color: 'var(--color-text-primary)', fontWeight: 600 }}>No Blogs Found</h4>
+                          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px', maxWidth: '360px', margin: '4px auto 16px' }}>
+                            Get started by writing your first educational article or news update for visitors.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="table-scroll-x" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Image</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)', width: '35%' }}>Title</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Slug</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Created</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--color-text-secondary)', textAlign: 'right' }}>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {blogs.map(blog => (
+                                <tr key={blog.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--color-text-primary)' }}>
+                                  <td style={{ padding: '12px 16px' }}>
+                                    {blog.cover_image ? (
+                                      <img
+                                        src={blog.cover_image}
+                                        alt="cover"
+                                        style={{ width: '48px', height: '32px', borderRadius: '4px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.08)' }}
+                                      />
+                                    ) : (
+                                      <div style={{ width: '48px', height: '32px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                                        No Image
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                                    {blog.title}
+                                  </td>
+                                  <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontFamily: 'monospace', fontSize: 'var(--text-xs)' }}>
+                                    {blog.slug}
+                                  </td>
+                                  <td style={{ padding: '12px 16px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePublishBlog(blog)}
+                                      style={{
+                                        border: 'none',
+                                        padding: '4px 10px',
+                                        borderRadius: '12px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        background: blog.published ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                        color: blog.published ? 'var(--color-success)' : '#f59e0b',
+                                        border: blog.published ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)'
+                                      }}
+                                    >
+                                      {blog.published ? 'Published' : 'Draft'}
+                                    </button>
+                                  </td>
+                                  <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                                    {new Date(blog.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                                  </td>
+                                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedBlog(blog);
+                                          setBlogForm({
+                                            title: blog.title,
+                                            slug: blog.slug,
+                                            excerpt: blog.excerpt,
+                                            content: blog.content,
+                                            published: blog.published,
+                                            author: blog.author || 'Admin'
+                                          });
+                                          setBlogImageFile(null);
+                                          setBlogImagePreview(blog.cover_image || '');
+                                          setBlogError('');
+                                          setBlogSuccess('');
+                                          setIsBlogModalOpen(true);
+                                        }}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteBlog(blog)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+
+                    </div>
+                  )}
+
                   {activeTab === 'agreements' && (
                     <div style={{ display: 'grid', gap: '20px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -5825,8 +6202,10 @@ export default function AdminDashboard() {
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>Inspect Agent Profile</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Code: {selectedAgent.agent_code} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN')}</p>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>{selectedAgent.role === 'user' ? 'Inspect User Profile' : 'Inspect Agent Profile'}</h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                  {selectedAgent.role === 'user' ? `User ID: ${selectedAgent.id}` : `Agent Code: ${selectedAgent.agent_code}`} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN')}
+                </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {isEditingAgent ? (
@@ -5896,12 +6275,14 @@ export default function AdminDashboard() {
               <div>
                 <h4 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{selectedAgent.full_name}</h4>
                 <p style={{ fontSize: 'var(--text-xs)', color: selectedAgent.demoted_at ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: selectedAgent.demoted_at ? 600 : 400 }}>
-                  {selectedAgent.demoted_at ? 'Revoked / Demoted Partner' : 'Official Partner'}
+                  {selectedAgent.role === 'user' ? 'Registered User' : (selectedAgent.demoted_at ? 'Revoked / Demoted Partner' : 'Official Partner')}
                 </p>
               </div>
             </div>
 
             {/* Profile Lock Status */}
+            {selectedAgent.role !== 'user' && (
+              <>
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Profile Lock Status</h4>
               <div className="form-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--color-bg-card)' }}>
@@ -6107,7 +6488,7 @@ export default function AdminDashboard() {
                         </div>
                         {req.reason && (
                           <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '10px', fontStyle: 'italic' }}>
-                            Reason: "{req.reason}"
+                            Reason: &quot;{req.reason}&quot;
                           </div>
                         )}
                         {req.status === 'pending' && (
@@ -6317,22 +6698,30 @@ export default function AdminDashboard() {
             </div>
 
 
+
+              </>
+            )}
             {/* Profile Basics */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Basics & Contact</h4>
-                <button
-                  onClick={() => handleDemoteAgent(selectedAgent.id)}
-                  disabled={agentActionLoading === selectedAgent.id}
-                  className="btn btn-secondary btn-sm"
-                  style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(239, 68, 68, 0.05)', color: 'var(--color-error)', border: 'var(--border-error)' }}
-                >
-                  Demote to Normal User </button>
+                {selectedAgent.role !== 'user' && (
+                  <button
+                    onClick={() => handleDemoteAgent(selectedAgent.id)}
+                    disabled={agentActionLoading === selectedAgent.id}
+                    className="btn btn-secondary btn-sm"
+                    style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(239, 68, 68, 0.05)', color: 'var(--color-error)', border: 'var(--border-error)' }}
+                  >
+                    Demote to Normal User
+                  </button>
+                )}
               </div>
               {isEditingAgent ? (
                 <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Agent Name</label>
+                    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>
+                      {selectedAgent.role === 'user' ? 'User Name' : 'Agent Name'}
+                    </label>
                     <input 
                       type="text"
                       className="input-field"
@@ -6359,10 +6748,12 @@ export default function AdminDashboard() {
                       onChange={(e) => setEditAgentData({ ...editAgentData, phone: e.target.value.replace(/\D/g, '') })}
                     />
                   </div>
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)', marginTop: '8px' }}>{selectedAgentSubAgents.length}</div>
-                  </div>
+                  {selectedAgent.role !== 'user' && (
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)', marginTop: '8px' }}>{selectedAgentSubAgents.length}</div>
+                    </div>
+                  )}
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontWeight: 500 }}>Date of Birth</label>
                     <input 
@@ -6443,7 +6834,9 @@ export default function AdminDashboard() {
               ) : (
                 <div className="form-card responsive-grid-2" style={{ padding: '16px 20px', background: 'var(--color-bg-card)', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Agent Name</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
+                      {selectedAgent.role === 'user' ? 'User Name' : 'Agent Name'}
+                    </div>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.full_name}</div>
                   </div>
                   <div>
@@ -6454,10 +6847,12 @@ export default function AdminDashboard() {
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Phone Number</div>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.phone || 'N/A'}</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)' }}>{selectedAgentSubAgents.length}</div>
-                  </div>
+                  {selectedAgent.role !== 'user' && (
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Sub-Agent Count</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-info)' }}>{selectedAgentSubAgents.length}</div>
+                    </div>
+                  )}
                   <div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Date of Birth</div>
                     <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{selectedAgent.dob || 'N/A'}</div>
@@ -6498,7 +6893,9 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Identity Details */}
+                        {selectedAgent.role !== 'user' ? (
+              <>
+{/* Identity Details */}
             <div>
               <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>Identity Verification</h4>
               {isEditingAgent ? (
@@ -6859,6 +7256,56 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+              </>
+) : (
+
+              (() => {
+                const userInquiries = inquiries.filter(inq => inq.user_id === selectedAgent.id || (inq.mobile && inq.mobile === selectedAgent.phone));
+                return (
+                  <div>
+                    <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase', marginBottom: '12px' }}>
+                      User Loan Inquiries ({userInquiries.length})
+                    </h4>
+                    {userInquiries.length === 0 ? (
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No inquiries submitted by this user.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                        {userInquiries.map(inq => {
+                          const isBl = inq.eligible_banks?.some(b => b.includes('(BL)'));
+                          return (
+                            <div key={inq.id} style={{ background: 'var(--color-bg-card)', padding: '12px 16px', borderRadius: '8px', border: 'var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {inq.name}
+                                  <span className={isBl ? 'badge badge-warning' : 'badge badge-primary'} style={{ fontSize: '9px', padding: '1px 4px' }}>
+                                    {isBl ? 'BL' : 'PL'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                  Salary: ₹{Number(inq.salary).toLocaleString('en-IN')} | CIBIL: {inq.credit_score} | Pincode: {inq.pincode}
+                                </div>
+                                <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
+                                  Submitted: {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setSelectedInquiry(inq)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ margin: 0, padding: '4px 8px', fontSize: '10px' }}
+                              >
+                                Details
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+
+            )}
+
 
           </div>
         </div>
@@ -7245,6 +7692,176 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+                      {/* Modal for Creating / Editing Blogs */}
+                      {isBlogModalOpen && (
+                        <div style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'rgba(0,0,0,0.6)',
+                          backdropFilter: 'blur(10px)',
+                          zIndex: 999999,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '20px'
+                        }}>
+                          <div style={{
+                            background: 'var(--color-bg-card)',
+                            border: 'var(--border-light)',
+                            borderRadius: 'var(--border-radius-lg)',
+                            width: '100%',
+                            maxWidth: '750px',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            boxShadow: 'var(--shadow-xl)',
+                            padding: '32px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+                              <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                                {selectedBlog ? 'Edit Blog Post' : 'Write New Blog Post'}
+                              </h3>
+                              <button
+                                type="button"
+                                onClick={() => setIsBlogModalOpen(false)}
+                                style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '20px' }}
+                              >
+                                &times;
+                              </button>
+                            </div>
+
+                            {blogError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', padding: '12px 16px', borderRadius: '8px', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>{blogError}</div>}
+                            {blogSuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--color-success)', padding: '12px 16px', borderRadius: '8px', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>{blogSuccess}</div>}
+
+                            <form onSubmit={handleSaveBlog} style={{ display: 'grid', gap: '20px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div className="input-group">
+                                  <label className="input-label">Title <span className="required">*</span></label>
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    placeholder="Enter article title"
+                                    value={blogForm.title}
+                                    onChange={(e) => {
+                                      const title = e.target.value;
+                                      const autoSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                                      setBlogForm(prev => ({ ...prev, title, slug: autoSlug }));
+                                    }}
+                                    required
+                                  />
+                                </div>
+                                <div className="input-group">
+                                  <label className="input-label">Slug <span className="required">*</span></label>
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    placeholder="url-friendly-slug"
+                                    value={blogForm.slug}
+                                    onChange={(e) => setBlogForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '') }))}
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px', alignItems: 'end' }}>
+                                <div className="input-group">
+                                  <label className="input-label">Attach Cover Image (JPEG / PNG)</label>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="input-field"
+                                    onChange={(e) => {
+                                      const file = e.target.files[0];
+                                      if (file) {
+                                        setBlogImageFile(file);
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) => setBlogImagePreview(ev.target.result);
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                    style={{ padding: '8px 12px' }}
+                                  />
+                                </div>
+                                <div className="input-group">
+                                  <label className="input-label">Author</label>
+                                  <input
+                                    type="text"
+                                    className="input-field"
+                                    value={blogForm.author}
+                                    onChange={(e) => setBlogForm(prev => ({ ...prev, author: e.target.value }))}
+                                  />
+                                </div>
+                              </div>
+
+                              {blogImagePreview && (
+                                <div style={{ border: 'var(--border-light)', borderRadius: '8px', padding: '12px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
+                                  <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Cover Image Preview</p>
+                                  <img src={blogImagePreview} alt="Blog Cover Preview" style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px' }} />
+                                </div>
+                              )}
+
+                              <div className="input-group">
+                                <label className="input-label">Excerpt (Brief Summary) <span className="required">*</span></label>
+                                <textarea
+                                  className="input-field"
+                                  placeholder="Short 1-2 sentence preview summary of the post..."
+                                  value={blogForm.excerpt}
+                                  onChange={(e) => setBlogForm(prev => ({ ...prev, excerpt: e.target.value }))}
+                                  rows={2}
+                                  required
+                                />
+                              </div>
+
+                              <div className="input-group">
+                                <label className="input-label">Content (Supports HTML / Raw Markdown) <span className="required">*</span></label>
+                                <textarea
+                                  className="input-field"
+                                  placeholder="Write the full post contents here. Use standard HTML tags (e.g. <p>, <h3>, <ul>, <li>, <strong>) to format text."
+                                  value={blogForm.content}
+                                  onChange={(e) => setBlogForm(prev => ({ ...prev, content: e.target.value }))}
+                                  rows={12}
+                                  required
+                                  style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', lineHeight: 1.6 }}
+                                />
+                              </div>
+
+                              <label className="checkbox-wrapper" style={{ margin: '8px 0' }}>
+                                <input
+                                  type="checkbox"
+                                  className="checkbox-input"
+                                  checked={blogForm.published}
+                                  onChange={(e) => setBlogForm(prev => ({ ...prev, published: e.target.checked }))}
+                                />
+                                <span className="checkbox-label" style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                  Publish immediately (visible to public)
+                                </span>
+                              </label>
+
+                              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px', borderTop: 'var(--border-subtle)', paddingTop: '16px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsBlogModalOpen(false)}
+                                  className="btn btn-secondary"
+                                  disabled={blogUploading}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="btn btn-primary"
+                                  disabled={blogUploading}
+                                  style={{ background: 'var(--gradient-primary)', border: 'none', color: '#fff' }}
+                                >
+                                  {blogUploading ? 'Saving...' : 'Save Post'}
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
+                      )}
 
       <Footer />
     </>

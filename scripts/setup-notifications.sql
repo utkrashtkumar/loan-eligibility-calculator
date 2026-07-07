@@ -35,3 +35,10 @@ CREATE POLICY "Admins can view all notifications"
   ON public.notifications FOR SELECT
   TO authenticated
   USING (auth.jwt() ->> 'email' IN ('handtohandloans@gmail.com', 'utkrashtkumar@gmail.com'));
+
+DROP POLICY IF EXISTS "Admins can update all notifications" ON public.notifications;
+CREATE POLICY "Admins can update all notifications"
+  ON public.notifications FOR UPDATE
+  TO authenticated
+  USING (auth.jwt() ->> 'email' IN ('handtohandloans@gmail.com', 'utkrashtkumar@gmail.com'));
+

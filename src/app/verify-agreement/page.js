@@ -44,6 +44,48 @@ function VerifyAgreementContent() {
     });
   };
 
+  const handleVerify = async (agreeNumber) => {
+    if (!agreeNumber.trim()) return;
+    setLoading(true);
+    setError('');
+    setAgreement(null);
+    setProfile(null);
+    setSearched(true);
+
+    try {
+      const cleanNo = agreeNumber.trim().toUpperCase();
+      const { data, error: fetchErr } = await supabase
+        .from('agent_agreements')
+        .select('*')
+        .eq('agreement_no', cleanNo)
+        .maybeSingle();
+
+      if (fetchErr) {
+        setError('Database query failed: ' + fetchErr.message);
+      } else if (!data) {
+        setError(`Agreement number "${cleanNo}" is invalid or does not exist in our official records.`);
+      } else {
+        setAgreement(data);
+        
+        // Fetch agent profile details
+        const { data: prof, error: profErr } = await supabase
+          .from('profiles')
+          .select('full_name, phone, created_at')
+          .eq('id', data.agent_id)
+          .single();
+
+        if (!profErr && prof) {
+          setProfile(prof);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setError('An unexpected error occurred during verification.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const startScanner = async () => {
     setScanningError('');
     if (scanTimeoutRef.current) {
@@ -114,64 +156,28 @@ function VerifyAgreementContent() {
   };
 
   useEffect(() => {
+    let timer;
     if (isScanning) {
-      startScanner();
+      timer = setTimeout(() => {
+        startScanner();
+      }, 0);
     } else {
       stopScanner();
     }
     return () => {
+      if (timer) clearTimeout(timer);
       stopScanner();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning]);
 
-  const handleVerify = async (agreeNumber) => {
-    if (!agreeNumber.trim()) return;
-    setLoading(true);
-    setError('');
-    setAgreement(null);
-    setProfile(null);
-    setSearched(true);
-
-    try {
-      const cleanNo = agreeNumber.trim().toUpperCase();
-      const { data, error: fetchErr } = await supabase
-        .from('agent_agreements')
-        .select('*')
-        .eq('agreement_no', cleanNo)
-        .maybeSingle();
-
-      if (fetchErr) {
-        setError('Database query failed: ' + fetchErr.message);
-      } else if (!data) {
-        setError(`Agreement number "${cleanNo}" is invalid or does not exist in our official records.`);
-      } else {
-        setAgreement(data);
-        
-        // Fetch agent profile details
-        const { data: prof, error: profErr } = await supabase
-          .from('profiles')
-          .select('full_name, phone, created_at')
-          .eq('id', data.agent_id)
-          .single();
-
-        if (!profErr && prof) {
-          setProfile(prof);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setError('An unexpected error occurred during verification.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (agreementNoParam) {
-      handleVerify(agreementNoParam);
+      const timer = setTimeout(() => {
+        handleVerify(agreementNoParam);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agreementNoParam]);
 
   const handleSubmit = (e) => {

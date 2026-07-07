@@ -85,6 +85,51 @@ export default function Home() {
     });
   };
 
+  const handleVerifyAgent = async (codeToVerify) => {
+    const code = (codeToVerify || agreementNo).trim().toUpperCase();
+    if (!code) {
+      alert("Please enter or scan an Agreement Number.");
+      return;
+    }
+    setVerificationLoading(true);
+    setVerificationError('');
+    setVerificationResult(null);
+
+    try {
+      const { data: agreementData, error: fetchErr } = await supabase
+        .from('agent_agreements')
+        .select('*')
+        .eq('agreement_no', code)
+        .maybeSingle();
+
+      if (fetchErr) {
+        setVerificationError('Query error: ' + fetchErr.message);
+      } else if (!agreementData) {
+        setVerificationError(`Agreement number "${code}" is invalid or does not exist in our official records.`);
+      } else {
+        const { data: profileData, error: profErr } = await supabase
+          .from('profiles')
+          .select('full_name, phone, created_at')
+          .eq('id', agreementData.agent_id)
+          .single();
+
+        if (profErr) {
+          setVerificationError('Failed to fetch agent profile details.');
+        } else {
+          setVerificationResult({
+            agreement: agreementData,
+            profile: profileData
+          });
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setVerificationError('An unexpected error occurred during verification.');
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
   const startScanner = async () => {
     setScanningError('');
     if (scanTimeoutRef.current) {
@@ -155,61 +200,20 @@ export default function Home() {
   };
 
   useEffect(() => {
+    let timer;
     if (isScanning) {
-      startScanner();
+      timer = setTimeout(() => {
+        startScanner();
+      }, 0);
     } else {
       stopScanner();
     }
     return () => {
+      if (timer) clearTimeout(timer);
       stopScanner();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning]);
-
-  const handleVerifyAgent = async (codeToVerify) => {
-    const code = (codeToVerify || agreementNo).trim().toUpperCase();
-    if (!code) {
-      alert("Please enter or scan an Agreement Number.");
-      return;
-    }
-    setVerificationLoading(true);
-    setVerificationError('');
-    setVerificationResult(null);
-
-    try {
-      const { data: agreementData, error: fetchErr } = await supabase
-        .from('agent_agreements')
-        .select('*')
-        .eq('agreement_no', code)
-        .maybeSingle();
-
-      if (fetchErr) {
-        setVerificationError('Query error: ' + fetchErr.message);
-      } else if (!agreementData) {
-        setVerificationError(`Agreement number "${code}" is invalid or does not exist in our official records.`);
-      } else {
-        const { data: profileData, error: profErr } = await supabase
-          .from('profiles')
-          .select('full_name, phone, created_at')
-          .eq('id', agreementData.agent_id)
-          .single();
-
-        if (profErr) {
-          setVerificationError('Failed to fetch agent profile details.');
-        } else {
-          setVerificationResult({
-            agreement: agreementData,
-            profile: profileData
-          });
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setVerificationError('An unexpected error occurred during verification.');
-    } finally {
-      setVerificationLoading(false);
-    }
-  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -1557,7 +1561,7 @@ export default function Home() {
                   Tailored loan matches for salaried individuals with steady employment at top banks.
                 </p>
               </div>
-              <Link href="/check" className="btn btn-primary btn-sm" style={{
+              <Link href="/check?type=salary" className="btn btn-primary btn-sm" style={{
                 marginTop: 'auto',
                 padding: '10px 24px',
                 borderRadius: '8px',
@@ -1606,7 +1610,7 @@ export default function Home() {
                   Smart capital infrastructure for startups, MSMEs, and growing enterprises.
                 </p>
               </div>
-              <Link href="/check" className="btn btn-primary btn-sm" style={{
+              <Link href="/check?type=business" className="btn btn-primary btn-sm" style={{
                 marginTop: 'auto',
                 padding: '10px 24px',
                 borderRadius: '8px',
@@ -1654,7 +1658,7 @@ export default function Home() {
                   Real-time digital verification with ultra-fast AI-powered approvals.
                 </p>
               </div>
-              <Link href="/check" className="btn btn-primary btn-sm" style={{
+              <Link href="/check?type=instant" className="btn btn-primary btn-sm" style={{
                 marginTop: 'auto',
                 padding: '10px 24px',
                 borderRadius: '8px',

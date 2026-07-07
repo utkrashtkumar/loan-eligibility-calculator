@@ -126,7 +126,8 @@ export default function CheckPage() {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        router.push('/login?redirect=/check');
+        const currentPath = window.location.pathname + window.location.search;
+        router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
       } else {
         setUser(session.user);
 
@@ -141,12 +142,40 @@ export default function CheckPage() {
         }
         
         // Pre-fill user name from metadata if available
+        let initialName = '';
         if (session.user?.user_metadata?.full_name) {
-          setFormData(prev => ({
-            ...prev,
-            name: session.user.user_metadata.full_name
-          }));
+          initialName = session.user.user_metadata.full_name;
         }
+
+        // Parse query parameter to pre-fill loan/employment type
+        let prefilledEmploymentType = 'salaried';
+        let prefilledLoanType = 'PL';
+
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const typeParam = params.get('type');
+          if (typeParam) {
+            const typeLower = typeParam.toLowerCase();
+            if (typeLower === 'salary' || typeLower === 'salaried') {
+              prefilledEmploymentType = 'salaried';
+              prefilledLoanType = 'PL';
+            } else if (typeLower === 'instant') {
+              prefilledEmploymentType = 'self_employed';
+              prefilledLoanType = 'PL';
+            } else if (typeLower === 'business') {
+              prefilledEmploymentType = 'self_employed';
+              prefilledLoanType = 'BL';
+            }
+          }
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          name: initialName || prev.name,
+          employmentType: prefilledEmploymentType,
+          loanType: prefilledLoanType
+        }));
+
         setCheckingAuth(false);
       }
     }

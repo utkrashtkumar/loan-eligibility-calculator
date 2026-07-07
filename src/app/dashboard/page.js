@@ -3092,7 +3092,7 @@ export default function UserDashboard() {
                                         Your request is being reviewed by the administrator. You will be notified once approved.
                                       </div>
                                       {regenRequest.reason && (
-                                        <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '4px', fontStyle: 'italic' }}>Reason: "{regenRequest.reason}"</div>
+                                        <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '4px', fontStyle: 'italic' }}>Reason: &quot;{regenRequest.reason}&quot;</div>
                                       )}
                                     </div>
                                   </div>

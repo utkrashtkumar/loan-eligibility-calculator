@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
@@ -307,7 +307,7 @@ function BankCard({ bank, pincodeResult, onApply, userRole }) {
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
-export default function BanksPage() {
+function BanksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState(null);
@@ -325,7 +325,10 @@ export default function BanksPage() {
   useEffect(() => {
     const categoryParam = searchParams ? searchParams.get('category') : null;
     if (categoryParam) {
-      setFilterCategory(categoryParam);
+      const timer = setTimeout(() => {
+        setFilterCategory(categoryParam);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
 
@@ -881,5 +884,18 @@ export default function BanksPage() {
 
       <Footer />
     </>
+  );
+}
+
+export default function BanksPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px' }}>
+        <div className="loading-spinner" style={{ border: '4px solid rgba(99, 102, 241, 0.1)', borderTop: '4px solid var(--color-primary)', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite' }} />
+        <div style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Loading partner portals...</div>
+      </div>
+    }>
+      <BanksContent />
+    </Suspense>
   );
 }

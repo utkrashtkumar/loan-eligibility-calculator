@@ -3812,3 +3812,44 @@ main, article, aside {
     font-size: 13px !important;
   }
 }
+
+/* ============================================
+   HEADER NOTIFICATION DROPDOWN MODIFICATIONS
+   ============================================ */
+.header-notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 12px;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--color-bg-glass-heavy);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 999999;
+  padding: 16px;
+}
+
+.header-notification-item {
+  transition: all 0.2s ease;
+}
+
+.header-notification-item:hover {
+  background: rgba(99, 102, 241, 0.1) !important;
+  transform: translateX(2px);
+}
+
+@media (max-width: 768px) {
+  .header-notification-dropdown {
+    position: fixed !important;
+    top: calc(var(--header-height) + 12px) !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}

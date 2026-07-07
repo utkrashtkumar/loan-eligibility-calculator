@@ -29,26 +29,37 @@ export default function PWAInstallPrompt() {
 
   // ── Client-side safe initialization ────────────────────────────────────────
   useEffect(() => {
-    setIsInstalled(detectIsInstalled());
-    setIsIOS(detectIsIOS());
+    const timer = setTimeout(() => {
+      setIsInstalled(detectIsInstalled());
+      setIsIOS(detectIsIOS());
+    }, 0);
+
     if (typeof window !== 'undefined') {
       const checkMobile = () => {
         setIsMobile(window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
       };
-      checkMobile();
+      const mobileTimer = setTimeout(checkMobile, 0);
       window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(mobileTimer);
+        window.removeEventListener('resize', checkMobile);
+      };
     }
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Debug mode check ───────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isDebug = window.location.search.includes('debug_pwa=true');
-      setDebugPWA(isDebug);
-      if (isDebug) {
-        setShowBanner(true);
-      }
+      const timer = setTimeout(() => {
+        setDebugPWA(isDebug);
+        if (isDebug) {
+          setShowBanner(true);
+        }
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -80,9 +91,14 @@ export default function PWAInstallPrompt() {
     if (wasDismissed) return;
 
     // Check if the event was already captured by layout head script early on
+    let promptTimer;
+    let bannerTimer;
     if (typeof window !== 'undefined' && window.deferredPWAEvent) {
-      setDeferredPrompt(window.deferredPWAEvent);
-      setTimeout(() => setShowBanner(true), 3000);
+      const event = window.deferredPWAEvent;
+      promptTimer = setTimeout(() => {
+        setDeferredPrompt(event);
+      }, 0);
+      bannerTimer = setTimeout(() => setShowBanner(true), 3000);
     }
 
     const onBeforeInstall = (e) => {
@@ -99,6 +115,8 @@ export default function PWAInstallPrompt() {
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
     return () => {
+      if (promptTimer) clearTimeout(promptTimer);
+      if (bannerTimer) clearTimeout(bannerTimer);
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
     };

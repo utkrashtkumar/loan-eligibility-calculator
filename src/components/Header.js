@@ -86,15 +86,15 @@ export default function Header() {
   const [userFont, setUserFont] = useState('Jakarta');
 
   useEffect(() => {
-    setMounted(true);
     let savedTheme = localStorage.getItem('theme') || 'light';
     if (savedTheme !== 'dark' && savedTheme !== 'light') savedTheme = 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     const savedFont = localStorage.getItem('user-font') || 'Jakarta';
-    setUserFont(savedFont);
 
     const timer = setTimeout(() => {
+      setMounted(true);
+      setUserFont(savedFont);
       setTheme(savedTheme);
     }, 0);
     return () => clearTimeout(timer);
@@ -180,9 +180,11 @@ export default function Header() {
 
   useEffect(() => {
     if (!user) {
-      setNotifications([]);
-      setUnreadCount(0);
-      return;
+      const timer = setTimeout(() => {
+        setNotifications([]);
+        setUnreadCount(0);
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     const fetchNotifications = async () => {
@@ -203,13 +205,15 @@ export default function Header() {
 
     fetchNotifications();
 
+    const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+
     const channel = supabase
       .channel('realtime:notifications')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
-        filter: `agent_id=eq.${user.id}`
+        ...(isAdmin ? {} : { filter: `agent_id=eq.${user.id}` })
       }, (payload) => {
         setNotifications(prev => [payload.new, ...prev].slice(0, 20));
         setUnreadCount(c => c + 1);
@@ -224,17 +228,98 @@ export default function Header() {
   const markAllRead = async () => {
     if (!user || unreadCount === 0) return;
     try {
-      const { error } = await supabase
+      const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+      const query = supabase
         .from('notifications')
         .update({ read: true })
-        .eq('agent_id', user.id)
         .eq('read', false);
+      
+      if (!isAdmin) {
+        query.eq('agent_id', user.id);
+      }
+
+      const { error } = await query;
       if (!error) {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         setUnreadCount(0);
       }
     } catch (e) {
       console.warn('Failed to mark notifications read:', e);
+    }
+  };
+
+  const clearReadNotifications = async () => {
+    if (!user) return;
+    try {
+      const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+      const query = supabase
+        .from('notifications')
+        .delete()
+        .eq('read', true);
+      
+      if (!isAdmin) {
+        query.eq('agent_id', user.id);
+      }
+
+      const { error } = await query;
+      if (!error) {
+        setNotifications(prev => prev.filter(n => !n.read));
+      }
+    } catch (e) {
+      console.warn('Failed to clear read notifications:', e);
+    }
+  };
+
+  const handleNotificationClick = async (n) => {
+    // 1. Mark as read if not already read
+    if (!n.read) {
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', n.id);
+        if (!error) {
+          setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+          setUnreadCount(c => Math.max(0, c - 1));
+        }
+      } catch (e) {
+        console.warn('Failed to mark notification read on click:', e);
+      }
+    }
+
+    // 2. Determine redirect URL
+    const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+    let targetUrl = '/dashboard';
+    
+    if (isAdmin) {
+      const type = n.activity_type;
+      const refId = n.reference_id;
+      if (type === 'registration') {
+        targetUrl = `/admin?tab=pending_agents&agentId=${refId}`;
+      } else if (type === 'application') {
+        targetUrl = `/admin?tab=agent_applications&appId=${refId}`;
+      } else if (type === 'payout') {
+        targetUrl = `/admin?tab=payouts`;
+      } else if (type === 'agreement') {
+        targetUrl = `/admin?tab=agreements&agentId=${refId}`;
+      } else if (type === 'resign') {
+        targetUrl = `/admin?tab=pending_agents&agentId=${refId}`;
+      } else {
+        targetUrl = `/admin`;
+      }
+    }
+
+    // Close notifications panel
+    setShowNotifications(false);
+
+    // 3. Navigate
+    if (typeof window !== 'undefined') {
+      router.push(targetUrl);
+      if (window.location.pathname === '/admin') {
+        // Dispatch custom event to notify admin page of URL change
+        const event = new CustomEvent('admin-query-change');
+        window.dispatchEvent(event);
+      }
     }
   };
 
@@ -343,7 +428,7 @@ export default function Header() {
                 }}>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=instant" : "/check"} 
+                      href={user ? "/banks?category=instant" : "/check?type=instant"} 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -360,7 +445,7 @@ export default function Header() {
                   </li>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=salary" : "/check"} 
+                      href={user ? "/banks?category=salary" : "/check?type=salary"} 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -377,7 +462,7 @@ export default function Header() {
                   </li>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=business" : "/check"} 
+                      href={user ? "/banks?category=business" : "/check?type=business"} 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -415,6 +500,11 @@ export default function Header() {
             <li>
               <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
                 Verify Agreement
+              </Link>
+            </li>
+            <li>
+              <Link href="/blog" className={`nav-link ${isLinkActive('/blog') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+                Blog
               </Link>
             </li>
             <li>
@@ -478,10 +568,7 @@ export default function Header() {
           {mounted && user && (
             <div style={{ position: 'relative' }}>
               <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  if (!showNotifications) markAllRead();
-                }}
+                onClick={() => setShowNotifications(!showNotifications)}
                 className="theme-toggle-btn"
                 style={{ margin: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Notifications"
@@ -515,29 +602,21 @@ export default function Header() {
               </button>
 
               {showNotifications && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '12px',
-                  width: '320px',
-                  maxHeight: '400px',
-                  overflowY: 'auto',
-                  background: 'var(--color-bg-glass-heavy)',
-                  backdropFilter: 'blur(25px)',
-                  border: 'var(--border-light)',
-                  borderRadius: '12px',
-                  boxShadow: 'var(--shadow-lg)',
-                  zIndex: 999999,
-                  padding: '16px'
-                }}>
+                <div className="header-notification-dropdown">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Notifications</span>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
-                        Mark all read
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                          Mark all read
+                        </button>
+                      )}
+                      {notifications.some(n => n.read) && (
+                        <button onClick={clearReadNotifications} style={{ background: 'none', border: 'none', color: 'var(--color-error)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                          Clear Read
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {notifications.length === 0 ? (
                     <div style={{ padding: '24px 0', color: 'var(--color-text-tertiary)', fontSize: 'var(--text-xs)', textAlign: 'center' }}>
@@ -546,15 +625,25 @@ export default function Header() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {notifications.map(n => (
-                        <div key={n.id} style={{
-                          padding: '10px',
-                          borderRadius: '8px',
-                          background: n.read ? 'rgba(255,255,255,0.02)' : 'rgba(99, 102, 241, 0.05)',
-                          borderLeft: n.read ? '2px solid transparent' : '2px solid var(--color-primary)',
-                          fontSize: 'var(--text-xs)',
-                          lineHeight: 1.4
-                        }}>
-                          <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '2px' }}>{n.title}</div>
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          className="header-notification-item"
+                          style={{
+                            padding: '10px',
+                            borderRadius: '8px',
+                            background: n.read ? 'rgba(255,255,255,0.02)' : 'rgba(99, 102, 241, 0.05)',
+                            borderLeft: n.read ? '3px solid transparent' : '3px solid var(--color-primary)',
+                            fontSize: 'var(--text-xs)',
+                            lineHeight: 1.4,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>{n.title}</span>
+                            {!n.read && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-primary)' }}></span>}
+                          </div>
                           <div style={{ color: 'var(--color-text-secondary)' }}>{n.message}</div>
                           <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
                             {new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -685,13 +774,13 @@ export default function Header() {
               background: 'none',
               padding: '4px 0'
             }}>
-              <Link href={user ? "/banks?category=instant" : "/check"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href={user ? "/banks?category=instant" : "/check?type=instant"} className="mobile-dropdown-item" onClick={closeMenu}>
                 Instant Loan
               </Link>
-              <Link href={user ? "/banks?category=salary" : "/check"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href={user ? "/banks?category=salary" : "/check?type=salary"} className="mobile-dropdown-item" onClick={closeMenu}>
                 Salary Loan
               </Link>
-              <Link href={user ? "/banks?category=business" : "/check"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href={user ? "/banks?category=business" : "/check?type=business"} className="mobile-dropdown-item" onClick={closeMenu}>
                 Business Loan
               </Link>
             </div>
@@ -704,6 +793,9 @@ export default function Header() {
         </Link>
         <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
           Check Eligibility
+        </Link>
+        <Link href="/blog" className={`nav-link ${isLinkActive('/blog') ? 'active' : ''}`} onClick={closeMenu}>
+          Blog
         </Link>
         <Link
           href="/cibil"
