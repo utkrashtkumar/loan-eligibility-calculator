@@ -157,6 +157,80 @@ const getAffiliateLink = (bankName, loanType = 'PL', muthootSubType = 'daily') =
   return null;
 };
 
+const generateOverlayImageBlob = (imageUrl, agentProfile) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw original image
+        ctx.drawImage(img, 0, 0);
+        
+        // Only draw banner if agentProfile is an approved agent
+        if (agentProfile && agentProfile.role === 'agent') {
+          const name = agentProfile.full_name || 'Agent';
+          const code = agentProfile.agent_code || '';
+          const phone = agentProfile.phone || '';
+          
+          // Calculate proportional font size (base 12 scaled to image width relative to 320px viewport)
+          let fontSize = Math.max(12, Math.floor(12 * (img.width / 320)));
+          
+          // Proportional banner height (based on the font size to ensure a clean fit)
+          const bannerHeight = Math.max(48, fontSize * 2.8);
+          
+          // Draw solid white banner
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, img.height - bannerHeight, img.width, bannerHeight);
+          
+          // Draw top accent line in green matching the website theme
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(0, img.height - bannerHeight, img.width, Math.max(2, bannerHeight * 0.04));
+          
+          // Set text font family to Times New Roman style, bold, and color to theme green
+          ctx.font = `bold ${fontSize}px "Times New Roman", Times, Georgia, serif`;
+          ctx.fillStyle = '#10b981';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
+          // Build display text
+          const infoText = `Agent: ${name} ${code ? `(${code})` : ''}   |   Mobile: ${phone}`;
+          
+          // Shrink font size if text is too wide for the image
+          const padding = 20;
+          while (ctx.measureText(infoText).width > (img.width - padding) && fontSize > 10) {
+            fontSize -= 1;
+            ctx.font = `bold ${fontSize}px "Times New Roman", Times, Georgia, serif`;
+          }
+          
+          // Draw text centered in the white banner
+          const yPos = img.height - (bannerHeight / 2) + (bannerHeight * 0.02);
+          ctx.fillText(infoText, img.width / 2, yPos);
+        }
+        
+        // Convert canvas to blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Canvas toBlob failed'));
+          }
+        }, 'image/png');
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      reject(new Error('Failed to load image for overlay'));
+    };
+    img.src = imageUrl;
+  });
+};
+
 export default function UserDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -282,6 +356,108 @@ export default function UserDashboard() {
       setAgentUpdates(data || []);
     } catch (err) { console.error(err); }
     setUpdatesLoading(false);
+  };
+
+  const handleDownloadUpdate = async (update) => {
+    const isPdf = update.image_url.split('?')[0].toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      try {
+        const resp = await fetch(update.image_url);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${update.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        window.open(update.image_url, '_blank');
+      }
+      return;
+    }
+
+    try {
+      const blob = await generateOverlayImageBlob(update.image_url, profile);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${update.title.replace(/[^a-z0-9]/gi, '_')}_agent.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.warn('Overlay image download failed, falling back to direct download:', err);
+      try {
+        const resp = await fetch(update.image_url);
+        const blob = await resp.blob();
+        const ext = update.image_url.split('.').pop().split('?')[0] || 'jpg';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${update.title.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        window.open(update.image_url, '_blank');
+      }
+    }
+  };
+
+  const handleShareUpdate = async (update) => {
+    const isPdf = update.image_url.split('?')[0].toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: update.title, text: update.description || update.title, url: update.image_url });
+        } catch (err) { /* cancelled */ }
+      } else {
+        await navigator.clipboard.writeText(update.image_url);
+        alert('Document link copied to clipboard!');
+      }
+      return;
+    }
+
+    try {
+      const blob = await generateOverlayImageBlob(update.image_url, profile);
+      const file = new File([blob], `${update.title.replace(/[^a-z0-9]/gi, '_')}_agent.png`, { type: 'image/png' });
+      
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: update.title,
+            text: update.description || update.title,
+          });
+          return;
+        } catch (shareErr) {
+          console.warn('Share file failed:', shareErr);
+        }
+      }
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: update.title,
+          text: update.description || update.title,
+          url: update.image_url
+        });
+      } else {
+        await navigator.clipboard.writeText(update.image_url);
+        alert('Image link copied to clipboard!');
+      }
+    } catch (err) {
+      console.warn('Overlay share failed, falling back:', err);
+      try {
+        await navigator.clipboard.writeText(update.image_url);
+        alert('Image link copied to clipboard!');
+      } catch (e) {
+        alert('Failed to share.');
+      }
+    }
   };
 
   const fetchInquiries = async (userId) => {
@@ -2839,36 +3015,6 @@ export default function UserDashboard() {
                                 };
                                 const c = catColors[update.category] || catColors.general;
 
-                                const handleDownload = async () => {
-                                  try {
-                                    const resp = await fetch(update.image_url);
-                                    const blob = await resp.blob();
-                                    const ext = update.image_url.split('.').pop().split('?')[0] || 'jpg';
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `${update.title.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    URL.revokeObjectURL(url);
-                                  } catch (err) {
-                                    console.warn('Direct fetch download failed, falling back to opening in a new tab:', err);
-                                    window.open(update.image_url, '_blank');
-                                  }
-                                };
-
-                                const handleShare = async () => {
-                                  if (navigator.share) {
-                                    try {
-                                      await navigator.share({ title: update.title, text: update.description || update.title, url: update.image_url });
-                                    } catch (err) { /* user cancelled */ }
-                                  } else {
-                                    await navigator.clipboard.writeText(update.image_url);
-                                    alert('Image link copied to clipboard!');
-                                  }
-                                };
-
                                 return (
                                   <div key={update.id} className="form-card" style={{ padding: 0, overflow: 'hidden', transition: 'transform 0.2s ease, box-shadow 0.2s ease', backdropFilter: 'blur(20px)', cursor: 'pointer' }}
                                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
@@ -2923,7 +3069,7 @@ export default function UserDashboard() {
                                       <div style={{ display: 'flex', gap: '8px' }}>
                                         {/* Download */}
                                         <button
-                                          onClick={handleDownload}
+                                          onClick={() => handleDownloadUpdate(update)}
                                           className="btn btn-secondary btn-sm"
                                           style={{ flex: 1, fontSize: '12px', padding: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)', border: '1px solid rgba(99,102,241,0.3)' }}
                                           title="Download image to device"
@@ -2933,7 +3079,7 @@ export default function UserDashboard() {
                                         </button>
                                         {/* Share */}
                                         <button
-                                          onClick={handleShare}
+                                          onClick={() => handleShareUpdate(update)}
                                           className="btn btn-secondary btn-sm"
                                           style={{ flex: 1, fontSize: '12px', padding: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: 'rgba(37,211,102,0.1)', color: '#25D366', border: '1px solid rgba(37,211,102,0.3)' }}
                                           title="Share via WhatsApp or any app"
@@ -2972,20 +3118,7 @@ export default function UserDashboard() {
                                 <button
                                   className="btn btn-primary"
                                   style={{ flex: 1, minWidth: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                  onClick={async () => {
-                                    try {
-                                      const resp = await fetch(selectedUpdate.image_url);
-                                      const blob = await resp.blob();
-                                      const ext = selectedUpdate.image_url.split('.').pop().split('?')[0] || 'jpg';
-                                      const url = URL.createObjectURL(blob);
-                                      const a = document.createElement('a');
-                                      a.href = url; a.download = `${selectedUpdate.title.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
-                                      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                                    } catch (err) {
-                                      console.warn('Lightbox direct fetch download failed, falling back to opening in a new tab:', err);
-                                      window.open(selectedUpdate.image_url, '_blank');
-                                    }
-                                  }}
+                                  onClick={() => handleDownloadUpdate(selectedUpdate)}
                                 >
                                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                                   Download
@@ -2993,15 +3126,7 @@ export default function UserDashboard() {
                                 <button
                                   className="btn btn-secondary"
                                   style={{ flex: 1, minWidth: '120px', background: 'rgba(37,211,102,0.12)', color: '#25D366', border: '1px solid rgba(37,211,102,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                  onClick={async () => {
-                                    if (navigator.share) {
-                                      try { await navigator.share({ title: selectedUpdate.title, text: selectedUpdate.description || selectedUpdate.title, url: selectedUpdate.image_url }); }
-                                      catch { /* cancelled */ }
-                                    } else {
-                                      await navigator.clipboard.writeText(selectedUpdate.image_url);
-                                      alert('Image link copied!');
-                                    }
-                                  }}
+                                  onClick={() => handleShareUpdate(selectedUpdate)}
                                 >
                                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                                   Share

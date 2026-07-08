@@ -7,6 +7,54 @@ import { supabase } from '@/lib/supabase';
 export default function Footer() {
   const year = new Date().getFullYear();
   const [visitorCount, setVisitorCount] = useState(null);
+  
+  // Website Feedback Form States
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!message.trim()) {
+      setFeedbackError('Please enter your feedback message.');
+      return;
+    }
+    setSubmitting(true);
+    setFeedbackError('');
+
+    try {
+      const { error: insertErr } = await supabase
+        .from('site_feedbacks')
+        .insert([
+          {
+            rating,
+            name: name.trim() || null,
+            email: email.trim() || null,
+            message: message.trim()
+          }
+        ]);
+
+      if (insertErr) {
+        throw insertErr;
+      }
+
+      setSubmitted(true);
+      setMessage('');
+      setName('');
+      setEmail('');
+      setRating(5);
+    } catch (err) {
+      console.error('Feedback submission failed:', err);
+      setFeedbackError('Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const trackVisitor = async () => {
@@ -62,6 +110,136 @@ export default function Footer() {
       zIndex: 10
     }}>
       <div className="container">
+        {/* Website Feedback Form */}
+        <div style={{
+          background: 'var(--color-bg-glass)',
+          border: 'var(--border-light)',
+          borderRadius: '16px',
+          padding: '24px 32px',
+          marginBottom: '48px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '32px',
+          alignItems: 'center',
+          boxShadow: 'var(--shadow-md)',
+          backdropFilter: 'blur(25px)',
+          WebkitBackdropFilter: 'blur(25px)'
+        }}>
+          <div>
+            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>💬</span> Website Feedback
+            </h3>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: '1.6', margin: 0 }}>
+              Help us improve HandToHand Loans! Tell us about your experience on our website or share suggestions.
+            </p>
+          </div>
+          
+          {submitted ? (
+            <div style={{ textAlign: 'center', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 0' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#10b981',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                margin: '0 auto'
+              }}>
+                ✓
+              </div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>Thank you for your feedback!</div>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: 0 }}>Your suggestions have been successfully recorded.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleFeedbackSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Rating (Stars) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Rating:</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '20px',
+                        lineHeight: 1,
+                        padding: '2px',
+                        color: star <= (hoverRating || rating) ? '#f59e0b' : 'rgba(255, 255, 255, 0.15)',
+                        transition: 'transform 0.1s ease, color 0.1s ease',
+                        transform: star <= (hoverRating || rating) ? 'scale(1.2)' : 'none'
+                      }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Name & Email Fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="Your Name (Optional)"
+                  className="input-field"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={{ fontSize: 'var(--text-xs)', padding: '10px 14px' }}
+                />
+                <input
+                  type="email"
+                  placeholder="Your Email (Optional)"
+                  className="input-field"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{ fontSize: 'var(--text-xs)', padding: '10px 14px' }}
+                />
+              </div>
+
+              {/* Message */}
+              <div style={{ position: 'relative' }}>
+                <textarea
+                  placeholder="What can we improve? (e.g. layout, speed, features...)"
+                  className="input-field"
+                  rows={2}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  style={{ resize: 'none', fontSize: 'var(--text-xs)', padding: '10px 14px', width: '100%', boxSizing: 'border-box' }}
+                  required
+                />
+              </div>
+
+              {feedbackError && <div style={{ color: 'var(--color-error)', fontSize: '11px' }}>{feedbackError}</div>}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitting}
+                style={{ alignSelf: 'flex-start', padding: '10px 24px', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: '8px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+              >
+                {submitting ? (
+                  <>
+                    <span className="spinner-sm" style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    Sending...
+                  </>
+                ) : (
+                  'Submit Feedback'
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+
         {/* Main Footer Grid */}
         <div style={{
           display: 'grid',

@@ -136,6 +136,11 @@ export default function AdminDashboard() {
   const [messageActionLoading, setMessageActionLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
 
+  // Feedbacks state
+  const [siteFeedbacks, setSiteFeedbacks] = useState([]);
+  const [feedbackSearch, setFeedbackSearch] = useState('');
+  const [feedbackActionLoading, setFeedbackActionLoading] = useState(false);
+
   // Bank policies state
   const [policies, setPolicies] = useState([]);
   const [selectedPolicy, setSelectedPolicy] = useState(null);
@@ -935,6 +940,41 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchSiteFeedbacks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_feedbacks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) console.error('Error fetching feedbacks:', error.message);
+      else setSiteFeedbacks(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteSiteFeedback = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this feedback?')) return;
+    setFeedbackActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('site_feedbacks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      alert('Feedback deleted successfully.');
+      setSiteFeedbacks((prev) => prev.filter((fb) => fb.id !== id));
+    } catch (err) {
+      console.error('Error deleting feedback:', err.message);
+      alert('Failed to delete feedback: ' + err.message);
+    } finally {
+      setFeedbackActionLoading(false);
+    }
+  };
+
   const fetchAuditLogs = async () => {
     try {
       setLoadingAuditLogs(true);
@@ -1207,6 +1247,7 @@ export default function AdminDashboard() {
       fetchPayoutRequests(),
       fetchPolicies(),
       fetchContactMessages(),
+      fetchSiteFeedbacks(),
       fetchAuditLogs(),
       fetchAgreementsData(),
       fetchAgentUpdates(),
@@ -2223,6 +2264,7 @@ export default function AdminDashboard() {
                           { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                          { id: 'feedbacks', label: `Website Feedbacks (${siteFeedbacks.length})` },
                           { id: 'blogs', label: `Manage Blogs (${blogs.length})` },
                           { id: 'agreements', label: `Agent Agreements` },
                           { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
@@ -2267,6 +2309,7 @@ export default function AdminDashboard() {
                           { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
                           { id: 'policies', label: `Bank Policies (${policies.length})` },
                           { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                          { id: 'feedbacks', label: `Website Feedbacks (${siteFeedbacks.length})` },
                           { id: 'blogs', label: `Manage Blogs (${blogs.length})` },
                           { id: 'agreements', label: `Agent Agreements` },
                           { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
@@ -2314,6 +2357,7 @@ export default function AdminDashboard() {
                       { id: 'customer_applications', label: `Customer Applications (${customerApplications.length})` },
                       { id: 'policies', label: `Bank Policies (${policies.length})` },
                       { id: 'contacts', label: `Contact Messages (${contactMessages.length})` },
+                      { id: 'feedbacks', label: `Website Feedbacks (${siteFeedbacks.length})` },
                       { id: 'blogs', label: `Manage Blogs (${blogs.length})` },
                       { id: 'agreements', label: `Agent Agreements` },
                       { id: 'agent_updates', label: `Agent Updates (${agentUpdates.length})` },
@@ -4510,6 +4554,109 @@ export default function AdminDashboard() {
                                       Delete
                                     </button>
                                   </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* PANEL 8B: WEBSITE FEEDBACKS */}
+                {activeTab === 'feedbacks' && (
+                  <div className="form-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                      <div>
+                        <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Website Feedbacks</h3>
+                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                          View and manage feedback submitted by website visitors.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Search feedbacks by name, email, or content..."
+                        value={feedbackSearch || ''}
+                        onChange={(e) => setFeedbackSearch(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Feedbacks Table */}
+                    {siteFeedbacks.filter((fb) => {
+                      const query = (feedbackSearch || '').toLowerCase();
+                      return (
+                        fb.name?.toLowerCase().includes(query) ||
+                        fb.email?.toLowerCase().includes(query) ||
+                        fb.message?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
+                        No feedbacks found.
+                      </div>
+                    ) : (
+                      <div className="table-scroll-x" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--color-text-secondary)' }}>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Rating</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Sender</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Feedback Message</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Submitted On</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {siteFeedbacks.filter((fb) => {
+                              const query = (feedbackSearch || '').toLowerCase();
+                              return (
+                                fb.name?.toLowerCase().includes(query) ||
+                                fb.email?.toLowerCase().includes(query) ||
+                                fb.message?.toLowerCase().includes(query)
+                              );
+                            }).map((fb) => (
+                              <tr key={fb.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--color-text-primary)' }}>
+                                <td style={{ padding: '16px' }}>
+                                  <div style={{ color: '#f59e0b', fontSize: '14px', fontWeight: 700 }}>
+                                    {'★'.repeat(fb.rating) + '☆'.repeat(5 - fb.rating)}
+                                    <span style={{ marginLeft: '4px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>({fb.rating}/5)</span>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '16px' }}>
+                                  <div style={{ fontWeight: 600 }}>{fb.name || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Anonymous</span>}</div>
+                                  {fb.email && (
+                                    <div style={{ marginTop: '2px' }}>
+                                      <a href={`mailto:${fb.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontSize: 'var(--text-xs)' }}>{fb.email}</a>
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ padding: '16px', maxWidth: '300px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                  {fb.message}
+                                </td>
+                                <td style={{ padding: '16px', color: 'var(--color-text-secondary)' }}>
+                                  {new Date(fb.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                                </td>
+                                <td style={{ padding: '16px', textAlign: 'right' }}>
+                                  <button
+                                    className="btn btn-danger btn-xs"
+                                    onClick={() => deleteSiteFeedback(fb.id)}
+                                    disabled={feedbackActionLoading}
+                                    style={{
+                                      padding: '6px 12px',
+                                      fontSize: '11px',
+                                      borderRadius: '6px',
+                                      background: 'rgba(239, 68, 68, 0.1)',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: '#ef4444'
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               </tr>
                             ))}

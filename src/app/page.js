@@ -2289,11 +2289,11 @@ export default function Home() {
                   fontSize: 'var(--text-sm)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                    <span style={{ color: 'var(--color-text-secondary)' }}>Agent Partner Name:</span>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Agent Name:</span>
                     <strong style={{ color: 'var(--color-text-primary)' }}>{verificationResult.profile.full_name}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                    <span style={{ color: 'var(--color-text-secondary)' }}>Mobile Number:</span>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Agent Mobile Number:</span>
                     <strong style={{ color: 'var(--color-text-primary)' }}>{verificationResult.profile.phone}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
@@ -2301,8 +2301,25 @@ export default function Home() {
                     <strong style={{ fontFamily: 'monospace', color: 'var(--color-primary)' }}>{verificationResult.agreement.agreement_no}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                    <span style={{ color: 'var(--color-text-secondary)' }}>Execution Date:</span>
-                    <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(verificationResult.agreement.signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Agent Agreement Date:</span>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>
+                      {(() => {
+                        const d = new Date(verificationResult.agreement.signed_at);
+                        const datePart = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                        const timePart = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+                        return `${datePart} at ${timePart}`;
+                      })()}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>Valid Upto Date:</span>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>
+                      {(() => {
+                        const d = new Date(verificationResult.agreement.signed_at);
+                        d.setFullYear(d.getFullYear() + 1);
+                        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                      })()}
+                    </strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px' }}>
                     <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Status:</span>

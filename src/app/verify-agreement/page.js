@@ -391,16 +391,33 @@ function VerifyAgreementContent() {
               <strong style={{ fontFamily: 'monospace', color: 'var(--color-primary)' }}>{agreement.agreement_no}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--color-text-secondary)' }}>Agent Partner Name:</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Agent Name:</span>
               <strong style={{ color: 'var(--color-text-primary)' }}>{profile?.full_name || 'HandToHand Loans Agent'}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--color-text-secondary)' }}>Mobile Number:</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Agent Mobile Number:</span>
               <strong style={{ color: 'var(--color-text-primary)' }}>{profile?.phone || 'Verified'}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--color-text-secondary)' }}>Execution Date:</span>
-              <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(agreement.signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Agent Agreement Date:</span>
+              <strong style={{ color: 'var(--color-text-primary)' }}>
+                {(() => {
+                  const d = new Date(agreement.signed_at);
+                  const datePart = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                  const timePart = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+                  return `${datePart} at ${timePart}`;
+                })()}
+              </strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Valid Upto Date:</span>
+              <strong style={{ color: 'var(--color-text-primary)' }}>
+                {(() => {
+                  const d = new Date(agreement.signed_at);
+                  d.setFullYear(d.getFullYear() + 1);
+                  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                })()}
+              </strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
               <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Status:</span>
