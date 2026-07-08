@@ -331,7 +331,7 @@ export default function Home() {
         }]);
 
       if (error) throw error;
-      
+
       setIsSubmitted(true);
       setFormState({ name: '', email: '', mobile: '', subject: '', message: '' });
     } catch (err) {
@@ -401,12 +401,12 @@ export default function Home() {
           </div>
 
           <h1 className="hero-title">
-            Empowering DSA Agents
-            <span className="hero-title-gradient"> &amp; Borrowers</span>
+            Start Your Journey as a
+            <span className="hero-title-gradient"> Loan DSA Agent &amp; Empowering Borrowers</span>
           </h1>
 
           <p className="hero-subtitle" style={{ maxWidth: '750px' }}>
-            Join India&apos;s fastest-growing fintech distribution ecosystem. Sign up as a DSA Partner to check eligibility, submit files, and earn high commissions, or check your eligibility instantly.
+            Join India&apos;s fastest-growing fintech distribution ecosystem. Sign up as a DSA Partner to check eligibility, submit files, and earn high commissions, or customer check your eligibility instantly.
           </p>
 
           <div className="hero-cta-wrapper" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '48px' }}>
@@ -420,7 +420,7 @@ export default function Home() {
             <Link href="/check" className="btn btn-secondary hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               Check Eligibility
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
+                <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </Link>
           </div>
@@ -558,11 +558,14 @@ export default function Home() {
                 justifyContent: 'center'
               }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="1" x2="12" y2="23" />
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  <path d="M6 3h12" />
+                  <path d="M6 8h12" />
+                  <path d="M6 13h3" />
+                  <path d="M9 13c6.667 0 6.667-10 0-10" />
+                  <path d="m9 13 9 9" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Same Day Payout</h3>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Payout</h3>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
                 Earn commissions instantly with our automated same-day payout system. No delays.
               </p>
@@ -742,36 +745,43 @@ export default function Home() {
             </p>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))',
-            gap: '28px'
-          }}>
+          <div className="metrics-grid">
             {/* Active Lender Partnerships */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  background: 'rgba(99, 102, 241, 0.08)',
+                  background: 'rgba(16, 185, 129, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(99, 102, 241, 0.15)'
+                  border: '1px solid rgba(16, 185, 129, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                     <line x1="2" y1="10" x2="22" y2="10" />
                     <line x1="6" y1="21" x2="6" y2="17" />
@@ -783,7 +793,7 @@ export default function Home() {
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #a5b4fc 100%)',
+                  background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
@@ -793,40 +803,51 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                   Active Lender Partnerships
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
                   Direct integrations with over 30 leading Indian banks and NBFCs. We match your clients across the widest pool of financial policies to secure the best interest rates and low processing fees.
                 </p>
               </div>
             </div>
 
             {/* Approval Rates */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.08)',
+                  background: 'rgba(59, 130, 246, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                  border: '1px solid rgba(59, 130, 246, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 8 8 12 12 16" />
                     <line x1="16" y1="12" x2="8" y2="12" />
@@ -835,7 +856,7 @@ export default function Home() {
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-accent) 0%, #10b981 100%)',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
@@ -845,48 +866,62 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                   Industry-High Approval Rates
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
                   Our main mission is to achieve the highest approval rate. By dynamically checking CIBIL, FOIR, and age thresholds beforehand, we route files only to matching policy criteria to yield 97.8% approval success.
                 </p>
               </div>
             </div>
 
             {/* Commission Structure */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  background: 'rgba(99, 102, 241, 0.08)',
+                  background: 'rgba(16, 185, 129, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(99, 102, 241, 0.15)'
+                  border: '1px solid rgba(16, 185, 129, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 3h12" />
+                    <path d="M6 8h12" />
+                    <path d="M6 13h3" />
+                    <path d="M9 13c6.667 0 6.667-10 0-10" />
+                    <path d="m9 13 9 9" />
                   </svg>
                 </div>
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #a5b4fc 100%)',
+                  background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
@@ -896,47 +931,58 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                   Unmatched Commission Structure
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
                   Earn payouts up to 3.5% commission on successfully disbursed loan files. Our tiered agent program ensures higher loan volumes translate directly to premium slab rates.
                 </p>
               </div>
             </div>
 
             {/* Payout Speed within 24 hours */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.08)',
+                  background: 'rgba(59, 130, 246, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                  border: '1px solid rgba(59, 130, 246, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                 </div>
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-accent) 0%, #10b981 100%)',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
@@ -946,28 +992,39 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                   Payout Speed Within 24h
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
                   Stop waiting months for bank payouts. Once a loan is marked disbursed, request a payout and receive your referral commission directly to your UPI or bank account in under 24 hours.
                 </p>
               </div>
             </div>
 
             {/* Lead Quality */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
@@ -979,7 +1036,7 @@ export default function Home() {
                   justifyContent: 'center',
                   border: '1px solid rgba(99, 102, 241, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <circle cx="12" cy="12" r="6" />
                     <circle cx="12" cy="12" r="2" />
@@ -988,7 +1045,7 @@ export default function Home() {
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #a5b4fc 100%)',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
@@ -998,28 +1055,100 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                   Elite Lead Quality Validation
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
                   Our advanced eligibility matching filters out ineligible applicants instantly. That means DSAs submit highly pre-qualified leads, ensuring a 99.2% policy match alignment with final bank terms.
                 </p>
               </div>
             </div>
 
             {/* Agent Support */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(59, 130, 246, 0.15)'
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <div style={{
+                  fontSize: 'clamp(2rem, 4vw, 2.75rem)',
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontFamily: 'Outfit, var(--font-sans)',
+                  lineHeight: 1
+                }}>
+                  <AnimatedCounter target={24.7} suffix="" decimals={1} />
+                </div>
+              </div>
+              <div>
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                  24/7 Dedicated Agent Support
+                </h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
+                  Our agent portal connects you to highly expert relationship managers who handle bank escalations, follow up on pending approvals, and troubleshoot any customer document issues.
+                </p>
+              </div>
+            </div>
+
+            {/* Transparency of Agreements */}
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
+              padding: '36px 28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
@@ -1031,46 +1160,56 @@ export default function Home() {
                   justifyContent: 'center',
                   border: '1px solid rgba(16, 185, 129, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
                 </div>
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-accent) 0%, #10b981 100%)',
+                  background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
                   lineHeight: 1
                 }}>
-                  <AnimatedCounter target={24.7} suffix="" decimals={1} />
+                  <AnimatedCounter target={100} suffix="%" />
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                  24/7 Dedicated Agent Support
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                  100% Agreement &amp; Operational Transparency
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                  Our agent portal connects you to highly expert relationship managers who handle bank escalations, follow up on pending approvals, and troubleshoot any customer document issues.
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
+                  No hidden clauses. All terms, payout structures, slab thresholds, and client applications are tracked dynamically. You see exactly what is approved, what is pending, and your exact payout calculations in real-time.
                 </p>
               </div>
             </div>
 
-            {/* Transparency of Agreements */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
+            {/* Real-Time Application Tracking */}
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
               padding: '36px 28px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              gridColumn: '1 / -1'
-            }}>
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(16, 185, 129, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{
                   width: '48px',
@@ -1082,28 +1221,32 @@ export default function Home() {
                   justifyContent: 'center',
                   border: '1px solid rgba(99, 102, 241, 0.15)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    <path d="M9 14h6" />
+                    <path d="M9 18h6" />
+                    <path d="M9 10h6" />
                   </svg>
                 </div>
                 <div style={{
                   fontSize: 'clamp(2rem, 4vw, 2.75rem)',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, var(--color-primary) 0%, #a5b4fc 100%)',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   fontFamily: 'Outfit, var(--font-sans)',
                   lineHeight: 1
                 }}>
-                  <AnimatedCounter target={100} suffix="%" />
+                  Live
                 </div>
               </div>
               <div>
-                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                  100% Agreement & Operational Transparency
+                <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                  Real-Time Application Tracking
                 </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                  No hidden clauses. All terms, payout structures, slab thresholds, and client applications are tracked dynamically. You see exactly what is approved, what is pending, and your exact payout calculations in real-time.
+                <p style={{ fontSize: 'var(--text-xs)', color: '#475569', lineHeight: 1.6 }}>
+                  Monitor your leads from submission to disbursal with instant status updates. View exact stage progress, bottleneck alerts, and bank communications instantly on your dashboard.
                 </p>
               </div>
             </div>
@@ -1377,14 +1520,14 @@ export default function Home() {
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)'
                   }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -1488,14 +1631,14 @@ export default function Home() {
                   backdropFilter: 'blur(20px)',
                   WebkitBackdropFilter: 'blur(20px)'
                 }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -2092,10 +2235,10 @@ export default function Home() {
             <p className="cta-subtitle">
               Join thousands of borrowers who found their ideal loan match in under a minute.
             </p>
-            <Link 
-              href="/check" 
-              className="btn btn-primary btn-lg" 
-              style={{ 
+            <Link
+              href="/check"
+              className="btn btn-primary btn-lg"
+              style={{
                 marginTop: '16px',
                 padding: '16px 36px',
                 fontSize: '1.1rem',
@@ -2106,7 +2249,7 @@ export default function Home() {
             >
               Start Free Check
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '8px' }}>
-                <path d="M5 12h14M12 5l7 7-7 7"/>
+                <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </Link>
           </div>
@@ -2278,7 +2421,7 @@ export default function Home() {
           </div>
 
           <div className="form-card" style={{ backdropFilter: 'blur(25px)', border: 'var(--border-light)', padding: '28px 24px', borderRadius: '16px' }}>
-            
+
             {/* Toggle Buttons */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
               <button
@@ -2635,74 +2778,74 @@ export default function Home() {
                   <div className="responsive-grid-2">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Name <span style={{ color: 'var(--color-error)' }}>*</span></label>
-                      <input 
-                        type="text" 
-                        name="name" 
-                        className="input-field" 
-                        placeholder="Your Name" 
-                        required 
-                        value={formState.name} 
-                        onChange={handleInputChange} 
+                      <input
+                        type="text"
+                        name="name"
+                        className="input-field"
+                        placeholder="Your Name"
+                        required
+                        value={formState.name}
+                        onChange={handleInputChange}
                       />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Email <span style={{ color: 'var(--color-error)' }}>*</span></label>
-                      <input 
-                        type="email" 
-                        name="email" 
-                        className="input-field" 
-                        placeholder="Your Email" 
-                        required 
-                        value={formState.email} 
-                        onChange={handleInputChange} 
+                      <input
+                        type="email"
+                        name="email"
+                        className="input-field"
+                        placeholder="Your Email"
+                        required
+                        value={formState.email}
+                        onChange={handleInputChange}
                       />
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Mobile Number <span style={{ color: 'var(--color-error)' }}>*</span></label>
-                    <input 
-                      type="tel" 
-                      name="mobile" 
-                      className="input-field" 
-                      placeholder="Enter your 10-digit mobile number" 
-                      required 
+                    <input
+                      type="tel"
+                      name="mobile"
+                      className="input-field"
+                      placeholder="Enter your 10-digit mobile number"
+                      required
                       maxLength={10}
-                      value={formState.mobile} 
-                      onChange={handleInputChange} 
+                      value={formState.mobile}
+                      onChange={handleInputChange}
                     />
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Subject</label>
-                    <input 
-                      type="text" 
-                      name="subject" 
-                      className="input-field" 
-                      placeholder="Subject (e.g. Agent Query, Eligibility Help)" 
-                      value={formState.subject} 
-                      onChange={handleInputChange} 
+                    <input
+                      type="text"
+                      name="subject"
+                      className="input-field"
+                      placeholder="Subject (e.g. Agent Query, Eligibility Help)"
+                      value={formState.subject}
+                      onChange={handleInputChange}
                     />
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Message <span style={{ color: 'var(--color-error)' }}>*</span></label>
-                    <textarea 
-                      name="message" 
-                      className="input-field" 
-                      placeholder="Type your message here..." 
-                      rows="4" 
-                      required 
-                      value={formState.message} 
-                      onChange={handleInputChange} 
+                    <textarea
+                      name="message"
+                      className="input-field"
+                      placeholder="Type your message here..."
+                      rows="4"
+                      required
+                      value={formState.message}
+                      onChange={handleInputChange}
                       style={{ resize: 'vertical' }}
                     ></textarea>
                   </div>
 
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary btn-lg" 
-                    style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }} 
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-lg"
+                    style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Sending Message...' : 'Send Message'}

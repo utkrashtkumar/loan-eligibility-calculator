@@ -3928,9 +3928,12 @@ export default function UserDashboard() {
                             {disbursedApps.length === 0 && subAgentDisbursedApps.length === 0 ? (
                               <div className="form-card text-center" style={{ padding: '48px 32px', backdropFilter: 'blur(20px)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <line x1="12" y1="1" x2="12" y2="23" />
-                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-success)' }}>
+                                    <path d="M6 3h12" />
+                                    <path d="M6 8h12" />
+                                    <path d="M6 13h3" />
+                                    <path d="M9 13c6.667 0 6.667-10 0-10" />
+                                    <path d="m9 13 9 9" />
                                   </svg>
                                 </div>
                                 <h3 style={{ fontSize: 'var(--text-md)', color: 'var(--color-text-secondary)' }}>No Disbursements Tracked Yet</h3>

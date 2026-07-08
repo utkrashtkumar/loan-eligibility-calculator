@@ -4201,3 +4201,123 @@ main, article, aside {
   opacity: 0.85;
 }
 
+/* ============================================
+   MOBILE NAV OVERFLOW FIX
+   Ensures hamburger button is always reachable
+   for logged-in users on small mobile screens.
+   ============================================ */
+
+/* Make header-inner a safe flex container that never clips the hamburger */
+.header-inner {
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+/* The right-side actions group must not shrink below its content */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+/* Hamburger must NEVER shrink or be pushed off screen */
+.hamburger {
+  flex-shrink: 0 !important;
+  order: 99 !important; /* Always last in the flex row */
+}
+
+/* On screens ≤ 480px, make all icon buttons more compact to fit in nav bar.
+   Font cycler stays visible — just smaller. */
+@media (max-width: 480px) {
+  .nav-font-cycler,
+  .nav-theme-toggle {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    border-radius: 50% !important;
+  }
+  .header-actions {
+    gap: 2px !important;
+  }
+}
+
+/* On screens ≤ 380px (extra-small phones), shrink further and hide the
+   theme toggle text only — all buttons remain visible */
+@media (max-width: 380px) {
+  .nav-font-cycler,
+  .nav-theme-toggle {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    font-size: 10px !important;
+  }
+  /* Tighten the profile avatar button padding */
+  .header-profile-badge-btn {
+    padding: 4px !important;
+    gap: 0 !important;
+  }
+  .header-profile-badge-btn svg {
+    display: none !important;
+  }
+  /* Tighten notification button */
+  .header-actions .theme-toggle-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+  }
+  .header-actions {
+    gap: 1px !important;
+  }
+  /* Compress logo on tiny screens */
+  .logo-badge-fintech {
+    display: none !important;
+  }
+  .logo-text {
+    font-size: 13px !important;
+  }
+}
+
+/* Hide font cycler (Aa) from navbar on mobile — it lives in the hamburger menu */
+@media (max-width: 1380px) {
+  .nav-font-cycler {
+    display: none !important;
+  }
+}
+
+/* Font changer section inside the mobile drawer */
+.mobile-font-changer {
+  display: none;
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 1380px) {
+  .mobile-font-changer {
+    display: block;
+  }
+}
+
+/* Advantage Metrics Section Responsive Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 640px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+

@@ -892,7 +892,7 @@ export default function Header() {
           {/* Font Cycler Button */}
           <button
             onClick={cycleFont}
-            className="theme-toggle-btn"
+            className="theme-toggle-btn nav-font-cycler"
             style={{ 
               margin: 0, 
               marginRight: '6px', 
@@ -906,7 +906,8 @@ export default function Header() {
               width: '36px',
               height: '36px',
               textTransform: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flexShrink: 0
             }}
             title={`Font: ${userFont} (Tap to cycle)`}
             aria-label="Cycle Font Style"
@@ -916,10 +917,10 @@ export default function Header() {
 
           <button 
             onClick={toggleTheme} 
-            className="theme-toggle-btn"
+            className="theme-toggle-btn nav-theme-toggle"
             aria-label="Toggle Theme"
             title={mounted ? (theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode') : 'Switch Theme'}
-            style={{ margin: 0 }}
+            style={{ margin: 0, flexShrink: 0 }}
           >
             {mounted ? (
               theme === 'dark' ? (
@@ -954,6 +955,7 @@ export default function Header() {
             className={`hamburger ${menuOpen ? 'active' : ''}`}
             onClick={toggleMenu}
             aria-label="Toggle menu"
+            style={{ flexShrink: 0, marginLeft: '2px' }}
           >
             <span></span>
             <span></span>
@@ -1101,6 +1103,34 @@ export default function Header() {
             Sign In
           </Link>
         )}
+
+        {/* Font Changer — only shown in mobile menu */}
+        <div className="mobile-font-changer">
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
+            Font Style
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {['Jakarta', 'Inter', 'Poppins', 'Outfit', 'Lora', 'Playfair', 'JetBrains'].map((font) => (
+              <button
+                key={font}
+                onClick={() => changeFont(font)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  border: userFont === font ? '1.5px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.1)',
+                  background: userFont === font ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.03)',
+                  color: userFont === font ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  fontSize: '12px',
+                  fontWeight: userFont === font ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {font}
+              </button>
+            ))}
+          </div>
+        </div>
           </>
         )}
       </div>
