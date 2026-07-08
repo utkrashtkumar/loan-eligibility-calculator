@@ -242,7 +242,26 @@ export default function UserDashboard() {
   const [policies, setPolicies] = useState([]);
 
   // Agent Specific Data
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tab') || 'profile';
+    }
+    return 'profile';
+  });
+
+  // Sync tab state with URL search param on load/refresh (deferred to avoid synchronous state transitions in effect)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setTimeout(() => {
+          setActiveTab(tab);
+        }, 0);
+      }
+    }
+  }, []);
   const [isMobileTabSelectOpen, setIsMobileTabSelectOpen] = useState(false);
   const [showDemotionPopup, setShowDemotionPopup] = useState(false);
   const [showProfileUpdatePopup, setShowProfileUpdatePopup] = useState(false);
@@ -1167,6 +1186,37 @@ export default function UserDashboard() {
           profileFormData.bank_holder_name, profileFormData.bank_name, profileFormData.bank_account_no, profileFormData.bank_ifsc
         ];
         const isComplete = fields.every(f => f && f.toString().trim() !== '');
+
+        const wasFields = [
+          profile.full_name, profile.email, profile.phone,
+          profile.dob, profile.fathers_name, profile.current_address,
+          profile.permanent_address, profile.pincode, profile.marital_status,
+          profile.avatar, profile.id_type, profile.id_number, profile.id_file,
+          profile.id_type_2, profile.id_number_2, profile.id_file_2,
+          profile.selfie, profile.cancelled_cheque,
+          profile.bank_holder_name, profile.bank_name, profile.bank_account_no, profile.bank_ifsc
+        ];
+        const wasComplete = wasFields.every(f => f && f.toString().trim() !== '');
+
+        if (isComplete && !wasComplete) {
+          try {
+            const { error: notifError } = await supabase.from('notifications').insert({
+              agent_id: profile.id,
+              title: 'Agent Profile 100% Complete',
+              message: `${profileFormData.full_name || 'An agent'} has completed their profile details 100% and is waiting for verification/locking.`,
+              activity_type: 'profile_complete',
+              reference_id: profile.id
+            });
+            if (notifError) {
+              console.error('Error creating admin notification:', notifError);
+            } else {
+              showToast('Admin notified of profile completion.');
+            }
+          } catch (nErr) {
+            console.error('Error sending completion notification:', nErr);
+          }
+        }
+
         if (isComplete && profile?.profile_update_requested) {
           await supabase.from('profiles').update({ 
             profile_update_requested: false,
@@ -1400,7 +1450,7 @@ export default function UserDashboard() {
                   </span>
                   {app.disbursed_at && (
                     <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
-                      Disbursed: {new Date(app.disbursed_at).toLocaleDateString('en-IN')}
+                      Disbursed: {new Date(app.disbursed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   )}
                 </div>
@@ -1956,7 +2006,7 @@ export default function UserDashboard() {
                                       <tbody>
                                         {payoutRequests.map((req) => (
                                           <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                            <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
+                                            <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                             <td style={{ padding: '12px 16px', fontWeight: 600 }}>{"\u20B9"}{Number(req.amount).toLocaleString('en-IN')}</td>
                                             <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                             <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
@@ -2870,7 +2920,7 @@ export default function UserDashboard() {
                                     </span>
                                     {app.disbursed_at && (
                                       <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
-                                        Disbursed: {new Date(app.disbursed_at).toLocaleDateString('en-IN')}
+                                        Disbursed: {new Date(app.disbursed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                       </div>
                                     )}
                                   </div>
@@ -2962,7 +3012,7 @@ export default function UserDashboard() {
                                                   ₹{(Number(app.loan_amount) / 100000).toFixed(1)}L
                                                 </span>
                                                 <span style={{ fontSize: '9px', color: 'var(--color-text-tertiary)' }}>
-                                                  {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                  {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                               </div>
                                             </div>
@@ -3845,7 +3895,7 @@ export default function UserDashboard() {
                                   <tbody>
                                     {payoutRequests.map((req) => (
                                       <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                        <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
+                                        <td style={{ padding: '12px 16px' }}>{new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td style={{ padding: '12px 16px', fontWeight: 600 }}>{"\u20B9"}{Number(req.amount).toLocaleString('en-IN')}</td>
                                         <td style={{ padding: '12px 16px' }}>{req.upi_id ? 'UPI' : 'Bank Transfer'}</td>
                                         <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
@@ -3906,7 +3956,7 @@ export default function UserDashboard() {
                                       {/* Direct commissions */}
                                       {disbursedApps.map((app) => (
                                         <tr key={app.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                          <td style={{ padding: '16px' }}>{new Date(app.disbursed_at || app.created_at).toLocaleDateString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>{new Date(app.disbursed_at || app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-success)', fontWeight: 500 }}>Direct (2%)</span></td>
                                           <td style={{ padding: '16px' }}>{app.client_name}</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
@@ -3920,7 +3970,7 @@ export default function UserDashboard() {
                                       {/* Referral bonuses */}
                                       {subAgentDisbursedApps.map((app) => (
                                         <tr key={`sa-${app.id}`} style={{ borderBottom: 'var(--border-subtle)' }}>
-                                          <td style={{ padding: '16px' }}>{new Date(app.disbursed_at || app.created_at).toLocaleDateString('en-IN')}</td>
+                                          <td style={{ padding: '16px' }}>{new Date(app.disbursed_at || app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                           <td style={{ padding: '16px' }}><span style={{ color: 'var(--color-info)', fontWeight: 500 }}>Referral (0.5%)</span></td>
                                           <td style={{ padding: '16px' }}>Agent Referral client ({app.client_name})</td>
                                           <td style={{ padding: '16px' }}>{app.bank_name}</td>
@@ -3992,7 +4042,7 @@ export default function UserDashboard() {
                                         <td style={{ padding: '16px' }}>{sa.phone || 'N/A'}</td>
                                         <td style={{ padding: '16px', fontFamily: 'var(--font-heading)', fontWeight: 600 }}>{sa.agent_code || 'PENDING'}</td>
                                         <td style={{ padding: '16px' }}>
-                                          {new Date(sa.created_at).toLocaleDateString('en-IN')}
+                                          {new Date(sa.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </td>
                                         <td style={{ padding: '16px' }}>
                                           <span className="badge" style={sa.approved ? { color: 'var(--color-success)', background: 'var(--color-success-bg)', border: 'var(--border-success)' } : { color: 'var(--color-warning)', background: 'var(--color-warning-bg)', border: 'var(--border-warning)' }}>
@@ -4646,7 +4696,7 @@ export default function UserDashboard() {
                       <tbody>
                         {payoutRequests.map((req) => (
                           <tr key={req.id} style={{ borderBottom: 'var(--border-subtle)' }}>
-                            <td style={{ padding: '8px 12px' }}>{new Date(req.created_at).toLocaleDateString('en-IN')}</td>
+                            <td style={{ padding: '8px 12px' }}>{new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                             <td style={{ padding: '8px 12px', fontWeight: 600 }}>₹{Number(req.amount).toLocaleString('en-IN')}</td>
                             <td style={{ padding: '8px 12px' }}>{req.upi_id ? 'UPI' : 'Bank'}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'right' }}>
@@ -5212,7 +5262,7 @@ export default function UserDashboard() {
                 </div>
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Joined Date</div>
-                  <div style={{ fontWeight: 600, marginTop: '2px' }}>{new Date(selectedSubAgent.created_at).toLocaleDateString('en-IN')}</div>
+                  <div style={{ fontWeight: 600, marginTop: '2px' }}>{new Date(selectedSubAgent.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Approval Status</div>

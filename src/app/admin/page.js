@@ -824,6 +824,18 @@ export default function AdminDashboard() {
           setActiveTab('pending_agents');
         }
       }
+      // 6. PROFILE COMPLETE
+      else if (type === 'profile_complete') {
+        let agent = activeAgents.find(a => a.id === refId) || pendingAgents.find(a => a.id === refId);
+        if (!agent) {
+          const { data } = await supabase.from('profiles').select('*').eq('id', refId).single();
+          agent = data;
+        }
+        if (agent) {
+          handleSelectAgent(agent);
+          setActiveTab('active_agents');
+        }
+      }
     } catch (err) {
       console.error('Error running followup:', err);
     }
@@ -2497,7 +2509,7 @@ export default function AdminDashboard() {
                                    <tr key={sa.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                      <td style={{ padding: '16px 24px', fontWeight: 500 }}>{sa.full_name}</td>
                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.email}</td>
-                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN')}</td>
+                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                          <button
@@ -2569,7 +2581,7 @@ export default function AdminDashboard() {
                                        ₹{Number(req.amount).toLocaleString('en-IN')}
                                      </td>
                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                       {new Date(req.created_at).toLocaleDateString('en-IN')}
+                                       {new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                      </td>
                                      <td style={{ padding: '16px 24px', fontSize: 'var(--text-xs)' }}>
                                        <div>Name: <strong>{req.account_name}</strong></div>
@@ -3206,7 +3218,7 @@ export default function AdminDashboard() {
                                     {agent.agent_code}
                                   </td>
                                   <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                    {new Date(agent.created_at).toLocaleDateString('en-IN')}
+                                    {new Date(agent.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </td>
                                   <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -3328,7 +3340,7 @@ export default function AdminDashboard() {
                                   <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{user.email}</td>
                                   <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{user.phone || 'Not provided'}</td>
                                   <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                    {new Date(user.created_at).toLocaleDateString('en-IN')}
+                                    {new Date(user.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </td>
                                   <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -3443,7 +3455,7 @@ export default function AdminDashboard() {
                                         )}
                                       </td>
                                       <td style={{ padding: '16px 24px' }}>{sa.referred_by || 'None'}</td>
-                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN')}</td>
+                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                           <button
@@ -3741,7 +3753,7 @@ export default function AdminDashboard() {
                                       ₹{Number(req.amount).toLocaleString('en-IN')}
                                     </td>
                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                      {new Date(req.created_at).toLocaleDateString('en-IN')}
+                                      {new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </td>
                                     <td style={{ padding: '16px 24px', fontSize: 'var(--text-xs)' }}>
                                       <div>Name: <strong>{req.account_name}</strong></div>
@@ -3770,7 +3782,7 @@ export default function AdminDashboard() {
                                         </button>
                                       ) : (
                                         <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                                          Paid on {new Date(req.paid_at).toLocaleDateString('en-IN')}
+                                          Paid on {new Date(req.paid_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                       )}
                                     </td>
@@ -3962,7 +3974,7 @@ export default function AdminDashboard() {
                                     <td style={{ padding: '16px 24px', fontWeight: 500 }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                     <td style={{ padding: '16px 24px', color: 'var(--color-accent-violet)' }}>₹{Number(app.commission_amount).toLocaleString('en-IN')}</td>
                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                      {new Date(app.created_at).toLocaleDateString('en-IN')}
+                                      {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </td>
                                     <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
@@ -4193,7 +4205,7 @@ export default function AdminDashboard() {
                                     </td>
                                     <td style={{ padding: '16px 24px', fontWeight: 500 }}>₹{Number(app.loan_amount).toLocaleString('en-IN')}</td>
                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>
-                                      {new Date(app.created_at).toLocaleDateString('en-IN')}
+                                      {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </td>
                                     <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
@@ -6351,7 +6363,7 @@ export default function AdminDashboard() {
               <div>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700 }}>{selectedAgent.role === 'user' ? 'Inspect User Profile' : 'Inspect Agent Profile'}</h3>
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-                  {selectedAgent.role === 'user' ? `User ID: ${selectedAgent.id}` : `Agent Code: ${selectedAgent.agent_code}`} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN')}
+                  {selectedAgent.role === 'user' ? `User ID: ${selectedAgent.id}` : `Agent Code: ${selectedAgent.agent_code}`} | Joined {new Date(selectedAgent.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -6479,7 +6491,7 @@ export default function AdminDashboard() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
                         <span style={{ color: 'var(--color-text-secondary)' }}>Signed On:</span>
-                        <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(ag.signed_at).toLocaleDateString('en-IN')}</strong>
+                        <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(ag.signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
                         <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Status:</span>
@@ -7311,7 +7323,7 @@ export default function AdminDashboard() {
                           Code: {sa.agent_code || 'PENDING'} | Phone: {sa.phone || 'N/A'} | Email: {sa.email}
                         </div>
                         <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
-                          Joined: {new Date(sa.created_at).toLocaleDateString('en-IN')} {sa.city && sa.state ? `| Location: ${sa.city}, ${sa.state}` : ''}
+                          Joined: {new Date(sa.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} {sa.city && sa.state ? `| Location: ${sa.city}, ${sa.state}` : ''}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -7432,7 +7444,7 @@ export default function AdminDashboard() {
                                   Salary: ₹{Number(inq.salary).toLocaleString('en-IN')} | CIBIL: {inq.credit_score} | Pincode: {inq.pincode}
                                 </div>
                                 <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', marginTop: '2px' }}>
-                                  Submitted: {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  Submitted: {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </div>
                               </div>
                               <button

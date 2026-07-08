@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('handtohandloans@gmail.com'); // Pre-fill admin email
+  const [email, setEmail] = useState(''); // Allow typing any email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     async function checkAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user.email === 'handtohandloans@gmail.com') {
+      if (session && (session.user.email === 'handtohandloans@gmail.com' || session.user.email === 'utkrashtkumar@gmail.com')) {
         router.push('/admin');
       }
     }
@@ -31,7 +31,8 @@ export default function AdminLoginPage() {
     setError('');
     setSuccess('');
 
-    if (email.trim() !== 'handtohandloans@gmail.com') {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (trimmedEmail !== 'handtohandloans@gmail.com' && trimmedEmail !== 'utkrashtkumar@gmail.com') {
       setError('Invalid admin credentials.');
       setLoading(false);
       return;
@@ -47,7 +48,8 @@ export default function AdminLoginPage() {
         setError(signInError.message);
       } else {
         const user = data.user;
-        if (user.email !== 'handtohandloans@gmail.com') {
+        const userEmail = user.email ? user.email.toLowerCase() : '';
+        if (userEmail !== 'handtohandloans@gmail.com' && userEmail !== 'utkrashtkumar@gmail.com') {
           // Log out unauthorized user
           await supabase.auth.signOut();
           setError('Access Denied: You are not authorized to view the admin portal.');
@@ -94,11 +96,11 @@ export default function AdminLoginPage() {
                   <input
                     type="email"
                     className="input-field"
+                    placeholder="Enter admin email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    readOnly
-                    style={{ background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)', cursor: 'not-allowed' }}
+                    style={{ background: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }}
                   />
                 </div>
 

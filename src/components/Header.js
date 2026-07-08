@@ -11,6 +11,8 @@ export default function Header() {
   const [mobileLoansOpen, setMobileLoansOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -138,12 +140,46 @@ export default function Header() {
   const toggleMenu = () => setMenuOpen((prev) => !prev);
   const closeMenu = () => setMenuOpen(false);
 
+  const getInitials = (profile, userObj) => {
+    if (profile?.full_name) {
+      const parts = profile.full_name.trim().split(/\s+/);
+      if (parts.length > 1) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return parts[0][0].toUpperCase();
+    }
+    const email = profile?.email || userObj?.email;
+    if (email) {
+      return email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const notifDropdown = document.getElementById('notif-dropdown-container');
+      const profileDropdown = document.getElementById('profile-dropdown-container');
+      
+      if (notifDropdown && !notifDropdown.contains(event.target)) {
+        setShowNotifications(false);
+      }
+      if (profileDropdown && !profileDropdown.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     const handleSessionCheck = async (session) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, approved')
+          .select('role, approved, full_name, email, phone, avatar')
           .eq('id', session.user.id)
           .single();
 
@@ -151,10 +187,22 @@ export default function Header() {
           await supabase.auth.signOut();
           setUser(null);
           setUserRole(null);
+          setUserProfile(null);
           router.push('/login?error=pending');
           return;
         }
         setUserRole(profile?.role || null);
+        setUserProfile(profile || {
+          full_name: session.user.user_metadata?.full_name || 'User',
+          email: session.user.email,
+          phone: session.user.user_metadata?.phone || '',
+          avatar: session.user.user_metadata?.avatar || null,
+          role: profile?.role || 'user'
+        });
+      } else {
+        setUser(null);
+        setUserRole(null);
+        setUserProfile(null);
       }
       setUser(session?.user || null);
     };
@@ -304,6 +352,8 @@ export default function Header() {
         targetUrl = `/admin?tab=agreements&agentId=${refId}`;
       } else if (type === 'resign') {
         targetUrl = `/admin?tab=pending_agents&agentId=${refId}`;
+      } else if (type === 'profile_complete') {
+        targetUrl = `/admin?tab=active_agents&agentId=${refId}`;
       } else {
         targetUrl = `/admin`;
       }
@@ -349,6 +399,83 @@ export default function Header() {
   };
 
   const isLinkActive = (path) => pathname === path;
+
+  if (!mounted) {
+    return (
+      <header className="header">
+        <div className="header-inner">
+          <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="HandToHand Loans Logo"
+              style={{ display: 'block', height: '36px', width: 'auto', flexShrink: 0, objectFit: 'contain' }}
+            />
+            <div className="logo-text-group">
+              <span className="logo-text">
+                HandToHand Loans
+              </span>
+              <span className="logo-badge-fintech">
+                FINTECH
+              </span>
+            </div>
+          </Link>
+
+          <nav className="desktop-nav">
+            <ul className="nav-links"></ul>
+          </nav>
+
+          <div className="header-actions">
+            {/* Fallback Font Cycler button */}
+            <button
+              className="theme-toggle-btn"
+              style={{ 
+                margin: 0, 
+                marginRight: '6px', 
+                padding: '0', 
+                fontSize: '14px', 
+                fontWeight: 700, 
+                fontFamily: 'var(--font-body)', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                textTransform: 'none',
+                cursor: 'pointer'
+              }}
+              title="Font: Jakarta (Tap to cycle)"
+              aria-label="Cycle Font Style"
+            >
+              Aa
+            </button>
+
+            {/* Fallback theme toggle button */}
+            <button 
+              className="theme-toggle-btn"
+              aria-label="Toggle Theme"
+              title="Switch Theme"
+              style={{ margin: 0 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+              <span className="theme-toggle-text">Light Mode</span>
+            </button>
+
+            <button
+              className="hamburger"
+              aria-label="Toggle menu"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="header">
@@ -428,7 +555,7 @@ export default function Header() {
                 }}>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=instant" : "/check?type=instant"} 
+                      href={user ? "/banks?category=instant" : "/#banks"} 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -445,7 +572,7 @@ export default function Header() {
                   </li>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=salary" : "/check?type=salary"} 
+                      href={user ? "/banks?category=salary" : "/#banks"} 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -462,7 +589,7 @@ export default function Header() {
                   </li>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=business" : "/check?type=business"} 
+                      href={user ? "/banks?category=business" : "/#banks"} 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -483,7 +610,10 @@ export default function Header() {
 
             {/* Credit Cards */}
             <li>
-              <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+              <Link 
+                href={user ? '/credit-cards' : '/#home-credit-cards'} 
+                className={`nav-link ${isLinkActive(user ? '/credit-cards' : '/#home-credit-cards') ? 'active' : ''}`}
+              >
                 Credit Cards
               </Link>
             </li>
@@ -493,17 +623,17 @@ export default function Header() {
               </Link>
             </li>
             <li>
-              <Link href="/#emi-calculator" className="nav-link" style={{ marginLeft: '12px' }}>
+              <Link href="/#emi-calculator" className="nav-link">
                 EMI Calculator
               </Link>
             </li>
             <li>
-              <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+              <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`}>
                 Verify Agreement
               </Link>
             </li>
             <li>
-              <Link href="/blog" className={`nav-link ${isLinkActive('/blog') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+              <Link href="/blog" className={`nav-link ${isLinkActive('/blog') ? 'active' : ''}`}>
                 Blog
               </Link>
             </li>
@@ -511,7 +641,7 @@ export default function Header() {
               <Link
                 href="/cibil"
                 className={`nav-link ${isLinkActive('/cibil') ? 'active' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)', marginLeft: '4px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-xs)' }}
                 title="Free CIBIL report check in collaboration with PNB"
               >
                 CIBIL Score <span className="cibil-subtext">(PNB Partnership)</span>
@@ -521,25 +651,25 @@ export default function Header() {
               <>
                 {(userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
                 <li>
-                  <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+                  <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`}>
                     Banks
                   </Link>
                 </li>
                 )}
                 <li>
-                  <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`} style={{ marginLeft: '12px' }}>
+                  <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`}>
                     Dashboard
                   </Link>
                 </li>
                 {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
                   <li>
-                    <Link href="/admin" className={`nav-link ${isLinkActive('/admin') ? 'active' : ''}`} style={{ color: 'var(--color-success)', fontWeight: 600, marginLeft: '12px' }}>
+                    <Link href="/admin" className={`nav-link ${isLinkActive('/admin') ? 'active' : ''}`} style={{ color: 'var(--color-success)', fontWeight: 600 }}>
                       Admin Panel
                     </Link>
                   </li>
                 )}
                 <li>
-                  <button onClick={handleLogout} className="nav-link nav-logout" style={{ marginLeft: '12px' }}>
+                  <button onClick={handleLogout} className="nav-link nav-logout">
                     Logout
                   </button>
                 </li>
@@ -547,12 +677,12 @@ export default function Header() {
             ) : (
               <>
                 <li>
-                  <Link href="/#banks" className="nav-link" style={{ marginLeft: '12px' }}>
+                  <Link href="/#banks" className="nav-link">
                     Banks
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: '8px', marginLeft: '12px' }}>
+                  <Link href="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: '8px' }}>
                     Sign In
                   </Link>
                 </li>
@@ -564,9 +694,111 @@ export default function Header() {
         </nav>
 
         {/* Right Header Actions (Theme Toggle & Hamburger) */}
-        <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+        <div className="header-actions">
           {mounted && user && (
-            <div style={{ position: 'relative' }}>
+            <div id="profile-dropdown-container" style={{ position: 'relative' }}>
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="header-profile-badge-btn"
+                title={userProfile?.full_name || 'User Profile'}
+                aria-label="Toggle profile menu"
+              >
+                <div className="header-profile-avatar-circle">
+                  {userProfile?.avatar ? (
+                    <img src={userProfile.avatar} alt="Avatar" />
+                  ) : (
+                    getInitials(userProfile, user)
+                  )}
+                </div>
+                <span className="header-profile-name-span">
+                  {userProfile?.full_name || 'User'}
+                </span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, transition: 'transform 0.2s', transform: profileDropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                  <path d="M1 1l4 4 4-4" />
+                </svg>
+              </button>
+
+              {profileDropdownOpen && (
+                <div className="header-profile-dropdown">
+                  <div 
+                    className="profile-dropdown-header" 
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      router.push('/dashboard?tab=profile');
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="profile-dropdown-avatar">
+                      {userProfile?.avatar ? (
+                        <img src={userProfile.avatar} alt="Avatar" />
+                      ) : (
+                        getInitials(userProfile, user)
+                      )}
+                    </div>
+                    <div className="profile-dropdown-info">
+                      <div className="profile-dropdown-name">{userProfile?.full_name || 'User'}</div>
+                      <div className="profile-dropdown-phone">{userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}</div>
+                      <div className="profile-dropdown-role-badge">
+                        {userRole === 'agent' ? 'Agent' : (user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') ? 'Admin' : 'Client'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="profile-dropdown-divider" />
+                  
+                  <div className="profile-dropdown-links">
+                    <Link 
+                      href="/dashboard" 
+                      className="profile-dropdown-item-link"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="9" />
+                        <rect x="14" y="3" width="7" height="5" />
+                        <rect x="14" y="12" width="7" height="9" />
+                        <rect x="3" y="16" width="7" height="5" />
+                      </svg>
+                      Dashboard
+                    </Link>
+                    
+                    {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
+                      <Link 
+                        href="/admin" 
+                        className="profile-dropdown-item-link admin-link"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        Admin Panel
+                      </Link>
+                    )}
+                  </div>
+                  
+                  <div className="profile-dropdown-divider" />
+                  
+                  <button 
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      handleLogout();
+                    }} 
+                    className="profile-dropdown-logout-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {mounted && user && (
+            <div id="notif-dropdown-container" style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="theme-toggle-btn"
@@ -739,9 +971,31 @@ export default function Header() {
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         {mounted && (
           <>
-        <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`} onClick={closeMenu}>
-          Home
-        </Link>
+          {user && (
+            <Link href="/dashboard?tab=profile" onClick={closeMenu} style={{ textDecoration: 'none', display: 'block', color: 'inherit' }}>
+              <div className="mobile-profile-card" style={{ cursor: 'pointer' }}>
+                <div className="mobile-profile-avatar">
+                  {userProfile?.avatar ? (
+                    <img src={userProfile.avatar} alt="Avatar" />
+                  ) : (
+                    getInitials(userProfile, user)
+                  )}
+                </div>
+                <div className="mobile-profile-details">
+                  <div className="mobile-profile-name">{userProfile?.full_name || 'User'}</div>
+                  <div className="mobile-profile-phone" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                    {userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}
+                  </div>
+                  <span className="mobile-profile-role-badge">
+                    {userRole === 'agent' ? 'Agent' : (user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') ? 'Admin' : 'Client'}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )}
+          <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`} onClick={closeMenu}>
+            Home
+          </Link>
         
         {/* Mobile Loans Dropdown (Accordion) */}
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '4px 0' }}>
@@ -774,13 +1028,13 @@ export default function Header() {
               background: 'none',
               padding: '4px 0'
             }}>
-              <Link href={user ? "/banks?category=instant" : "/check?type=instant"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href={user ? "/banks?category=instant" : "/#banks"} className="mobile-dropdown-item" onClick={closeMenu}>
                 Instant Loan
               </Link>
-              <Link href={user ? "/banks?category=salary" : "/check?type=salary"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href={user ? "/banks?category=salary" : "/#banks"} className="mobile-dropdown-item" onClick={closeMenu}>
                 Salary Loan
               </Link>
-              <Link href={user ? "/banks?category=business" : "/check?type=business"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href={user ? "/banks?category=business" : "/#banks"} className="mobile-dropdown-item" onClick={closeMenu}>
                 Business Loan
               </Link>
             </div>
@@ -788,9 +1042,15 @@ export default function Header() {
         </div>
 
         {/* Mobile Credit Cards */}
-        <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
-          Credit Cards
-        </Link>
+        {user ? (
+          <Link href="/credit-cards" className={`nav-link ${isLinkActive('/credit-cards') ? 'active' : ''}`} onClick={closeMenu}>
+            Credit Cards
+          </Link>
+        ) : (
+          <Link href="/#home-credit-cards" className="nav-link" onClick={closeMenu}>
+            Credit Cards
+          </Link>
+        )}
         <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
           Check Eligibility
         </Link>

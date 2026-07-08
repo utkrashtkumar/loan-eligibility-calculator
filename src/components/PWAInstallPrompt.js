@@ -65,7 +65,7 @@ export default function PWAInstallPrompt() {
 
   // ── Register service worker ────────────────────────────────────────────────
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && process.env.NODE_ENV !== 'development') {
       navigator.serviceWorker
         .register('/sw.js')
         .then((reg) => console.log('[PWA] SW registered:', reg.scope))

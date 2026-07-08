@@ -308,7 +308,8 @@ export default function AgreementPrintPage() {
 
         let profileId = session.user.id;
         if (targetAgentId) {
-          if (currentUser.role === 'admin') {
+          const isAdminEmail = session.user.email === 'handtohandloans@gmail.com' || session.user.email === 'utkrashtkumar@gmail.com';
+          if (currentUser.role === 'admin' || isAdminEmail) {
             profileId = targetAgentId;
           } else if (targetAgentId !== session.user.id) {
             setError('Access denied. You do not have permission to view this agreement.');

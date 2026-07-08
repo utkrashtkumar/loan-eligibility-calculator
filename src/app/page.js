@@ -53,6 +53,9 @@ export default function Home() {
 
   const [banks, setBanks] = useState([]);
   const [loadingBanks, setLoadingBanks] = useState(true);
+  const [creditCards, setCreditCards] = useState([]);
+  const [loadingCards, setLoadingCards] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('all');
   const [user, setUser] = useState(null);
 
   // Verification and QR Scanner State
@@ -243,8 +246,51 @@ export default function Home() {
     };
     fetchBanks();
 
+    // Fetch credit cards
+    const fetchCreditCards = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('credit_cards')
+          .select('*')
+          .order('bank_name', { ascending: true });
+        if (!error && data) {
+          setCreditCards(data);
+        }
+      } catch (err) {
+        console.error('Error fetching credit cards:', err);
+      } finally {
+        setLoadingCards(false);
+      }
+    };
+    fetchCreditCards();
+
+    // Handle hash change for categories
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#banks-instant') {
+        setActiveCategory('instant');
+        setTimeout(() => {
+          document.getElementById('banks')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else if (hash === '#banks-salary') {
+        setActiveCategory('salary');
+        setTimeout(() => {
+          document.getElementById('banks')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else if (hash === '#banks-business') {
+        setActiveCategory('business');
+        setTimeout(() => {
+          document.getElementById('banks')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Trigger initially if hash is already present
+
     return () => {
       subscription?.unsubscribe();
+      window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
 
@@ -1241,6 +1287,60 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Category Tabs */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            marginBottom: '32px',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { id: 'all', label: 'All Partners' },
+              { id: 'instant', label: 'Instant Loans' },
+              { id: 'salary', label: 'Salary Loans' },
+              { id: 'business', label: 'Business Loans' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveCategory(tab.id);
+                  if (tab.id === 'all') {
+                    window.history.replaceState(null, '', ' ');
+                  } else {
+                    window.history.replaceState(null, '', `#banks-${tab.id}`);
+                  }
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  border: activeCategory === tab.id ? '1px solid var(--color-primary)' : '1px solid var(--border-default)',
+                  background: activeCategory === tab.id ? 'var(--color-primary-light)' : 'rgba(255,255,255,0.02)',
+                  color: activeCategory === tab.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseOver={(e) => {
+                  if (activeCategory !== tab.id) {
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                    e.currentTarget.style.color = 'var(--color-primary)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (activeCategory !== tab.id) {
+                    e.currentTarget.style.borderColor = 'var(--border-default)';
+                    e.currentTarget.style.color = 'var(--color-text-secondary)';
+                  }
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {loadingBanks ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div className="loading-spinner" style={{ margin: '0 auto' }} />
@@ -1252,8 +1352,130 @@ export default function Home() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
-              {banks.map((bank) => (
-                <div key={bank.id} style={{
+              {(() => {
+                const filteredBanks = activeCategory === 'all'
+                  ? banks
+                  : banks.filter(bank => (bank.policy_category || 'salary') === activeCategory);
+                if (filteredBanks.length === 0) {
+                  return (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', background: 'var(--color-bg-card)', border: 'var(--border-subtle)', borderRadius: 'var(--border-radius-lg)' }}>
+                      No partner banks match the selected category.
+                    </div>
+                  );
+                }
+                return filteredBanks.map((bank) => (
+                  <div key={bank.id} style={{
+                    background: 'var(--color-bg-card)',
+                    border: 'var(--border-subtle)',
+                    borderRadius: 'var(--border-radius-lg)',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    justifyContent: 'space-between',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <BankLogo bankName={bank.bank_name} logoUrl={bank.logo_url} size={32} />
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
+                          {bank.bank_name}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '99px',
+                          color: bank.policy_category === 'salary' ? 'var(--color-primary)' : bank.policy_category === 'instant' ? 'var(--color-success)' : 'var(--color-warning)',
+                          background: bank.policy_category === 'salary' ? 'rgba(99, 102, 241, 0.1)' : bank.policy_category === 'instant' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.15)',
+                          textTransform: 'uppercase'
+                        }}>
+                          {bank.policy_category || 'salary'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', borderTop: 'var(--border-subtle)', paddingTop: '12px' }}>
+                        {bank.min_salary > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Min Salary:</span>
+                            <strong style={{ color: 'var(--color-text-primary)' }}>₹{Number(bank.min_salary).toLocaleString('en-IN')}</strong>
+                          </div>
+                        )}
+                        {bank.min_cibil > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Min CIBIL:</span>
+                            <strong style={{ color: 'var(--color-text-primary)' }}>{bank.min_cibil}</strong>
+                          </div>
+                        )}
+                        {bank.foir_max > 0 && bank.foir_max < 100 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Max FOIR:</span>
+                            <strong style={{ color: 'var(--color-text-primary)' }}>{bank.foir_max}%</strong>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <Link
+                      href={user ? '/banks' : '/signup?role=user'}
+                      className="btn btn-primary btn-sm"
+                      style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
+                    >
+                      Apply Now
+                    </Link>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Available Credit Cards Section */}
+      <section id="home-credit-cards" className="section credit-cards-section" style={{ borderTop: 'var(--border-subtle)', background: 'var(--color-bg-primary)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <div className="hero-badge" style={{ margin: '0 auto 16px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)' }}>
+              <span className="hero-badge-dot" style={{ backgroundColor: 'var(--color-primary)' }}></span>
+              Exclusive Card Offers
+            </div>
+            <h2 className="section-title">
+              Featured <span className="text-gradient">Partner Credit Cards</span>
+            </h2>
+            <p className="section-subtitle" style={{ maxWidth: '650px', margin: '12px auto 0' }}>
+              Explore premium credit cards from our verified banking partners and apply instantly.
+            </p>
+          </div>
+
+          {loadingCards ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto' }} />
+              <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading credit card partners...</p>
+            </div>
+          ) : creditCards.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
+              No credit card partners configured yet.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
+              {creditCards.map((card) => (
+                <div key={card.id} style={{
                   background: 'var(--color-bg-card)',
                   border: 'var(--border-subtle)',
                   borderRadius: 'var(--border-radius-lg)',
@@ -1278,51 +1500,16 @@ export default function Home() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                       <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <BankLogo bankName={bank.bank_name} logoUrl={bank.logo_url} size={32} />
+                        <BankLogo bankName={card.bank_name} logoUrl={card.logo_url} size={32} />
                       </div>
                       <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                        {bank.bank_name}
+                        {card.bank_name}
                       </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                      <span style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: '99px',
-                        color: bank.policy_category === 'salary' ? 'var(--color-primary)' : bank.policy_category === 'instant' ? 'var(--color-success)' : 'var(--color-warning)',
-                        background: bank.policy_category === 'salary' ? 'rgba(99, 102, 241, 0.1)' : bank.policy_category === 'instant' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.15)',
-                        textTransform: 'uppercase'
-                      }}>
-                        {bank.policy_category || 'salary'}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', borderTop: 'var(--border-subtle)', paddingTop: '12px' }}>
-                      {bank.min_salary > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Min Salary:</span>
-                          <strong style={{ color: 'var(--color-text-primary)' }}>₹{Number(bank.min_salary).toLocaleString('en-IN')}</strong>
-                        </div>
-                      )}
-                      {bank.min_cibil > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Min CIBIL:</span>
-                          <strong style={{ color: 'var(--color-text-primary)' }}>{bank.min_cibil}</strong>
-                        </div>
-                      )}
-                      {bank.foir_max > 0 && bank.foir_max < 100 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Max FOIR:</span>
-                          <strong style={{ color: 'var(--color-text-primary)' }}>{bank.foir_max}%</strong>
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   <Link
-                    href={user ? '/banks' : '/signup?role=user'}
+                    href={user ? '/credit-cards' : '/signup?role=user'}
                     className="btn btn-primary btn-sm"
                     style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
                   >
