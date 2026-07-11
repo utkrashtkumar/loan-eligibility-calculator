@@ -236,7 +236,7 @@ export default function Home() {
         // be served to anonymous / unauthenticated visitors).
         const { data, error } = await supabase
           .from('bank_policies')
-          .select('bank_name, logo_url, apply_url, direct_submit, loan_types, min_amount, max_amount, min_cibil, min_salary, employment_types')
+          .select('id, bank_name, logo_url, apply_url, direct_submit, loan_types, min_amount, max_amount, min_cibil, min_salary, employment_types')
           .order('bank_name', { ascending: true });
         if (!error && data) {
           setBanks(data);

@@ -118,7 +118,7 @@ export default function BlogIndexPage() {
               gap: '32px'
             }}>
               {filteredBlogs.map((blog) => {
-                const readTime = Math.max(1, Math.ceil(blog.content.split(/\s+/).length / 200));
+                const readTime = Math.max(1, Math.ceil((blog.content || '').split(/\s+/).length / 200));
                 return (
                   <article 
                     key={blog.id} 

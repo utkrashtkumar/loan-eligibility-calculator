@@ -382,7 +382,7 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
         .from('bank_policies')
         // Security (FB): Explicit column list — portal_password is intentionally excluded.
         // Using select('*') with Supabase can bypass column-level REVOKE in some versions.
-        .select('bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit, policy_pdf, loan_types, min_amount, max_amount, min_cibil, min_salary, employment_types, pincodes')
+        .select('id, bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit, policy_pdf, loan_types, min_amount, max_amount, min_cibil, min_salary, employment_types, pincodes')
         .order('bank_name', { ascending: true });
       if (!error && data) setBanks(data);
       setLoading(false);
