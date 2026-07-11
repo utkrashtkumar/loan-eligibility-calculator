@@ -350,27 +350,33 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
 
   // Auth — Detect session (No forced redirect to enable SEO indexing)
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
-        setUser(null);
-        setUserRole(null);
-        setUserProfile(null);
-        setCheckingAuth(false);
-        return;
-      }
-      // Fetch role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+    async function initAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setUser(null);
+          setUserRole(null);
+          setUserProfile(null);
+          return;
+        }
+        // Fetch role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-      const role = profile?.role || 'customer';
-      setUser(session.user);
-      setUserRole(role);
-      setUserProfile(profile);
-      setCheckingAuth(false);
-    });
+        const role = profile?.role || 'customer';
+        setUser(session.user);
+        setUserRole(role);
+        setUserProfile(profile);
+      } catch (err) {
+        console.error('Error verifying auth status:', err);
+      } finally {
+        setCheckingAuth(false);
+      }
+    }
+    initAuth();
   }, [router]);
 
   // Fetch all bank policies
