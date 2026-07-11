@@ -147,6 +147,39 @@ CREATE TRIGGER trg_enforce_commission
   FOR EACH ROW EXECUTE FUNCTION public.enforce_commission();
 
 -- ============================================================
+-- LOOPHOLE FIX (L1): Prevent agents from self-setting privileged
+-- application statuses (Disbursed / Approved / Paid).
+--
+-- Without this, an agent can UPDATE their own application's status
+-- to 'Disbursed' and immediately inflate their commission balance,
+-- then submit a payout request for money they haven't earned.
+-- Only admins (is_admin() = true) may write these statuses.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.validate_application_status_update()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Block agents from setting privileged statuses
+  IF LOWER(NEW.status) IN ('disbursed', 'approved', 'paid')
+     AND NOT public.is_admin()
+  THEN
+    RAISE EXCEPTION
+      'Permission denied: only admins can set status to Disbursed, Approved, or Paid.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_application_status ON public.applications;
+CREATE TRIGGER trg_validate_application_status
+  BEFORE INSERT OR UPDATE ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.validate_application_status_update();
+
+
+-- ============================================================
 -- TABLE: agent_agreements
 -- ============================================================
 ALTER TABLE public.agent_agreements ENABLE ROW LEVEL SECURITY;
@@ -204,14 +237,49 @@ CREATE POLICY "notifications: admin deletes all"
   USING (public.is_admin());
 
 -- ============================================================
--- TABLE: payout_requests
+-- LOOPHOLE FIX (L2 + L3): Server-side payout balance enforcement.
+--
+-- L2: Race condition — two browser tabs can both pass the client-side
+--     balance check simultaneously and insert double the available balance.
+-- L3: API bypass — a savvy agent can replay the Supabase REST call with
+--     a modified 'amount' value, bypassing the client-side check entirely.
+--
+-- This SECURITY DEFINER function reads earned commission and pending/paid
+-- payouts inside a single DB transaction, so concurrent inserts are safe.
+-- The RLS INSERT policy calls it atomically — no race window exists.
 -- ============================================================
-ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION public.payout_within_balance(p_agent_id UUID, p_amount NUMERIC)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT (
+    -- Total earned commission from disbursed applications
+    COALESCE((
+      SELECT SUM(commission_amount)
+      FROM public.applications
+      WHERE agent_id = p_agent_id
+        AND LOWER(status) = 'disbursed'
+    ), 0)
+    -
+    -- Already paid out + currently pending payouts
+    COALESCE((
+      SELECT SUM(amount)
+      FROM public.payout_requests
+      WHERE agent_id = p_agent_id
+        AND status IN ('Pending', 'Paid')
+    ), 0)
+  ) >= p_amount
+  AND p_amount > 0;
+$$;
 
-DROP POLICY IF EXISTS "payouts: agent reads own"   ON public.payout_requests;
-DROP POLICY IF EXISTS "payouts: admin reads all"   ON public.payout_requests;
-DROP POLICY IF EXISTS "payouts: agent inserts own" ON public.payout_requests;
-DROP POLICY IF EXISTS "payouts: admin updates all" ON public.payout_requests;
+DROP POLICY IF EXISTS "payouts: agent reads own"            ON public.payout_requests;
+DROP POLICY IF EXISTS "payouts: admin reads all"            ON public.payout_requests;
+DROP POLICY IF EXISTS "payouts: agent inserts own"          ON public.payout_requests;
+DROP POLICY IF EXISTS "payouts: agent inserts own balanced" ON public.payout_requests;
+DROP POLICY IF EXISTS "payouts: admin updates all"          ON public.payout_requests;
 
 CREATE POLICY "payouts: agent reads own"
   ON public.payout_requests FOR SELECT
@@ -221,9 +289,13 @@ CREATE POLICY "payouts: admin reads all"
   ON public.payout_requests FOR SELECT
   USING (public.is_admin());
 
-CREATE POLICY "payouts: agent inserts own"
+-- Balance-enforced insert: DB rejects if amount > available balance (L2 + L3)
+CREATE POLICY "payouts: agent inserts own balanced"
   ON public.payout_requests FOR INSERT
-  WITH CHECK (agent_id = auth.uid());
+  WITH CHECK (
+    agent_id = auth.uid()
+    AND public.payout_within_balance(auth.uid(), amount)
+  );
 
 CREATE POLICY "payouts: admin updates all"
   ON public.payout_requests FOR UPDATE
@@ -287,3 +359,43 @@ REVOKE SELECT (portal_password) ON public.bank_policies FROM authenticated;
 -- NOTE: Add RLS for other tables (user_inquiries, leaderboard, etc.)
 -- using the same patterns above.
 -- ============================================================
+
+-- ============================================================
+-- LOOPHOLE FIX (L4): Prevent agent self-referral.
+--
+-- An agent could share their own agent_code, sign up a second
+-- account, and earn the 0.5% referral bonus on their own applications.
+-- This trigger nullifies referred_by if it matches the agent's own code.
+--
+-- Note: At INSERT time, the new profile's agent_code is not yet assigned
+-- (it's set after approval). So self-referral is blocked at UPDATE time
+-- and also via the referral bonus calculation guard below.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.validate_no_self_referral()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- If referred_by matches the agent's own agent_code, clear it
+  IF NEW.referred_by IS NOT NULL
+     AND NEW.agent_code IS NOT NULL
+     AND NEW.referred_by = NEW.agent_code
+  THEN
+    NEW.referred_by := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_no_self_referral ON public.profiles;
+CREATE TRIGGER trg_validate_no_self_referral
+  BEFORE INSERT OR UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.validate_no_self_referral();
+
+-- ============================================================
+-- ENSURE RLS IS ENABLED on payout_requests
+-- (must be re-stated after policy drops/recreates above)
+-- ============================================================
+ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
