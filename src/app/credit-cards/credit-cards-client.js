@@ -439,7 +439,7 @@ export default function CreditCardsClient() {
                         Apply Now
                       </button>
                     )}
-                    {user && card.pdf_url && (
+                    {user && (userRole === 'agent' || isAdmin) && card.pdf_url && (
                       <button
                         onClick={() => handleViewPdf(card.pdf_url, card.bank_name)}
                         className="btn"

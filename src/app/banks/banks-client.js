@@ -70,6 +70,7 @@ const CategoryBadge = ({ category, loanType }) => {
 // ─── Single Bank Card ────────────────────────────────────────────────────────
 function BankCard({ bank, pincodeResult, onApply, userRole, hasUser }) {
   const router = useRouter();
+  const isAgentOrAdmin = hasUser && (userRole === 'agent' || userRole === 'admin');
   const affiliateLink = (hasUser && userRole !== 'user') ? getAffiliateLink(bank.bank_name, bank.loan_type, 'daily', bank.apply_url, bank.direct_submit) : null;
   const [expanded, setExpanded] = useState(false);
 
@@ -221,11 +222,11 @@ function BankCard({ bank, pincodeResult, onApply, userRole, hasUser }) {
         {/* Action Buttons Row */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: (hasUser && bank.policy_pdf) ? '1fr 1fr' : '1fr',
+          gridTemplateColumns: (isAgentOrAdmin && bank.policy_pdf) ? '1fr 1fr' : '1fr',
           gap: '10px',
           width: '100%'
         }}>
-          {hasUser && bank.policy_pdf && (
+          {isAgentOrAdmin && bank.policy_pdf && (
             <button
               onClick={() => {
                 const base64Data = bank.policy_pdf;
