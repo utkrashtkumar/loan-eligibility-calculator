@@ -325,8 +325,10 @@ export default function AgreementPrintPage() {
 
         let profileId = session.user.id;
         if (targetAgentId) {
-          const isAdminEmail = session.user.email === 'handtohandloans@gmail.com' || session.user.email === 'utkrashtkumar@gmail.com';
-          if (currentUser.role === 'admin' || isAdminEmail) {
+          // Security: Use role field from profiles as the single source of truth for admin check.
+          // Hardcoded email comparisons are brittle — they break silently if admin email changes.
+          const isAdminRole = currentUser.role === 'admin';
+          if (currentUser.role === 'admin') {
             profileId = targetAgentId;
           } else if (targetAgentId !== session.user.id) {
             setError('Access denied. You do not have permission to view this agreement.');
@@ -365,7 +367,7 @@ export default function AgreementPrintPage() {
           return;
         }
 
-        const isAdmin = currentUser.role === 'admin' || session.user.email === 'handtohandloans@gmail.com' || session.user.email === 'utkrashtkumar@gmail.com';
+        const isAdmin = currentUser.role === 'admin';
         if (agree.status === 'pending' && !isAdmin) {
           setError('Your agreement signature is pending approval by the administrator.');
           setLoading(false);

@@ -81,10 +81,18 @@ function SignupContent() {
       return;
     }
 
-    // Check for duplicate email or mobile number in profiles table
+    // Check for duplicate email or mobile number via secure RPC function.
+    // The RPC (check_user_exists) is a SECURITY DEFINER function that checks
+    // both email AND phone in a single call, bypassing RLS restrictions safely.
+    //
+    // Security note: this check intentionally confirms whether an email/phone
+    // is already registered. This is a UX trade-off — the alternative is to let
+    // Supabase Auth return an empty identities array post-signup (also checked
+    // below in step 3), but that gives no phone-duplicate feedback.
+    // The fallback direct-select queries were REMOVED because they also allowed
+    // unauthenticated user enumeration without going through the controlled RPC.
     let isDuplicate = false;
     try {
-      // 1. Try secure RPC database function first (bypasses RLS SELECT restrictions)
       const { data: userExists, error: rpcError } = await supabase
         .rpc('check_user_exists', {
           p_email: email.trim(),
@@ -93,30 +101,12 @@ function SignupContent() {
 
       if (!rpcError && userExists) {
         isDuplicate = true;
-      } else {
-        // 2. Fallback to direct client-side selects (in case RPC function is not installed yet)
-        const { data: existingEmail } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email.trim())
-          .maybeSingle();
-
-        if (existingEmail) {
-          isDuplicate = true;
-        } else {
-          const { data: existingPhone } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('phone', mobile.trim())
-            .maybeSingle();
-
-          if (existingPhone) {
-            isDuplicate = true;
-          }
-        }
       }
+      // If the RPC fails (not installed yet), silently proceed —
+      // Supabase Auth's empty-identities check (step 3 below) will catch
+      // email duplicates. Phone duplicates would be missed until RPC is deployed.
     } catch (checkErr) {
-      console.warn('Profile check warning:', checkErr);
+      console.warn('Profile duplicate check warning:', checkErr);
     }
 
     if (isDuplicate) {
@@ -124,6 +114,7 @@ function SignupContent() {
       setLoading(false);
       return;
     }
+
 
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({

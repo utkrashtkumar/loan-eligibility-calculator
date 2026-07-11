@@ -356,9 +356,91 @@ REVOKE SELECT (portal_password) ON public.bank_policies FROM anon;
 REVOKE SELECT (portal_password) ON public.bank_policies FROM authenticated;
 
 -- ============================================================
--- NOTE: Add RLS for other tables (user_inquiries, leaderboard, etc.)
--- using the same patterns above.
+-- TABLE: user_inquiries
+-- Agents read their own inquiries; admins read all; anyone
+-- authenticated can insert (agents submit client loan enquiries).
+-- No UPDATE or DELETE for agents — only admins can modify records.
 -- ============================================================
+ALTER TABLE public.user_inquiries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "inquiries: owner reads own"   ON public.user_inquiries;
+DROP POLICY IF EXISTS "inquiries: admin reads all"   ON public.user_inquiries;
+DROP POLICY IF EXISTS "inquiries: auth inserts own"  ON public.user_inquiries;
+DROP POLICY IF EXISTS "inquiries: admin updates all" ON public.user_inquiries;
+DROP POLICY IF EXISTS "inquiries: admin deletes all" ON public.user_inquiries;
+
+CREATE POLICY "inquiries: owner reads own"
+  ON public.user_inquiries FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "inquiries: admin reads all"
+  ON public.user_inquiries FOR SELECT
+  USING (public.is_admin());
+
+-- Agents insert inquiries for their own user_id only
+CREATE POLICY "inquiries: auth inserts own"
+  ON public.user_inquiries FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "inquiries: admin updates all"
+  ON public.user_inquiries FOR UPDATE
+  USING (public.is_admin());
+
+CREATE POLICY "inquiries: admin deletes all"
+  ON public.user_inquiries FOR DELETE
+  USING (public.is_admin());
+
+-- ============================================================
+-- TABLE: agreement_regen_requests
+-- Agents can read and insert their own regen requests.
+-- Agents can update their own requests only to mark as 'resolved'
+-- (e.g. after re-signing). Admins have full access.
+-- ============================================================
+ALTER TABLE public.agreement_regen_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "regen: agent reads own"    ON public.agreement_regen_requests;
+DROP POLICY IF EXISTS "regen: admin reads all"    ON public.agreement_regen_requests;
+DROP POLICY IF EXISTS "regen: agent inserts own"  ON public.agreement_regen_requests;
+DROP POLICY IF EXISTS "regen: agent updates own"  ON public.agreement_regen_requests;
+DROP POLICY IF EXISTS "regen: admin updates all"  ON public.agreement_regen_requests;
+DROP POLICY IF EXISTS "regen: admin inserts"      ON public.agreement_regen_requests;
+
+CREATE POLICY "regen: agent reads own"
+  ON public.agreement_regen_requests FOR SELECT
+  USING (agent_id = auth.uid());
+
+CREATE POLICY "regen: admin reads all"
+  ON public.agreement_regen_requests FOR SELECT
+  USING (public.is_admin());
+
+-- Agents submit regen requests for themselves only
+CREATE POLICY "regen: agent inserts own"
+  ON public.agreement_regen_requests FOR INSERT
+  WITH CHECK (agent_id = auth.uid());
+
+-- Agents can only mark their own request as 'resolved' (after re-signing)
+-- Admins use the admin updates policy which has no status restriction
+CREATE POLICY "regen: agent updates own"
+  ON public.agreement_regen_requests FOR UPDATE
+  USING (agent_id = auth.uid())
+  WITH CHECK (
+    agent_id = auth.uid()
+    AND NEW.status = 'resolved'
+  );
+
+CREATE POLICY "regen: admin updates all"
+  ON public.agreement_regen_requests FOR UPDATE
+  USING (public.is_admin());
+
+-- Admins can also insert regen requests on behalf of agents
+CREATE POLICY "regen: admin inserts"
+  ON public.agreement_regen_requests FOR INSERT
+  WITH CHECK (public.is_admin());
+
+-- ============================================================
+-- NOTE: Add RLS for other new tables using the same patterns above.
+-- ============================================================
+
 
 -- ============================================================
 -- LOOPHOLE FIX (L4): Prevent agent self-referral.

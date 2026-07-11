@@ -33,8 +33,14 @@ export default function CreditCardsClient() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          const email = session.user.email;
-          if (email === 'handtohandloans@gmail.com' || email === 'utkrashtkumar@gmail.com') {
+          // Security: Check admin status via profiles.role (single source of truth).
+          // Hardcoded email comparisons are brittle and break if admin email changes.
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (prof?.role === 'admin') {
             setIsAdmin(true);
           }
         } else {
@@ -47,6 +53,7 @@ export default function CreditCardsClient() {
     }
     getSessionData();
   }, [router]);
+
 
   // Fetch all credit cards
   const fetchCards = async () => {
