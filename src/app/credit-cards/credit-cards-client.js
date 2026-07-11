@@ -113,14 +113,9 @@ export default function CreditCardsClient() {
     }
   };
 
-  // Apply Now access verification for logged out users and non-agents
+  // Apply Now access verification for logged out users (accessible to all logged-in users)
   const handleApplyCard = (card) => {
     if (!user) {
-      router.push('/signup?role=agent');
-      return;
-    }
-    if (userRole !== 'agent' && !isAdmin) {
-      alert('These partner links are only accessible to approved Agents. Please sign up or login as an Agent to apply.');
       router.push('/signup?role=agent');
       return;
     }
