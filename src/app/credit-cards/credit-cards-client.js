@@ -11,6 +11,7 @@ import BankLogo from '@/components/BankLogo';
 export default function CreditCardsClient() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,11 +41,15 @@ export default function CreditCardsClient() {
             .select('role')
             .eq('id', session.user.id)
             .maybeSingle();
-          if (prof?.role === 'admin') {
-            setIsAdmin(true);
+          if (prof) {
+            setUserRole(prof.role);
+            if (prof.role === 'admin') {
+              setIsAdmin(true);
+            }
           }
         } else {
           setUser(null);
+          setUserRole(null);
           setIsAdmin(false);
         }
       } catch (err) {
@@ -106,6 +111,20 @@ export default function CreditCardsClient() {
       alert('Failed to view PDF details. Opening in a new window instead.');
       window.open(pdfData, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
     }
+  };
+
+  // Apply Now access verification for logged out users and non-agents
+  const handleApplyCard = (card) => {
+    if (!user) {
+      router.push('/signup?role=agent');
+      return;
+    }
+    if (userRole !== 'agent' && !isAdmin) {
+      alert('These partner links are only accessible to approved Agents. Please sign up or login as an Agent to apply.');
+      router.push('/signup?role=agent');
+      return;
+    }
+    window.open(card.apply_url, '_blank', 'noopener,noreferrer');
   };
 
   // Convert files to base64
@@ -402,10 +421,8 @@ export default function CreditCardsClient() {
                     marginTop: 'auto'
                   }}>
                     {card.apply_url && (
-                      <a
-                        href={card.apply_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => handleApplyCard(card)}
                         className="btn btn-primary"
                         style={{
                           width: '100%',
@@ -415,13 +432,14 @@ export default function CreditCardsClient() {
                           fontWeight: 600,
                           fontSize: '14px',
                           display: 'block',
-                          textDecoration: 'none'
+                          border: 'none',
+                          cursor: 'pointer'
                         }}
                       >
                         Apply Now
-                      </a>
+                      </button>
                     )}
-                    {card.pdf_url && (
+                    {user && card.pdf_url && (
                       <button
                         onClick={() => handleViewPdf(card.pdf_url, card.bank_name)}
                         className="btn"

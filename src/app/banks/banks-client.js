@@ -221,11 +221,11 @@ function BankCard({ bank, pincodeResult, onApply, userRole, hasUser }) {
         {/* Action Buttons Row */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: bank.policy_pdf ? '1fr 1fr' : '1fr',
+          gridTemplateColumns: (hasUser && bank.policy_pdf) ? '1fr 1fr' : '1fr',
           gap: '10px',
           width: '100%'
         }}>
-          {bank.policy_pdf && (
+          {hasUser && bank.policy_pdf && (
             <button
               onClick={() => {
                 const base64Data = bank.policy_pdf;
@@ -800,7 +800,7 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
                 </div>
               )}
 
-              {userRole !== 'user' && (() => {
+              {user && userRole && userRole !== 'user' && (() => {
                 const isFinnable = selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE');
                 const isIncred = selectedBank?.bank_name?.toUpperCase()?.includes('INCRED');
                 
@@ -851,7 +851,7 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
               })()}
 
               {(() => {
-                const hasLink = userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit);
+                const hasLink = user && userRole && userRole !== 'user' && getAffiliateLink(selectedBank?.bank_name, selectedBank?.loan_type, muthootSubType, selectedBank?.apply_url, selectedBank?.direct_submit);
                 if (hasLink) return null;
                 
                 return (
