@@ -29,6 +29,8 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loansDropdownOpen, setLoansDropdownOpen] = useState(false);
   const [mobileLoansOpen, setMobileLoansOpen] = useState(false);
+  const [emiDropdownOpen, setEmiDropdownOpen] = useState(false);
+  const [mobileEmiOpen, setMobileEmiOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -582,10 +584,91 @@ export default function Header() {
                 Check Eligibility
               </Link>
             </li>
-            <li>
-              <Link href="/emi-calculator" className={`nav-link ${isLinkActive('/emi-calculator') ? 'active' : ''}`}>
+            {/* EMI Calculator Dropdown */}
+            <li 
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setEmiDropdownOpen(true)}
+              onMouseLeave={() => setEmiDropdownOpen(false)}
+            >
+              <button
+                className={`nav-link ${isLinkActive('/emi-calculator') || isLinkActive('/personal-loan-emi-calculator') || isLinkActive('/home-loan-emi-calculator') || isLinkActive('/business-loan-emi-calculator') ? 'active' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'none',
+                  border: 'none',
+                  fontFamily: 'inherit',
+                  fontSize: 'inherit',
+                  cursor: 'pointer',
+                  color: 'inherit',
+                  padding: '8px 0'
+                }}
+                onClick={() => setEmiDropdownOpen(!emiDropdownOpen)}
+              >
                 EMI Calculator
-              </Link>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: emiDropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                  <path d="M1 1l4 4 4-4" />
+                </svg>
+              </button>
+              {emiDropdownOpen && (
+                <ul className="dropdown-menu" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  background: 'var(--color-bg-glass-heavy)',
+                  backdropFilter: 'blur(20px)',
+                  border: 'var(--border-light)',
+                  borderRadius: '10px',
+                  boxShadow: 'var(--shadow-md)',
+                  padding: '8px 0',
+                  margin: '4px 0 0 0',
+                  listStyle: 'none',
+                  minWidth: '220px',
+                  zIndex: 99999
+                }}>
+                  <li>
+                    <Link 
+                      href="/emi-calculator" 
+                      className="dropdown-item" 
+                      onClick={() => setEmiDropdownOpen(false)}
+                      style={{ display: 'block', padding: '8px 16px', color: 'var(--color-text-primary)', textDecoration: 'none', fontSize: '13px', transition: 'background 0.2s' }}
+                    >
+                      All-in-One Calculator
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href="/personal-loan-emi-calculator" 
+                      className="dropdown-item" 
+                      onClick={() => setEmiDropdownOpen(false)}
+                      style={{ display: 'block', padding: '8px 16px', color: 'var(--color-text-primary)', textDecoration: 'none', fontSize: '13px', transition: 'background 0.2s' }}
+                    >
+                      Personal Loan EMI
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href="/home-loan-emi-calculator" 
+                      className="dropdown-item" 
+                      onClick={() => setEmiDropdownOpen(false)}
+                      style={{ display: 'block', padding: '8px 16px', color: 'var(--color-text-primary)', textDecoration: 'none', fontSize: '13px', transition: 'background 0.2s' }}
+                    >
+                      Home Loan EMI
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href="/business-loan-emi-calculator" 
+                      className="dropdown-item" 
+                      onClick={() => setEmiDropdownOpen(false)}
+                      style={{ display: 'block', padding: '8px 16px', color: 'var(--color-text-primary)', textDecoration: 'none', fontSize: '13px', transition: 'background 0.2s' }}
+                    >
+                      Business Loan EMI
+                    </Link>
+                  </li>
+                </ul>
+              )}
             </li>
             <li>
               <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`}>
@@ -1010,9 +1093,53 @@ export default function Header() {
         <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} onClick={closeMenu}>
           Banks
         </Link>
-        <Link href="/emi-calculator" className={`nav-link ${isLinkActive('/emi-calculator') ? 'active' : ''}`} onClick={closeMenu}>
-          EMI Calculator
-        </Link>
+        {/* Mobile EMI Calculator Dropdown */}
+        <div style={{ width: '100%' }}>
+          <button
+            onClick={() => setMobileEmiOpen(!mobileEmiOpen)}
+            className="nav-link"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              padding: '12px 16px',
+              color: 'var(--color-text-primary)',
+              textAlign: 'left'
+            }}
+          >
+            <span>EMI Calculator</span>
+            <svg width="12" height="8" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: mobileEmiOpen ? 'rotate(180deg)' : 'none' }}>
+              <path d="M1 1l4 4 4-4" />
+            </svg>
+          </button>
+          
+          {mobileEmiOpen && (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              background: 'none',
+              padding: '4px 0'
+            }}>
+              <Link href="/emi-calculator" className="mobile-dropdown-item" onClick={closeMenu}>
+                All-in-One Calculator
+              </Link>
+              <Link href="/personal-loan-emi-calculator" className="mobile-dropdown-item" onClick={closeMenu}>
+                Personal Loan EMI
+              </Link>
+              <Link href="/home-loan-emi-calculator" className="mobile-dropdown-item" onClick={closeMenu}>
+                Home Loan EMI
+              </Link>
+              <Link href="/business-loan-emi-calculator" className="mobile-dropdown-item" onClick={closeMenu}>
+                Business Loan EMI
+              </Link>
+            </div>
+          )}
+        </div>
         <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`} onClick={closeMenu}>
           Verify Agent Agreement
         </Link>
