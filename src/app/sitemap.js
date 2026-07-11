@@ -42,23 +42,42 @@ export default async function sitemap() {
     priority: route === '' ? 1.0 : ['/check', '/emi-calculator', '/personal-loan-emi-calculator', '/home-loan-emi-calculator', '/business-loan-emi-calculator', '/credit-cards'].includes(route) ? 0.9 : ['/banks', '/banks/instant', '/banks/salary', '/banks/business', '/cibil', '/blog', '/about', '/contact'].includes(route) ? 0.8 : 0.5,
   }));
 
+  let bankEntries = [];
   try {
     const { data: policies } = await supabase
       .from('bank_policies')
       .select('bank_name');
     
     if (policies && policies.length > 0) {
-      const bankEntries = policies.map((p) => ({
+      bankEntries = policies.map((p) => ({
         url: `${baseUrl}/banks/${slugify(p.bank_name)}`,
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.7,
       }));
-      return [...staticEntries, ...bankEntries];
     }
   } catch (e) {
     console.error('Error fetching sitemap dynamic paths:', e);
   }
 
-  return staticEntries;
+  let blogEntries = [];
+  try {
+    const { data: blogs } = await supabase
+      .from('blogs')
+      .select('slug, updated_at')
+      .eq('published', true);
+    
+    if (blogs && blogs.length > 0) {
+      blogEntries = blogs.map((b) => ({
+        url: `${baseUrl}/blog/${b.slug}`,
+        lastModified: b.updated_at ? new Date(b.updated_at) : new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      }));
+    }
+  } catch (e) {
+    console.error('Error fetching sitemap blog paths:', e);
+  }
+
+  return [...staticEntries, ...bankEntries, ...blogEntries];
 }
