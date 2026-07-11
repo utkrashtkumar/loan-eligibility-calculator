@@ -56,16 +56,28 @@ function VerifyAgreementContent() {
     setProfile(null);
     setSearched(true);
 
-    try {
-      const cleanNo = agreeNumber.trim().toUpperCase();
-      const { data, error: fetchErr } = await supabase
-        .from('agent_agreements')
-        .select('*')
-        .eq('agreement_no', cleanNo)
-        .maybeSingle();
+    // Security (Issue3): Validate agreement number format/length before querying the DB.
+    // Supabase uses parameterized queries so SQL injection is impossible, but an
+    // unbounded input (e.g. 10,000-char string) wastes server resources.
+    const cleanNo = agreeNumber.trim().toUpperCase();
+    if (!/^[A-Z0-9\-]{3,30}$/.test(cleanNo)) {
+      setError('Invalid agreement number format. Please check and try again.');
+      setLoading(false);
+      return;
+    }
 
+    const { data, error: fetchErr } = await supabase
+      .from('agent_agreements')
+      .select('*')
+      .eq('agreement_no', cleanNo)
+      .maybeSingle();
+
+    try {
       if (fetchErr) {
-        setError('Database query failed: ' + fetchErr.message);
+        // Security (Issue1): Never expose raw Supabase error.message to visitors —
+        // it can reveal internal table structure, column names, or query hints.
+        console.error('Agreement fetch error:', fetchErr);
+        setError('Verification lookup failed. Please try again later.');
       } else if (!data) {
         setError(`Agreement number "${cleanNo}" is invalid or does not exist in our official records.`);
       } else {

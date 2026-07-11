@@ -234,16 +234,40 @@ CREATE POLICY "payouts: admin updates all"
 -- ============================================================
 ALTER TABLE public.site_feedbacks ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "feedbacks: public insert"   ON public.site_feedbacks;
-DROP POLICY IF EXISTS "feedbacks: admin reads all" ON public.site_feedbacks;
+-- ============================================================
+-- SECURITY (Issue2): Server-side rate limit for contact form.
+-- Even if a user clears localStorage or uses DevTools to bypass
+-- the client-side cooldown, the DB itself enforces a 60-second
+-- cooldown per email address at the INSERT level.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.feedback_rate_limit_ok(p_email TEXT)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT NOT EXISTS (
+    SELECT 1 FROM public.site_feedbacks
+    WHERE email = p_email
+      AND created_at > NOW() - INTERVAL '60 seconds'
+  );
+$$;
 
-CREATE POLICY "feedbacks: public insert"
+DROP POLICY IF EXISTS "feedbacks: public insert"              ON public.site_feedbacks;
+DROP POLICY IF EXISTS "feedbacks: public insert rate-limited" ON public.site_feedbacks;
+DROP POLICY IF EXISTS "feedbacks: admin reads all"            ON public.site_feedbacks;
+
+-- Rate-limited insert: one submission per email per 60 seconds
+CREATE POLICY "feedbacks: public insert rate-limited"
   ON public.site_feedbacks FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (public.feedback_rate_limit_ok(email));
 
 CREATE POLICY "feedbacks: admin reads all"
   ON public.site_feedbacks FOR SELECT
   USING (public.is_admin());
+
+
 
 -- ============================================================
 -- TABLE: bank_policies

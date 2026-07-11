@@ -64,9 +64,19 @@ export default function ContactClient() {
           }
         ]);
 
-      if (insertErr) throw insertErr;
+      if (insertErr) {
+        // Security (Issue2): DB-level rate limit via RLS policy rejects inserts
+        // if the same email submitted within the last 60 seconds.
+        // RLS violations return code '42501' (insufficient_privilege).
+        if (insertErr.code === '42501' || insertErr.message?.toLowerCase().includes('policy')) {
+          setError('Please wait at least 60 seconds before sending another message.');
+        } else {
+          throw insertErr;
+        }
+        return;
+      }
 
-      // Security (F7): Record timestamp after successful submit to enforce cooldown.
+      // Security (F7): Record timestamp after successful submit to enforce client-side cooldown.
       localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
 
       setSubmitted(true);
