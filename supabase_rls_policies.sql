@@ -321,22 +321,34 @@ STABLE
 AS $$
   SELECT NOT EXISTS (
     SELECT 1 FROM public.site_feedbacks
-    WHERE email = p_email
-      AND created_at > NOW() - INTERVAL '60 seconds'
+    WHERE (
+      (p_email IS NOT NULL AND email = p_email AND created_at > NOW() - INTERVAL '60 seconds')
+      OR
+      (p_email IS NULL AND email IS NULL AND created_at > NOW() - INTERVAL '10 seconds')
+    )
   );
 $$;
 
+DROP POLICY IF EXISTS "Allow select on site_feedbacks"        ON public.site_feedbacks;
+DROP POLICY IF EXISTS "Allow anonymous inserts"              ON public.site_feedbacks;
+DROP POLICY IF EXISTS "Allow admin select"                    ON public.site_feedbacks;
+DROP POLICY IF EXISTS "Allow admin delete"                    ON public.site_feedbacks;
 DROP POLICY IF EXISTS "feedbacks: public insert"              ON public.site_feedbacks;
 DROP POLICY IF EXISTS "feedbacks: public insert rate-limited" ON public.site_feedbacks;
 DROP POLICY IF EXISTS "feedbacks: admin reads all"            ON public.site_feedbacks;
+DROP POLICY IF EXISTS "feedbacks: admin deletes all"          ON public.site_feedbacks;
 
--- Rate-limited insert: one submission per email per 60 seconds
+-- Rate-limited insert: one submission per email per 60 seconds (10s if email is null)
 CREATE POLICY "feedbacks: public insert rate-limited"
   ON public.site_feedbacks FOR INSERT
   WITH CHECK (public.feedback_rate_limit_ok(email));
 
 CREATE POLICY "feedbacks: admin reads all"
   ON public.site_feedbacks FOR SELECT
+  USING (public.is_admin());
+
+CREATE POLICY "feedbacks: admin deletes all"
+  ON public.site_feedbacks FOR DELETE
   USING (public.is_admin());
 
 
@@ -511,4 +523,77 @@ CREATE POLICY "Admin can delete on credit_cards"
   ON public.credit_cards FOR DELETE
   TO authenticated
   USING (public.is_admin());
+
+
+-- ============================================================
+-- TABLE: blogs
+-- Published blogs are readable by anyone; managing blogs is admin-only.
+-- ============================================================
+ALTER TABLE public.blogs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read on published blogs" ON public.blogs;
+DROP POLICY IF EXISTS "Admin can manage all blogs"           ON public.blogs;
+DROP POLICY IF EXISTS "blogs: public read published"         ON public.blogs;
+DROP POLICY IF EXISTS "blogs: admin manage all"              ON public.blogs;
+
+CREATE POLICY "blogs: public read published"
+  ON public.blogs FOR SELECT
+  USING (published = true);
+
+CREATE POLICY "blogs: admin manage all"
+  ON public.blogs FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+
+-- ============================================================
+-- TABLE: contact_messages
+-- Anyone can insert messages; viewing and deleting is admin-only.
+-- ============================================================
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON public.contact_messages;
+DROP POLICY IF EXISTS "Allow admin select"      ON public.contact_messages;
+DROP POLICY IF EXISTS "Allow admin delete"      ON public.contact_messages;
+DROP POLICY IF EXISTS "contact: public insert"  ON public.contact_messages;
+DROP POLICY IF EXISTS "contact: admin select"   ON public.contact_messages;
+DROP POLICY IF EXISTS "contact: admin delete"   ON public.contact_messages;
+
+CREATE POLICY "contact: public insert"
+  ON public.contact_messages FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "contact: admin select"
+  ON public.contact_messages FOR SELECT
+  TO authenticated
+  USING (public.is_admin());
+
+CREATE POLICY "contact: admin delete"
+  ON public.contact_messages FOR DELETE
+  TO authenticated
+  USING (public.is_admin());
+
+
+-- ============================================================
+-- TABLE: audit_logs
+-- Managing or viewing audit logs is admin-only.
+-- ============================================================
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin can view audit logs"   ON public.audit_logs;
+DROP POLICY IF EXISTS "Admin can insert audit logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "audit: admin select"         ON public.audit_logs;
+DROP POLICY IF EXISTS "audit: admin insert"         ON public.audit_logs;
+
+CREATE POLICY "audit: admin select"
+  ON public.audit_logs FOR SELECT
+  TO authenticated
+  USING (public.is_admin());
+
+CREATE POLICY "audit: admin insert"
+  ON public.audit_logs FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin());
+
 
