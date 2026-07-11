@@ -1798,8 +1798,9 @@ export default function AdminDashboard() {
     : 0;
 
   // Split inquiries into Customer vs Agent submissions
-  const customerInquiries = inquiries.filter(inq => !inq.agent || inq.agent.role === 'user');
-  const agentInquiries = inquiries.filter(inq => inq.agent && inq.agent.role === 'agent');
+  const customerInquiries = inquiries.filter(inq => inq.employment_type !== 'credit_card_click' && (!inq.agent || inq.agent.role === 'user'));
+  const agentInquiries = inquiries.filter(inq => inq.employment_type !== 'credit_card_click' && (inq.agent && inq.agent.role === 'agent'));
+  const creditCardClicks = inquiries.filter(inq => inq.employment_type === 'credit_card_click');
 
   // Filter helper
   const getFilteredInquiries = (list) => {
@@ -1808,7 +1809,7 @@ export default function AdminDashboard() {
         const matchesSearch = 
           inq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           inq.mobile.includes(searchTerm) ||
-          inq.pincode.includes(searchTerm);
+          (inq.pincode && inq.pincode.includes(searchTerm));
         
         const isBl = inq.eligible_banks?.some(b => b.includes('(BL)'));
         const matchesLoanType = 
@@ -1829,6 +1830,7 @@ export default function AdminDashboard() {
 
   const filteredCustomerInquiries = getFilteredInquiries(customerInquiries);
   const filteredAgentInquiries = getFilteredInquiries(agentInquiries);
+  const filteredCreditCardClicks = getFilteredInquiries(creditCardClicks);
 
   const getStatusBadgeStyle = (status) => {
     if (!status) return {};
@@ -2316,6 +2318,7 @@ export default function AdminDashboard() {
                           { id: 'notifications', label: `Notifications (${totalNotifications})` },
                           { id: 'customer_leads', label: `Customer Inquiries (${customerInquiries.length})` },
                           { id: 'agent_leads', label: `Agent Inquiries (${agentInquiries.length})` },
+                          { id: 'credit_card_clicks', label: `Credit Card Clicks (${creditCardClicks.length})` },
                           { id: 'active_agents', label: `Active Agents (${activeAgents.length})` },
                           { id: 'pending_agents', label: `Pending Approvals (${pendingAgents.length})` },
                           { id: 'revoked_agents', label: `Revoked Agents (${demotedUsers.length})` },
@@ -2361,6 +2364,7 @@ export default function AdminDashboard() {
                           { id: 'analytics', label: `Business Analytics` },
                           { id: 'customer_leads', label: `Customer Inquiries (${customerInquiries.length})` },
                           { id: 'agent_leads', label: `Agent Inquiries (${agentInquiries.length})` },
+                          { id: 'credit_card_clicks', label: `Credit Card Clicks (${creditCardClicks.length})` },
                           { id: 'active_agents', label: `Active Agents (${activeAgents.length})` },
                           { id: 'pending_agents', label: `Pending Approvals (${pendingAgents.length})` },
                           { id: 'revoked_agents', label: `Revoked Agents (${demotedUsers.length})` },
@@ -2409,6 +2413,7 @@ export default function AdminDashboard() {
                       { id: 'analytics', label: `Business Analytics` },
                       { id: 'customer_leads', label: `Customer Inquiries (${customerInquiries.length})` },
                       { id: 'agent_leads', label: `Agent Inquiries (${agentInquiries.length})` },
+                      { id: 'credit_card_clicks', label: `Credit Card Clicks (${creditCardClicks.length})` },
                       { id: 'active_agents', label: `Active Agents (${activeAgents.length})` },
                       { id: 'pending_agents', label: `Pending Approvals (${pendingAgents.length})` },
                       { id: 'revoked_agents', label: `Revoked Agents (${demotedUsers.length})` },
@@ -2845,6 +2850,130 @@ export default function AdminDashboard() {
                      </div>
                    </div>
                  )}
+
+                {/* PANEL 1.2: CREDIT CARD CLICKS */}
+                {activeTab === 'credit_card_clicks' && (
+                  <>
+                    {/* Search Toolbar */}
+                    <div className="form-card" style={{
+                      padding: '16px 24px',
+                      marginBottom: '24px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '16px',
+                      backdropFilter: 'blur(20px)'
+                    }}>
+                      <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '280px' }}>
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="Search user name or phone..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          style={{ margin: 0 }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Clicks Table */}
+                    <div className="form-card" style={{ padding: 0, overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>User Name</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Mobile</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Credit Card Bank</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status Details</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Date & Time</th>
+                              <th style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredCreditCardClicks.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                  No credit card clicks recorded.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredCreditCardClicks.map((inq) => {
+                                const clickDate = new Date(inq.created_at);
+                                const dateStr = clickDate.toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                }) + ' ' + clickDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                                
+                                const cardName = inq.eligible_banks?.[0] || 'Unknown Card';
+
+                                return (
+                                  <tr
+                                    key={inq.id}
+                                    style={{
+                                      borderBottom: 'var(--border-subtle)',
+                                      transition: 'background var(--transition-fast)'
+                                    }}
+                                    className="table-row-hover"
+                                  >
+                                    <td style={{ padding: '16px 24px', fontWeight: 500 }}>
+                                      {inq.name}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{inq.mobile || 'N/A'}</td>
+                                    <td style={{ padding: '16px 24px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                                      {cardName}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>
+                                      {inq.current_address}
+                                    </td>
+                                    <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{dateStr}</td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                        {inq.mobile && (
+                                          <a 
+                                            href={`https://wa.me/91${inq.mobile.replace(/\D/g, '')}?text=Hello%20${encodeURIComponent(inq.name)}%2C%20we%20noticed%20you%20showed%20interest%20in%20applying%20for%20the%20${encodeURIComponent(cardName)}%20Credit%20Card%20on%20our%20platform.%20How%20can%20we%20assist%20you%20further%3F`}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="btn btn-secondary" 
+                                            style={{ padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(37, 211, 102, 0.15)', color: '#25D366', border: '1px solid rgba(37, 211, 102, 0.3)', margin: 0, textDecoration: 'none', borderRadius: '6px', fontWeight: 600 }}
+                                          >
+                                            WhatsApp 💬
+                                          </a>
+                                        )}
+                                        <button 
+                                          className="btn btn-secondary" 
+                                          style={{ padding: '6px 12px', fontSize: 'var(--text-xs)', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', border: '1px solid rgba(239, 68, 68, 0.2)', margin: 0 }}
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            if (confirm('Are you sure you want to delete this click log?')) {
+                                              const { error } = await supabase
+                                                .from('user_inquiries')
+                                                .delete()
+                                                .eq('id', inq.id);
+                                              if (error) {
+                                                alert('Error deleting click log: ' + error.message);
+                                              } else {
+                                                fetchInquiries();
+                                              }
+                                            }
+                                          }}
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* PANEL 1: CUSTOMER INQUIRIES */}
                 {activeTab === 'customer_leads' && (

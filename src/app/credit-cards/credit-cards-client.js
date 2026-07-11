@@ -114,12 +114,49 @@ export default function CreditCardsClient() {
   };
 
   // Apply Now access verification for logged out users (accessible to all logged-in users)
-  const handleApplyCard = (card) => {
+  const handleApplyCard = async (card) => {
     if (!user) {
       router.push('/signup?role=agent');
       return;
     }
-    window.open(card.apply_url, '_blank', 'noopener,noreferrer');
+
+    // Open target immediately to avoid popup blockers
+    const newTab = window.open(card.apply_url, '_blank', 'noopener,noreferrer');
+
+    try {
+      let userName = user.email || 'Logged In User';
+      let userMobile = '';
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile) {
+        userName = profile.full_name || user.email;
+        userMobile = profile.phone || '';
+      }
+
+      await supabase.from('user_inquiries').insert([
+        {
+          name: userName,
+          mobile: userMobile,
+          current_address: 'Clicked Apply Link for ' + card.bank_name,
+          permanent_address: 'Credit Card Application',
+          pincode: '',
+          salary: 0,
+          existing_emi: 0,
+          credit_score: 0,
+          eligible_banks: [card.bank_name],
+          user_id: user.id,
+          employment_type: 'credit_card_click',
+          created_at: new Date().toISOString()
+        }
+      ]);
+    } catch (err) {
+      console.error('Error logging credit card click:', err);
+    }
   };
 
   // Convert files to base64
