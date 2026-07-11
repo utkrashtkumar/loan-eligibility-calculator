@@ -42,7 +42,7 @@ export default function HomeLoanEmiCalculatorPage() {
                   Planning Your Home Purchase Responsibly
                 </h2>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-                  Buying a home is one of the biggest investments in a person's life. Housing loans are long-term commitments, typically spanning 15 to 30 years. Even a tiny change in the interest rate or a small pre-payment can save you lakhs of rupees in interest over decades. Our **Home Loan EMI Calculator** helps you plan your monthly housing budget and visualize how your principal decreases over time.
+                  Buying a home is one of the biggest investments in a person&apos;s life. Housing loans are long-term commitments, typically spanning 15 to 30 years. Even a tiny change in the interest rate or a small pre-payment can save you lakhs of rupees in interest over decades. Our **Home Loan EMI Calculator** helps you plan your monthly housing budget and visualize how your principal decreases over time.
                 </p>
               </div>
 

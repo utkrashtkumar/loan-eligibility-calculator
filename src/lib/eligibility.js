@@ -74,7 +74,7 @@ export async function checkEligibility({
   // Step 2: Query all policies for these banks (without filtering salary/cibil in SQL query)
   const { data: policies, error: policyError } = await supabase
     .from('bank_policies')
-    .select('*')
+    .select('id, bank_name, logo_url, apply_url, direct_submit, policy_pdf, policy_category, loan_type, min_age, max_age, min_cibil, min_salary, company_category, pf_required, foir_max, min_experience, min_residence_stability, all_pincodes, special_notes, employment_type')
     .in('bank_name', combinedBankNames);
 
   if (policyError) {

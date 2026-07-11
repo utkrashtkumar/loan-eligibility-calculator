@@ -244,7 +244,7 @@ export default async function BankPolicyDetailPage({ params }) {
           }}>
             <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 800, margin: 0 }}>Check Your Eligibility For {bank.bank_name}</h3>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', maxWidth: '500px', margin: 0 }}>
-              Use our instant credit-matching engine to verify if your salary, age, and location parameters satisfy {bank.bank_name}'s underwriting algorithms.
+              Use our instant credit-matching engine to verify if your salary, age, and location parameters satisfy {bank.bank_name}&apos;s underwriting algorithms.
             </p>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Link href="/check" className="btn btn-primary" style={{ padding: '12px 28px', borderRadius: '8px', fontWeight: 700, textDecoration: 'none' }}>

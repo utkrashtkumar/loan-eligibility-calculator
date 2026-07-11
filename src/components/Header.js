@@ -1018,7 +1018,7 @@ export default function Header() {
                   {userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}
                 </div>
                 <span className="mobile-profile-role-badge">
-                  {userRole === 'agent' ? 'Agent' : (user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') ? 'Admin' : 'Client'}
+                  {userRole === 'agent' ? 'Agent' : (userRole === 'admin' || isAdminEmail(user.email)) ? 'Admin' : 'Client'}
                 </span>
               </div>
             </div>
@@ -1148,7 +1148,7 @@ export default function Header() {
             <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`} onClick={closeMenu}>
               Dashboard
             </Link>
-            {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
+            {(userRole === 'admin' || isAdminEmail(user.email)) && (
               <Link href="/admin" className={`nav-link nav-admin ${isLinkActive('/admin') ? 'active' : ''}`} onClick={closeMenu}>
                 Admin Panel
               </Link>

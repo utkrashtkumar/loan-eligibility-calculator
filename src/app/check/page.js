@@ -106,6 +106,7 @@ export default function CheckPage() {
   const [errors, setErrors] = useState({});
 
   const [userProfile, setUserProfile] = useState(null);
+  const [secureCredentials, setSecureCredentials] = useState({});
 
   // Modal states for Agent client applications
   const [applyModalOpen, setApplyModalOpen] = useState(false);
@@ -140,6 +141,22 @@ export default function CheckPage() {
           .single();
         if (profile) {
           setUserProfile(profile);
+          // Fetch secure portal credentials if the user is verified agent/admin
+          if (profile.role === 'agent' || profile.role === 'admin') {
+            try {
+              const credsRes = await fetch('/api/agent/credentials', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              });
+              if (credsRes.ok) {
+                const credsData = await credsRes.json();
+                setSecureCredentials(credsData.credentials || {});
+              }
+            } catch (credsErr) {
+              console.error('Error fetching secure bank credentials:', credsErr);
+            }
+          }
         }
         
         // Pre-fill user name from metadata if available
@@ -1347,8 +1364,8 @@ export default function CheckPage() {
                   const isFinnable = selectedBank?.bank_name?.toUpperCase()?.includes('FINNABLE');
                   const isIncred = selectedBank?.bank_name?.toUpperCase()?.includes('INCRED');
                   
-                  let username = selectedBank?.portal_username || '';
-                  let password = selectedBank?.portal_password || '';
+                  let username = secureCredentials[selectedBank?.id]?.portal_username || '';
+                  let password = secureCredentials[selectedBank?.id]?.portal_password || '';
                   
                   if (!username && isFinnable) username = '9389119399';
                   if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';

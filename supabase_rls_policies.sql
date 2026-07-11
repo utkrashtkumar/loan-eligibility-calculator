@@ -482,3 +482,33 @@ CREATE TRIGGER trg_validate_no_self_referral
 -- (must be re-stated after policy drops/recreates above)
 -- ============================================================
 ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- TABLE: credit_cards
+-- Anyone can view credit cards, but only admins can write.
+-- ============================================================
+ALTER TABLE public.credit_cards ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select on credit_cards" ON public.credit_cards;
+CREATE POLICY "Allow select on credit_cards"
+  ON public.credit_cards FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admin can insert on credit_cards" ON public.credit_cards;
+CREATE POLICY "Admin can insert on credit_cards"
+  ON public.credit_cards FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin can update on credit_cards" ON public.credit_cards;
+CREATE POLICY "Admin can update on credit_cards"
+  ON public.credit_cards FOR UPDATE
+  TO authenticated
+  USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin can delete on credit_cards" ON public.credit_cards;
+CREATE POLICY "Admin can delete on credit_cards"
+  ON public.credit_cards FOR DELETE
+  TO authenticated
+  USING (public.is_admin());
+

@@ -68,10 +68,10 @@ const CategoryBadge = ({ category, loanType }) => {
 };
 
 // ─── Single Bank Card ────────────────────────────────────────────────────────
-function BankCard({ bank, pincodeResult, onApply, userRole, hasUser }) {
+function BankCard({ bank, pincodeResult, onApply, userRole, hasUser, credentials }) {
   const router = useRouter();
   const isAgentOrAdmin = hasUser && (userRole === 'agent' || userRole === 'admin');
-  const affiliateLink = (hasUser && userRole !== 'user') ? getAffiliateLink(bank.bank_name, bank.loan_type, 'daily', bank.apply_url, bank.direct_submit) : null;
+  const affiliateLink = (hasUser && userRole !== 'user') ? getAffiliateLink(bank.bank_name, bank.loan_type, 'daily', credentials?.apply_url || bank.apply_url, bank.direct_submit) : null;
   const [expanded, setExpanded] = useState(false);
 
   // pincodeResult: null = not searched, true = available, false = not available
@@ -180,8 +180,8 @@ function BankCard({ bank, pincodeResult, onApply, userRole, hasUser }) {
               const isFinnable = bank.bank_name?.toUpperCase()?.includes('FINNABLE');
               const isIncred = bank.bank_name?.toUpperCase()?.includes('INCRED');
               
-              let username = bank.portal_username || '';
-              let password = bank.portal_password || '';
+              let username = credentials?.portal_username || '';
+              let password = credentials?.portal_password || '';
               
               if (!username && isFinnable) username = '9389119399';
               if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';
@@ -326,6 +326,7 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
 
   const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [secureCredentials, setSecureCredentials] = useState({});
 
   // Filters State
   const [searchName, setSearchName] = useState('');
@@ -370,6 +371,23 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
         setUser(session.user);
         setUserRole(role);
         setUserProfile(profile);
+
+        // Fetch secure portal credentials if the user is verified agent/admin
+        if (role === 'agent' || role === 'admin') {
+          try {
+            const credsRes = await fetch('/api/agent/credentials', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            if (credsRes.ok) {
+              const credsData = await credsRes.json();
+              setSecureCredentials(credsData.credentials || {});
+            }
+          } catch (credsErr) {
+            console.error('Error fetching secure bank credentials:', credsErr);
+          }
+        }
       } catch (err) {
         console.error('Error verifying auth status:', err);
       } finally {
@@ -386,9 +404,8 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
       setLoading(true);
       const { data, error } = await supabase
         .from('bank_policies')
-        // Security (FB): Explicit column list — portal_password is intentionally excluded.
-        // Using select('*') with Supabase can bypass column-level REVOKE in some versions.
-        .select('id, bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit, policy_pdf, policy_category, loan_type, min_age, max_age, min_cibil, min_salary, company_category, pf_required, foir_max, min_experience, min_residence_stability, all_pincodes, special_notes, employment_type')
+        // Security (FB): Explicit column list — portal_password and portal_username are excluded.
+        .select('id, bank_name, logo_url, apply_url, direct_submit, policy_pdf, policy_category, loan_type, min_age, max_age, min_cibil, min_salary, company_category, pf_required, foir_max, min_experience, min_residence_stability, all_pincodes, special_notes, employment_type')
         .order('bank_name', { ascending: true });
       if (!error && data) setBanks(data);
       setLoading(false);
@@ -700,6 +717,7 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
                   onApply={handleOpenApplyModal}
                   userRole={userRole}
                   hasUser={!!user}
+                  credentials={secureCredentials[bank.id]}
                 />
               ))}
             </div>

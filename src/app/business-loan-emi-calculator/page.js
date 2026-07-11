@@ -42,7 +42,7 @@ export default function BusinessLoanEmiCalculatorPage() {
                   Planning Commercial Loans for Business Expansion
                 </h2>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-                  A business loan is a powerful lever to fund inventory purchases, hire personnel, acquire machinery, or manage short-term working capital gaps. Since business loans are calculated based on your company's revenue, vintage, and balance sheet health, interest rates tend to be slightly higher than property loans. Our **Business Loan EMI Calculator** enables you to forecast expenses precisely so that borrowing does not strain your business cash flow.
+                  A business loan is a powerful lever to fund inventory purchases, hire personnel, acquire machinery, or manage short-term working capital gaps. Since business loans are calculated based on your company&apos;s revenue, vintage, and balance sheet health, interest rates tend to be slightly higher than property loans. Our **Business Loan EMI Calculator** enables you to forecast expenses precisely so that borrowing does not strain your business cash flow.
                 </p>
               </div>
 
@@ -64,7 +64,7 @@ export default function BusinessLoanEmiCalculatorPage() {
                   Debt Service Coverage Ratio (DSCR)
                 </h2>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>
-                  For commercial loans, lenders check your business's **Debt Service Coverage Ratio (DSCR)** instead of FOIR. It measures your net operating income against your total debt service obligations (interest and principal payments). A DSCR score above 1.25 indicates that your business generates more than enough cash flow to cover its loan EMIs, making you a low-risk borrower.
+                  For commercial loans, lenders check your business&apos;s **Debt Service Coverage Ratio (DSCR)** instead of FOIR. It measures your net operating income against your total debt service obligations (interest and principal payments). A DSCR score above 1.25 indicates that your business generates more than enough cash flow to cover its loan EMIs, making you a low-risk borrower.
                 </p>
               </div>
 
