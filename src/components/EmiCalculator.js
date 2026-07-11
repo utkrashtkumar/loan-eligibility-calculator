@@ -45,12 +45,29 @@ function getInitialExistingEmi() {
   return params.get('existingEmi') || '';
 }
 
-export default function EmiCalculator() {
+export default function EmiCalculator({
+  defaultAmount,
+  defaultRate,
+  defaultTenure,
+  defaultTenureType
+} = {}) {
   // State initialization via lazy initializers (fully safe for SSR + effect lint rules)
-  const [loanAmount, setLoanAmount]       = useState(getInitialAmount);
-  const [interestRate, setInterestRate]   = useState(getInitialRate);
-  const [tenureType, setTenureType]       = useState(getInitialTenureType);
-  const [tenure, setTenure]               = useState(getInitialTenure);
+  const [loanAmount, setLoanAmount]       = useState(() => {
+    if (defaultAmount !== undefined) return defaultAmount;
+    return getInitialAmount();
+  });
+  const [interestRate, setInterestRate]   = useState(() => {
+    if (defaultRate !== undefined) return defaultRate;
+    return getInitialRate();
+  });
+  const [tenureType, setTenureType]       = useState(() => {
+    if (defaultTenureType !== undefined) return defaultTenureType;
+    return getInitialTenureType();
+  });
+  const [tenure, setTenure]               = useState(() => {
+    if (defaultTenure !== undefined) return defaultTenure;
+    return getInitialTenure();
+  });
   const [monthlyIncome, setMonthlyIncome] = useState(getInitialIncome);
   const [existingEmi, setExistingEmi]     = useState(getInitialExistingEmi);
   
