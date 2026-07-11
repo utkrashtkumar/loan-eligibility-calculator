@@ -5,6 +5,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/admin/', '/dashboard/', '/reset-password/'],
     },
-    sitemap: 'https://hand2handloans.com/sitemap.xml',
+    sitemap: 'https://handtohandloans.in/sitemap.xml',
   };
 }

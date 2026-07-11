@@ -11,7 +11,7 @@ const jsonLd = {
   '@type': 'ContactPage',
   'name': 'Contact HandToHand Loans',
   'description': 'Customer support desk for queries regarding loans, credit scoring, and partner bank portals.',
-  'url': 'https://handtohandloans.com/contact'
+  'url': 'https://handtohandloans.in/contact'
 };
 
 export default function ContactPage() {

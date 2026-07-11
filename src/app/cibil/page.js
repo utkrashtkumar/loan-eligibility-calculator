@@ -14,9 +14,9 @@ const jsonLd = {
   'provider': {
     '@type': 'FinancialService',
     'name': 'HandToHand Loans',
-    'url': 'https://hand2handloans.com'
+    'url': 'https://handtohandloans.in'
   },
-  'url': 'https://hand2handloans.com/cibil'
+  'url': 'https://handtohandloans.in/cibil'
 };
 
 export default function CibilPage() {

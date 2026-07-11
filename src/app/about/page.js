@@ -14,9 +14,9 @@ const jsonLd = {
   'publisher': {
     '@type': 'Organization',
     'name': 'HandToHand Loans',
-    'url': 'https://handtohandloans.com'
+    'url': 'https://handtohandloans.in'
   },
-  'url': 'https://handtohandloans.com/about'
+  'url': 'https://handtohandloans.in/about'
 };
 
 export default function AboutPage() {

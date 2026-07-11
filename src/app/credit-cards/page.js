@@ -14,9 +14,9 @@ const jsonLd = {
   'provider': {
     '@type': 'FinancialService',
     'name': 'HandToHand Loans',
-    'url': 'https://hand2handloans.com'
+    'url': 'https://handtohandloans.in'
   },
-  'url': 'https://hand2handloans.com/credit-cards'
+  'url': 'https://handtohandloans.in/credit-cards'
 };
 
 export default function CreditCardsPage() {

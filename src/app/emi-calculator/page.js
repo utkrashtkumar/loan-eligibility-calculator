@@ -12,7 +12,7 @@ const jsonLd = {
   'name': 'Free Loan EMI Calculator',
   'description': 'Calculate monthly loan EMIs, total interest payable, and generate amortization schedules instantly.',
   'category': 'Loan Calculator',
-  'url': 'https://hand2handloans.com/emi-calculator'
+  'url': 'https://handtohandloans.in/emi-calculator'
 };
 
 export default function EmiCalculatorPage() {

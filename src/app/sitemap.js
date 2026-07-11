@@ -1,5 +1,5 @@
 export default function sitemap() {
-  const baseUrl = 'https://handtohandloans.com';
+  const baseUrl = 'https://handtohandloans.in';
   
   const routes = [
     '',
