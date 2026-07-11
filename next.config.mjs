@@ -32,13 +32,17 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      // Security (FE): 'unsafe-eval' removed — it allows eval() / new Function()
-      // which weakens XSS protection. Next.js app router does not require it.
-      "script-src 'self' 'unsafe-inline'",
+      // Development mode needs 'unsafe-eval' for Webpack dev server chunk execution
+      process.env.NODE_ENV === 'development' 
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" 
+        : "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://api.postalpincode.in",
+      // Development mode needs ws/wss and local network connect headers for Fast Refresh
+      process.env.NODE_ENV === 'development'
+        ? "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://api.postalpincode.in ws: wss: http: https:"
+        : "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://api.postalpincode.in",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
