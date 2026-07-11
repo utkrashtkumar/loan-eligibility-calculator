@@ -32,12 +32,42 @@ function LoginContent() {
     async function checkUser() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Security (F2): redirectPath is already sanitized to start with '/'
-        // Never use window.location.href — that path was dead code and a latent open-redirect risk.
+        // Security (F2): redirectPath is already sanitized to start with '/'.
+        // Never use window.location.href — dead code and latent open-redirect risk.
         router.push(redirectPath);
       }
     }
     checkUser();
+
+    // Security (FD): Google OAuth approval gate.
+    // signInWithOAuth redirects the browser externally and back — the approval
+    // check cannot run inside handleGoogleLogin. Instead we listen for the
+    // SIGNED_IN event that fires when the OAuth session is established and
+    // enforce the same gate as password/magic-link login.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role, approved, profile_update_message')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (profileData && profileData.role === 'agent' && !profileData.approved) {
+          // Unapproved agent — sign them out and redirect to error page
+          await supabase.auth.signOut();
+          const isRejected = profileData.profile_update_message?.startsWith('REJECTED:');
+          if (isRejected) {
+            router.push('/login?error=rejected');
+          } else {
+            router.push('/login?error=pending');
+          }
+        } else if (profileData) {
+          router.push(redirectPath);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router, redirectPath]);
 
   const handleLogin = async (e) => {

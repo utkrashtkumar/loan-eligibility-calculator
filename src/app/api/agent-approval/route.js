@@ -6,7 +6,10 @@ const VALID_ACTIONS = ['approved', 'rejected'];
 export async function POST(request) {
   try {
     // ── Security: verify internal shared secret ──────────────────────────────
-    const internalSecret = process.env.NEXT_PUBLIC_INTERNAL_API_SECRET;
+    // Security (FA): Use INTERNAL_API_SECRET (no NEXT_PUBLIC_ prefix) so Next.js
+    // does NOT bundle this value into the browser JS. NEXT_PUBLIC_ vars are visible
+    // in DevTools to any visitor — a server-only secret must never use that prefix.
+    const internalSecret = process.env.INTERNAL_API_SECRET;
     if (!internalSecret) {
       console.error('INTERNAL_API_SECRET is not configured — route is unprotected.');
       return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });

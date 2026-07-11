@@ -1572,7 +1572,7 @@ function ResultCard({ bank, isAgent, onApply, isApplied = false, onToggleApplied
                 }
                 const blob = new Blob([uInt8Array], { type: contentType });
                 const blobUrl = URL.createObjectURL(blob);
-                window.open(blobUrl, '_blank');
+                window.open(blobUrl, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
               }}
               className="btn btn-secondary btn-sm"
               style={{ width: '100%', justifyContent: 'center', margin: 0 }}

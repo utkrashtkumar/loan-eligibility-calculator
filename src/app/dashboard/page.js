@@ -4977,7 +4977,7 @@ export default function UserDashboard() {
                               }
                               const blob = new Blob([uInt8Array], { type: contentType });
                               const blobUrl = URL.createObjectURL(blob);
-                              window.open(blobUrl, '_blank');
+                              window.open(blobUrl, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
                             }}
                           >
                             View Policy PDF
@@ -5066,7 +5066,7 @@ export default function UserDashboard() {
                                   }
                                   const blob = new Blob([uInt8Array], { type: contentType });
                                   const blobUrl = URL.createObjectURL(blob);
-                                  window.open(blobUrl, '_blank');
+                                  window.open(blobUrl, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
                                 }}
                               >
                                 View Policy PDF

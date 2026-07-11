@@ -1443,19 +1443,25 @@ export default function AdminDashboard() {
         logAdminAction('Approve Agent', `Approved agent ID: ${agentId}`);
         await fetchAgentsData();
         
-        // Trigger approval email in background
-        fetch('/api/agent-approval', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
-          },
-          body: JSON.stringify({
-            agentName: agent.full_name,
-            agentEmail: agent.email,
-            action: 'approved'
-          })
-        }).catch(err => console.error('Failed to send approval email:', err));
+        // Security (FA): Call the admin proxy route with our session token.
+        // The proxy verifies admin role server-side and uses INTERNAL_API_SECRET
+        // (a server-only env var) to call the email route — the secret never
+        // reaches the browser.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) return;
+          fetch('/api/admin/approve-agent', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              agentName: agent.full_name,
+              agentEmail: agent.email,
+              action: 'approved'
+            })
+          }).catch(err => console.error('Failed to send approval email:', err));
+        });
       }
     } catch (err) {
       console.error(err);
@@ -1486,20 +1492,23 @@ export default function AdminDashboard() {
         logAdminAction('Reject Agent', `Rejected agent ID: ${agentId}. Reason: ${reason}`);
         await fetchAgentsData();
         
-        // Trigger rejection email in background
-        fetch('/api/agent-approval', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
-          },
-          body: JSON.stringify({
-            agentName: agent.full_name,
-            agentEmail: agent.email,
-            action: 'rejected',
-            reason: reason.trim()
-          })
-        }).catch(err => console.error('Failed to send rejection email:', err));
+        // Security (FA): Same proxy route pattern as approval — session token auth.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) return;
+          fetch('/api/admin/approve-agent', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              agentName: agent.full_name,
+              agentEmail: agent.email,
+              action: 'rejected',
+              reason: reason.trim()
+            })
+          }).catch(err => console.error('Failed to send rejection email:', err));
+        });
       }
     } catch (err) {
       console.error(err);

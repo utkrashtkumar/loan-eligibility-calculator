@@ -231,9 +231,12 @@ export default function Home() {
     // Fetch banks
     const fetchBanks = async () => {
       try {
+        // Security (FB): Homepage is public — explicit column list excludes
+        // portal_password and portal_username (bank credentials must never
+        // be served to anonymous / unauthenticated visitors).
         const { data, error } = await supabase
           .from('bank_policies')
-          .select('*')
+          .select('bank_name, logo_url, apply_url, direct_submit, loan_types, min_amount, max_amount, min_cibil, min_salary, employment_types')
           .order('bank_name', { ascending: true });
         if (!error && data) {
           setBanks(data);

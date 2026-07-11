@@ -90,14 +90,14 @@ export default function CreditCardsClient() {
         }
         const blob = new Blob([uInt8Array], { type: contentType });
         const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+        window.open(blobUrl, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
       } else {
-        window.open(pdfData, '_blank');
+        window.open(pdfData, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
       }
     } catch (e) {
       console.error('Error opening PDF:', e);
       alert('Failed to view PDF details. Opening in a new window instead.');
-      window.open(pdfData, '_blank');
+      window.open(pdfData, '_blank', 'noopener,noreferrer'); // Security (FC): prevent tabnapping
     }
   };
 
