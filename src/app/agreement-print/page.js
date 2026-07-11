@@ -245,9 +245,17 @@ export default function AgreementPrintPage() {
       });
 
       const verificationUrl = `${window.location.origin}/verify-agreement?no=${agreementNo}`;
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(verificationUrl)}&format=png`;
+      // Fix: Generate QR locally using 'qrcode' package instead of fetching from api.qrserver.com.
+      // The external fetch was blocked by CORS + CSP (connect-src didn't include api.qrserver.com).
       try {
-        const qrBytes = await fetchImageBytes(qrApiUrl);
+        const QRCode = (await import('qrcode')).default;
+        // Generate as PNG data URL, then decode to bytes for pdf-lib
+        const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+          width: 180,
+          margin: 1,
+          color: { dark: '#000000', light: '#ffffff' },
+        });
+        const qrBytes = dataUriToBytes(qrDataUrl);
         const qrImg = await pdfDoc.embedPng(qrBytes);
         const qrDims = qrImg.scaleToFit(90, 90);
         page11.drawImage(qrImg, {
@@ -294,6 +302,15 @@ export default function AgreementPrintPage() {
         const queryParams = new URLSearchParams(window.location.search);
         const targetAgentId = queryParams.get('id');
 
+        // Security (F1): Validate that targetAgentId is a well-formed UUID v4.
+        // This prevents IDOR enumeration via crafted or injected non-UUID values.
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (targetAgentId && !UUID_REGEX.test(targetAgentId)) {
+          setError('Invalid agent ID format.');
+          setLoading(false);
+          return;
+        }
+
         const { data: currentUser, error: userErr } = await supabase
           .from('profiles')
           .select('*')
@@ -318,9 +335,12 @@ export default function AgreementPrintPage() {
           }
         }
 
+        // Security (F12): Only fetch columns needed for PDF generation.
+        // Excludes selfie, id_file, id_file_2, cancelled_cheque (large base64 blobs)
+        // which are not needed for the agreement PDF overlay.
         const { data: prof, error: profErr } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, full_name, phone, email, id_type, id_number, id_type_2, id_number_2, current_address, city, state, pincode, bank_name, bank_account_no, bank_ifsc, created_at')
           .eq('id', profileId)
           .single();
 
@@ -344,6 +364,19 @@ export default function AgreementPrintPage() {
           setLoading(false);
           return;
         }
+
+        const isAdmin = currentUser.role === 'admin' || session.user.email === 'handtohandloans@gmail.com' || session.user.email === 'utkrashtkumar@gmail.com';
+        if (agree.status === 'pending' && !isAdmin) {
+          setError('Your agreement signature is pending approval by the administrator.');
+          setLoading(false);
+          return;
+        }
+        if (agree.status === 'rejected' && !isAdmin) {
+          setError('Your agreement request has been rejected. Please re-sign with a valid signature from your dashboard.');
+          setLoading(false);
+          return;
+        }
+
         setAgreement(agree);
         setLoading(false);
       } catch (err) {

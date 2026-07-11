@@ -14,11 +14,17 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Security (F2): Read admin emails from env var — same source as admin/page.js and Header.js.
+  const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+    .split(',')
+    .map(e => e.trim())
+    .filter(Boolean);
+
   // If already logged in as admin, redirect to dashboard
   useEffect(() => {
     async function checkAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && (session.user.email === 'handtohandloans@gmail.com' || session.user.email === 'utkrashtkumar@gmail.com')) {
+      if (session && ADMIN_EMAILS.includes(session.user.email)) {
         router.push('/admin');
       }
     }
@@ -32,7 +38,7 @@ export default function AdminLoginPage() {
     setSuccess('');
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (trimmedEmail !== 'handtohandloans@gmail.com' && trimmedEmail !== 'utkrashtkumar@gmail.com') {
+    if (!ADMIN_EMAILS.includes(trimmedEmail)) {
       setError('Invalid admin credentials.');
       setLoading(false);
       return;
@@ -49,7 +55,7 @@ export default function AdminLoginPage() {
       } else {
         const user = data.user;
         const userEmail = user.email ? user.email.toLowerCase() : '';
-        if (userEmail !== 'handtohandloans@gmail.com' && userEmail !== 'utkrashtkumar@gmail.com') {
+        if (!ADMIN_EMAILS.includes(userEmail)) { // Security (F2): env var check
           // Log out unauthorized user
           await supabase.auth.signOut();
           setError('Access Denied: You are not authorized to view the admin portal.');

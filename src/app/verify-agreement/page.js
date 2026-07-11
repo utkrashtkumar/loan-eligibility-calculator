@@ -38,6 +38,10 @@ function VerifyAgreementContent() {
       const script = document.createElement('script');
       script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
       script.async = true;
+      // Security (F10): Subresource Integrity hash prevents CDN supply chain attacks.
+      // If the file is tampered, the browser will refuse to execute it.
+      script.integrity = "sha384-c9d8RFSL+u3exBOJ4Yp3HUJXS4znl9f+z66d1y54ig+ea249SpqR+w1wyvXz/lk+";
+      script.crossOrigin = "anonymous";
       script.onload = () => resolve(window.Html5Qrcode);
       script.onerror = (e) => reject(e);
       document.body.appendChild(script);
@@ -67,10 +71,10 @@ function VerifyAgreementContent() {
       } else {
         setAgreement(data);
         
-        // Fetch agent profile details
+        // Security (F6): phone is PII — excluded from public unauthenticated lookup.
         const { data: prof, error: profErr } = await supabase
           .from('profiles')
-          .select('full_name, phone, created_at')
+          .select('full_name, created_at')
           .eq('id', data.agent_id)
           .single();
 
@@ -396,7 +400,7 @@ function VerifyAgreementContent() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
               <span style={{ color: 'var(--color-text-secondary)' }}>Agent Mobile Number:</span>
-              <strong style={{ color: 'var(--color-text-primary)' }}>{profile?.phone || 'Verified'}</strong>
+              <strong style={{ color: 'var(--color-text-primary)' }}>Verified ✓</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
               <span style={{ color: 'var(--color-text-secondary)' }}>Agent Agreement Date:</span>

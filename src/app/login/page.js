@@ -10,7 +10,11 @@ import Footer from '@/components/Footer';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/dashboard';
+
+  // Security: Sanitize redirect path to prevent Open Redirect attacks.
+  // Only allow same-origin relative paths (must start with '/').
+  const rawRedirect = searchParams.get('redirect') || '/dashboard';
+  const redirectPath = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,16 +27,14 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState('');
 
-  // If already logged in, redirect
+  // If already logged in, redirect to sanitized path
   useEffect(() => {
     async function checkUser() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        if (redirectPath.startsWith('http')) {
-          window.location.href = redirectPath;
-        } else {
-          router.push(redirectPath);
-        }
+        // Security (F2): redirectPath is already sanitized to start with '/'
+        // Never use window.location.href — that path was dead code and a latent open-redirect risk.
+        router.push(redirectPath);
       }
     }
     checkUser();
@@ -93,12 +95,9 @@ function LoginContent() {
 
         setSuccess('Logged in successfully!');
         setTimeout(() => {
-          if (redirectPath.startsWith('http')) {
-            window.location.href = redirectPath;
-          } else {
-            router.push(redirectPath);
-            router.refresh();
-          }
+          // Security (F2): Always use router.push() — redirectPath is sanitized to start with '/'
+          router.push(redirectPath);
+          router.refresh();
         }, 1000);
       }
     } catch (err) {
@@ -143,6 +142,26 @@ function LoginContent() {
     }
     setLoading(true);
     try {
+      // Security (F5): Check agent approval status before sending magic link.
+      // Password login checks this, but magic link previously bypassed it entirely.
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role, approved, profile_update_message')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (profileData && profileData.role === 'agent' && !profileData.approved) {
+        const isRejected = profileData.profile_update_message?.startsWith('REJECTED:');
+        if (isRejected) {
+          const reason = profileData.profile_update_message.replace('REJECTED:', '').trim();
+          setError(`Your agent registration request has been rejected. Reason: ${reason}`);
+        } else {
+          setError('Your agent account is pending approval. Magic link login is disabled until your account is approved.');
+        }
+        setLoading(false);
+        return;
+      }
+
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {

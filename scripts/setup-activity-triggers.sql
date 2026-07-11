@@ -65,7 +65,7 @@ BEGIN
       ag_id := NEW.agent_id;
       SELECT full_name INTO agent_name FROM public.profiles WHERE id = NEW.agent_id;
       t_title := 'Agreement Signed';
-      msg := COALESCE(agent_name, 'An agent') || ' signed their DSA Partner Agreement (' || NEW.agreement_no || ').';
+      msg := COALESCE(agent_name, 'An agent') || ' submitted their DSA Partner Agreement signature for approval (' || NEW.agreement_no || ').';
       act_type := 'agreement';
       ref_id := NEW.agent_id::text;
     ELSE

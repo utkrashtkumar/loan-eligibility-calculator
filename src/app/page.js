@@ -1576,7 +1576,7 @@ export default function Home() {
                     </div>
 
                     <Link
-                      href={user ? '/banks' : '/signup?role=user'}
+                      href="/banks"
                       className="btn btn-primary btn-sm"
                       style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
                     >
@@ -1652,7 +1652,7 @@ export default function Home() {
                   </div>
 
                   <Link
-                    href={user ? '/credit-cards' : '/signup?role=user'}
+                    href="/credit-cards"
                     className="btn btn-primary btn-sm"
                     style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
                   >
@@ -1891,7 +1891,7 @@ export default function Home() {
                   Tailored loan matches for salaried individuals with steady employment at top banks.
                 </p>
               </div>
-              <Link href="/check?type=salary" className="btn btn-primary btn-sm" style={{
+              <Link href="/banks/salary" className="btn btn-primary btn-sm" style={{
                 marginTop: 'auto',
                 padding: '10px 24px',
                 borderRadius: '8px',
@@ -1902,7 +1902,7 @@ export default function Home() {
                 color: '#ffffff',
                 border: 'none'
               }}>
-                Apply Now
+                View Available Banks
               </Link>
             </div>
 
@@ -1940,7 +1940,7 @@ export default function Home() {
                   Smart capital infrastructure for startups, MSMEs, and growing enterprises.
                 </p>
               </div>
-              <Link href="/check?type=business" className="btn btn-primary btn-sm" style={{
+              <Link href="/banks/business" className="btn btn-primary btn-sm" style={{
                 marginTop: 'auto',
                 padding: '10px 24px',
                 borderRadius: '8px',
@@ -1951,7 +1951,7 @@ export default function Home() {
                 color: '#ffffff',
                 border: 'none'
               }}>
-                Apply Now
+                View Available Banks
               </Link>
             </div>
 
@@ -1988,7 +1988,7 @@ export default function Home() {
                   Real-time digital verification with ultra-fast AI-powered approvals.
                 </p>
               </div>
-              <Link href="/check?type=instant" className="btn btn-primary btn-sm" style={{
+              <Link href="/banks/instant" className="btn btn-primary btn-sm" style={{
                 marginTop: 'auto',
                 padding: '10px 24px',
                 borderRadius: '8px',
@@ -1999,7 +1999,7 @@ export default function Home() {
                 color: '#ffffff',
                 border: 'none'
               }}>
-                Apply Now
+                View Available Banks
               </Link>
             </div>
           </div>

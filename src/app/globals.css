@@ -8,18 +8,18 @@
 
 /* ---------- CSS Custom Properties ---------- */
 :root {
-  /* --- HandToHand Loans Redesign Tokens (Dark Theme Defaults - Green & Blue) --- */
-  --bg-base: #0b0f19;
-  --bg-surface: #111827;
-  --bg-subtle: #1f2937;
+  /* --- Premium Minimalist Design Tokens (Dark Theme Defaults) --- */
+  --bg-base: #090d16;
+  --bg-surface: #0f1422;
+  --bg-subtle: #171e2f;
 
   --color-primary: #10b981;
   --color-primary-hover: #059669;
-  --color-primary-light: rgba(16, 185, 129, 0.15);
+  --color-primary-light: rgba(16, 185, 129, 0.08);
 
   --color-accent: #3b82f6;
   --color-accent-hover: #2563eb;
-  --color-accent-light: rgba(59, 130, 246, 0.15);
+  --color-accent-light: rgba(59, 130, 246, 0.08);
 
   --color-secondary: #ffffff;
 
@@ -27,29 +27,29 @@
   --color-warning: #f59e0b;
   --color-error: #ef4444;
 
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
-  --border-default: #374151;
+  --border-default: #1e293b;
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
-  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.40);
-  --shadow-lg: 0 16px 40px -4px rgba(0, 0, 0, 0.50);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.25), 0 4px 8px -2px rgba(0, 0, 0, 0.15);
 
   --gradient-brand: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
 
-  /* --- Map values to existing variables --- */
+  /* --- Mapping to variables --- */
   --color-bg-primary: var(--bg-base);
   --color-bg-secondary: var(--bg-surface);
   --color-bg-tertiary: var(--bg-subtle);
   --color-bg-card: var(--bg-surface);
   --color-bg-card-hover: var(--bg-subtle);
-  --color-bg-glass: rgba(17, 24, 39, 0.6);
-  --color-bg-glass-heavy: rgba(17, 24, 39, 0.85);
+  --color-bg-glass: rgba(15, 20, 34, 0.7);
+  --color-bg-glass-heavy: rgba(15, 20, 34, 0.9);
   --color-bg-input: var(--bg-base);
   --color-bg-input-focus: var(--bg-subtle);
-  --color-bg-section-subtle: rgba(31, 41, 55, 0.4);
+  --color-bg-section-subtle: rgba(23, 30, 47, 0.4);
 
   /* Accent Colors */
   --color-accent-indigo: var(--color-primary);
@@ -60,13 +60,13 @@
 
   /* Semantic Colors */
   --color-success: var(--color-success);
-  --color-success-bg: rgba(16, 185, 129, 0.1);
+  --color-success-bg: rgba(16, 185, 129, 0.08);
   --color-warning: var(--color-warning);
-  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
   --color-error: var(--color-error);
-  --color-error-bg: rgba(239, 68, 68, 0.1);
+  --color-error-bg: rgba(239, 68, 68, 0.08);
   --color-info: var(--color-primary);
-  --color-info-bg: rgba(16, 185, 129, 0.1);
+  --color-info-bg: rgba(16, 185, 129, 0.08);
 
   /* Text Colors */
   --color-text-primary: var(--text-primary);
@@ -83,70 +83,70 @@
   --gradient-warning: linear-gradient(90deg, #f59e0b 0%, #3b82f6 100%);
   
   --gradient-bg-mesh: none;
-  --gradient-card-border: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+  --gradient-card-border: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
   --gradient-text: var(--gradient-brand);
-  --gradient-hero-mesh: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 50%, #000000 100%);
+  --gradient-hero-mesh: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, rgba(59, 130, 246, 0.04) 50%, transparent 100%);
 
   /* Borders */
   --border-subtle: 1px solid var(--border-default);
-  --border-light: 1px solid var(--border-default);
+  --border-light: 1px solid rgba(255, 255, 255, 0.06);
   --border-accent: 1px solid var(--color-primary);
   --border-success: 1px solid var(--color-success);
   --border-error: 1px solid var(--color-error);
-  --border-radius-sm: 8px;
-  --border-radius-md: 12px;
-  --border-radius-lg: 16px;
-  --border-radius-xl: 20px;
+  --border-radius-sm: 6px;
+  --border-radius-md: 10px;
+  --border-radius-lg: 14px;
+  --border-radius-xl: 18px;
   --border-radius-full: 9999px;
 
-  /* Shadows */
+  /* Shadows (Removed glow, kept natural shadows) */
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-lg);
-  --shadow-glow-indigo: 0 0 20px rgba(16, 185, 129, 0.25);
-  --shadow-glow-purple: 0 0 20px rgba(59, 130, 246, 0.25);
-  --shadow-glow-success: 0 0 15px rgba(16, 185, 129, 0.25);
-  --shadow-glow-error: 0 0 15px rgba(239, 68, 68, 0.25);
-  --shadow-input-focus: 0 0 0 3px rgba(16, 185, 129, 0.25), 0 0 20px rgba(59, 130, 246, 0.15);
-  --color-circle-track: rgba(255, 255, 255, 0.06);
+  --shadow-glow-indigo: 0 2px 8px rgba(16, 185, 129, 0.1);
+  --shadow-glow-purple: 0 2px 8px rgba(59, 130, 246, 0.1);
+  --shadow-glow-success: 0 2px 8px rgba(16, 185, 129, 0.1);
+  --shadow-glow-error: 0 2px 8px rgba(239, 68, 68, 0.1);
+  --shadow-input-focus: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  --color-circle-track: rgba(255, 255, 255, 0.04);
 
   /* Spacing */
   --space-xs: 4px;
   --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 64px;
-  --space-4xl: 96px;
+  --space-md: 12px;
+  --space-lg: 20px;
+  --space-xl: 28px;
+  --space-2xl: 40px;
+  --space-3xl: 56px;
+  --space-4xl: 80px;
 
   /* Typography */
   --font-body: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: var(--font-plus-jakarta), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
-  --text-5xl: 3rem;
-  --text-6xl: 3.75rem;
-  --line-height-tight: 1.15;
+  --text-sm: 0.85rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.2rem;
+  --text-2xl: 1.4rem;
+  --text-3xl: 1.75rem;
+  --text-4xl: 2.1rem;
+  --text-5xl: 2.75rem;
+  --text-6xl: 3.5rem;
+  --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.6;
-  --letter-spacing-tight: -0.02em;
+  --letter-spacing-tight: -0.015em;
   --letter-spacing-normal: 0;
-  --letter-spacing-wide: 0.05em;
+  --letter-spacing-wide: 0.03em;
 
   /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 100ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 350ms ease;
+  --transition-spring: 400ms cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Z-indices */
   --z-base: 1;
@@ -157,9 +157,9 @@
   --z-toast: 500;
 
   /* Container */
-  --container-max: 1400px;
-  --container-narrow: 800px;
-  --header-height: 72px;
+  --container-max: 1300px;
+  --container-narrow: 750px;
+  --header-height: 64px;
 }
 
 /* ---------- Reset & Base ---------- */
@@ -2580,36 +2580,36 @@ textarea.input-field {
    LIGHT THEME OVERRIDES
    ============================================ */
 [data-theme='light'] {
-  /* --- HandToHand Loans Redesign Tokens (Light Theme Defaults - Green & Blue) --- */
+  /* --- Premium Minimalist Light Design Tokens --- */
   --bg-base: #f8fafc;
   --bg-surface: #ffffff;
   --bg-subtle: #f1f5f9;
 
-  --color-primary: #10b981;
-  --color-primary-hover: #059669;
-  --color-primary-light: rgba(16, 185, 129, 0.1);
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-light: rgba(5, 150, 105, 0.06);
 
-  --color-accent: #3b82f6;
-  --color-accent-hover: #2563eb;
-  --color-accent-light: rgba(59, 130, 246, 0.1);
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-light: rgba(37, 99, 235, 0.06);
 
   --color-secondary: #ffffff;
 
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  --color-success: #059669;
+  --color-warning: #d97706;
   --color-error: #dc2626;
 
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-muted: #64748b;
 
   --border-default: #e2e8f0;
 
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 22, 0.06);
-  --shadow-md: 0 4px 12px -2px rgba(15, 23, 22, 0.08);
-  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 22, 0.12);
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 10px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 10px 20px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
 
-  --gradient-brand: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+  --gradient-brand: linear-gradient(90deg, #059669 0%, #2563eb 100%);
 
   /* --- Map values to existing variables --- */
   --color-bg-primary: var(--bg-base);
@@ -2617,8 +2617,8 @@ textarea.input-field {
   --color-bg-tertiary: var(--bg-subtle);
   --color-bg-card: var(--bg-surface);
   --color-bg-card-hover: var(--bg-subtle);
-  --color-bg-glass: rgba(255, 255, 255, 0.5);
-  --color-bg-glass-heavy: rgba(255, 255, 255, 0.85);
+  --color-bg-glass: rgba(255, 255, 255, 0.75);
+  --color-bg-glass-heavy: rgba(255, 255, 255, 0.9);
   --color-bg-input: var(--bg-base);
   --color-bg-input-focus: var(--bg-surface);
   --color-bg-section-subtle: var(--bg-subtle);
@@ -2632,13 +2632,13 @@ textarea.input-field {
 
   /* Semantic Colors */
   --color-success: var(--color-success);
-  --color-success-bg: rgba(16, 185, 129, 0.1);
+  --color-success-bg: rgba(5, 150, 105, 0.08);
   --color-warning: var(--color-warning);
-  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-warning-bg: rgba(217, 119, 6, 0.08);
   --color-error: var(--color-error);
-  --color-error-bg: rgba(220, 38, 38, 0.1);
+  --color-error-bg: rgba(220, 38, 38, 0.08);
   --color-info: var(--color-primary);
-  --color-info-bg: rgba(16, 185, 129, 0.1);
+  --color-info-bg: rgba(5, 150, 105, 0.08);
 
   /* Text Colors */
   --color-text-primary: var(--text-primary);
@@ -2648,22 +2648,20 @@ textarea.input-field {
   --color-text-accent: var(--color-primary);
 
   /* Gradients */
-  --gradient-primary: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
-  --gradient-primary-hover: linear-gradient(90deg, #059669 0%, #2563eb 100%);
-  --gradient-accent: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
-  --gradient-success: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
-  --gradient-warning: linear-gradient(90deg, #f59e0b 0%, #3b82f6 100%);
+  --gradient-primary: linear-gradient(90deg, #059669 0%, #2563eb 100%);
+  --gradient-primary-hover: linear-gradient(90deg, #047857 0%, #1d4ed8 100%);
+  --gradient-accent: linear-gradient(90deg, #2563eb 0%, #059669 100%);
+  --gradient-success: linear-gradient(90deg, #059669 0%, #2563eb 100%);
+  --gradient-warning: linear-gradient(90deg, #d97706 0%, #2563eb 100%);
   
-  --gradient-bg-mesh: linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px) center / 40px 40px repeat,
-                      linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px) center / 40px 40px repeat,
-                      linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%) no-repeat;
-  --gradient-card-border: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  --gradient-bg-mesh: none;
+  --gradient-card-border: linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.02) 100%);
   --gradient-text: var(--gradient-brand);
-  --gradient-hero-mesh: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 50%, #ffffff 100%);
+  --gradient-hero-mesh: radial-gradient(circle at 50% 50%, rgba(5, 150, 105, 0.03) 0%, rgba(37, 99, 235, 0.03) 50%, transparent 100%);
 
   /* Borders */
   --border-subtle: 1px solid var(--border-default);
-  --border-light: 1px solid var(--border-default);
+  --border-light: 1px solid rgba(0, 0, 0, 0.04);
   --border-accent: 1px solid var(--color-primary);
   --border-success: 1px solid var(--color-success);
   --border-error: 1px solid var(--color-error);
@@ -2673,10 +2671,10 @@ textarea.input-field {
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-lg);
-  --shadow-glow-indigo: 0 0 20px rgba(16, 185, 129, 0.15);
-  --shadow-glow-purple: 0 0 20px rgba(59, 130, 246, 0.15);
-  --shadow-input-focus: 0 0 0 3px rgba(16, 185, 129, 0.15), 0 0 20px rgba(59, 130, 246, 0.08);
-  --color-circle-track: rgba(15, 23, 42, 0.08);
+  --shadow-glow-indigo: 0 2px 8px rgba(5, 150, 105, 0.08);
+  --shadow-glow-purple: 0 2px 8px rgba(37, 99, 235, 0.08);
+  --shadow-input-focus: 0 0 0 2px rgba(5, 150, 105, 0.15);
+  --color-circle-track: rgba(15, 23, 42, 0.04);
 }
 
 /* ---------- Theme Toggle Button ---------- */

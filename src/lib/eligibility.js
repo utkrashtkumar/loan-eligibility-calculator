@@ -40,7 +40,8 @@ export async function checkEligibility({
     .eq('is_active', true);
 
   if (pincodeError) {
-    console.error('Pincode lookup error:', pincodeError);
+    // Security (F11): Don't log Supabase error objects — they expose table names and schema.
+    console.error('Pincode lookup failed. Check RLS and connectivity.');
     return [];
   }
 
@@ -56,7 +57,8 @@ export async function checkEligibility({
     .eq('all_pincodes', true);
 
   if (allPincodeError) {
-    console.error('All-pincodes lookup error:', allPincodeError);
+    // Security (F11): Suppress detailed error in production.
+    console.error('All-pincodes lookup failed.');
   }
 
   // Combine both lists
@@ -76,7 +78,8 @@ export async function checkEligibility({
     .in('bank_name', combinedBankNames);
 
   if (policyError) {
-    console.error('Policy lookup error:', policyError);
+    // Security (F11): Suppress detailed error in production.
+    console.error('Policy lookup failed. Check RLS and connectivity.');
     return [];
   }
 
@@ -331,11 +334,16 @@ export async function checkEligibility({
  * Save user inquiry along with eligible bank results for lead tracking.
  */
 export async function saveInquiry(data) {
-  // Deduplicate: remove any previous inquiries matching the same mobile number
+  // Security (F4): Scope delete to this user's own previous inquiry for the phone number.
+  // Without user_id scoping, any agent could wipe all leads for any phone number.
   try {
-    await supabase.from('user_inquiries').delete().eq('mobile', data.mobile);
+    const deleteQuery = supabase.from('user_inquiries').delete().eq('mobile', data.mobile);
+    if (data.userId) {
+      await deleteQuery.eq('user_id', data.userId);
+    }
+    // If no userId (unauthenticated check), skip deletion to prevent anonymous wiping
   } catch (err) {
-    console.error('Error deduplicating inquiries:', err);
+    console.error('Error deduplicating inquiries.');
   }
 
   const { error } = await supabase.from('user_inquiries').insert([

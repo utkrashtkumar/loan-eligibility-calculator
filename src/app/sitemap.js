@@ -1,10 +1,19 @@
 export default function sitemap() {
-  const baseUrl = 'https://hand2handloans.com';
+  const baseUrl = 'https://handtohandloans.com';
   
   const routes = [
     '',
     '/check',
     '/banks',
+    '/banks/instant',
+    '/banks/salary',
+    '/banks/business',
+    '/credit-cards',
+    '/cibil',
+    '/emi-calculator',
+    '/blog',
+    '/about',
+    '/contact',
     '/login',
     '/signup',
     '/privacy',
@@ -14,7 +23,7 @@ export default function sitemap() {
   return routes.map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
-    changeFrequency: route === '' || route === '/check' || route === '/banks' ? 'daily' : 'monthly',
-    priority: route === '' ? 1.0 : route === '/check' ? 0.9 : route === '/banks' ? 0.8 : 0.5,
+    changeFrequency: ['/check', '/banks', '/banks/instant', '/banks/salary', '/banks/business', '/credit-cards', '/emi-calculator', '/blog'].includes(route) || route === '' ? 'daily' : 'monthly',
+    priority: route === '' ? 1.0 : ['/check', '/emi-calculator', '/credit-cards'].includes(route) ? 0.9 : ['/banks', '/banks/instant', '/banks/salary', '/banks/business', '/cibil', '/blog', '/about', '/contact'].includes(route) ? 0.8 : 0.5,
   }));
 }

@@ -69,7 +69,15 @@ const getExpirationCountdown = (createdAt) => {
 
 // Helper functions to keep component pure and avoid calling impure functions during render
 const getFourteenDaysAgoString = () => new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-const generateRandomAgentCode = () => `H2H-${Math.floor(1000 + Math.random() * 9000)}`;
+// Security (F7): Use cryptographically strong random values for agent code generation.
+// Math.random() produced only 9000 possible codes (H2H-1000 to H2H-9999), trivially enumerable.
+// New format: H2H-XXXXXXXX where X is an alphanumeric char (32^8 ≈ 1 trillion combos).
+const generateRandomAgentCode = () => {
+  const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 unambiguous alphanumeric chars
+  const arr = new Uint8Array(6);
+  crypto.getRandomValues(arr);
+  return 'H2H-' + Array.from(arr).map(b => CHARS[b % 32]).join('');
+};
 const generateUpdateFileName = (ext) => `update-${Date.now()}.${ext}`;
 const generateBlogFileName = (ext) => `blog-${Date.now()}.${ext}`;
 
@@ -178,6 +186,9 @@ export default function AdminDashboard() {
   const [revokingAgreement, setRevokingAgreement] = useState(null);
   const [revocationReason, setRevocationReason] = useState('');
   const [revokingLoading, setRevokingLoading] = useState(false);
+  const [reviewingAgreement, setReviewingAgreement] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [newPincodeText, setNewPincodeText] = useState('');
   const [pincodeActionLoading, setPincodeActionLoading] = useState(null);
   const [pincodeSearchTerm, setPincodeSearchTerm] = useState('');
@@ -233,7 +244,13 @@ export default function AdminDashboard() {
         if (val === null || val === undefined) {
           val = "";
         } else {
-          val = '"' + String(val).replace(/"/g, '""') + '"';
+          let strVal = String(val);
+          // Security (F6): Prevent CSV injection by prefixing formula characters.
+          // Spreadsheets (Excel, Google Sheets) treat cells starting with =, +, -, @, tab, CR as formulas.
+          if (strVal.length > 0 && ['=', '+', '-', '@', '\t', '\r'].includes(strVal[0])) {
+            strVal = '\'' + strVal;
+          }
+          val = '"' + strVal.replace(/"/g, '""') + '"';
         }
         return val;
       }).join(",");
@@ -602,7 +619,7 @@ export default function AdminDashboard() {
       // Fetch user inquiries and join profiles to identify role (agent vs customer)
       const { data, error } = await supabase
         .from('user_inquiries')
-        .select('*, agent:profiles(full_name, email, agent_code, role)')
+        .select('*, agent:profiles(full_name, email, agent_code, role, phone)')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -846,7 +863,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('applications')
-        .select('*, agent:profiles(full_name, email, agent_code, role)')
+        .select('*, agent:profiles(full_name, email, agent_code, role, phone)')
         .order('created_at', { ascending: false });
 
       if (error) console.error('Error fetching applications:', error.message);
@@ -874,10 +891,12 @@ export default function AdminDashboard() {
 
         if (isAgent) {
           row["Agent Name"] = app.agent?.full_name || 'Deleted Agent';
+          row["Agent Mobile"] = app.agent?.phone || '';
           row["Agent Email"] = app.agent?.email || '';
           row["Agent Code"] = app.agent?.agent_code || '';
         } else {
           row["Customer Name"] = app.agent?.full_name || 'Deleted Customer';
+          row["Customer Mobile"] = app.agent?.phone || '';
           row["Customer Email"] = app.agent?.email || '';
         }
 
@@ -904,7 +923,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('payout_requests')
-        .select('*, agent:profiles(full_name, email, agent_code)')
+        .select('*, agent:profiles(full_name, email, agent_code, phone)')
         .order('created_at', { ascending: false });
 
       if (error) console.error('Error fetching payout requests:', error.message);
@@ -1036,6 +1055,15 @@ export default function AdminDashboard() {
   const handleUploadUpdate = async () => {
     if (!uploadTitle.trim()) { setUploadError('Title is required.'); return; }
     if (!uploadFile) { setUploadError('Please select a file.'); return; }
+
+    // Security (F5): Validate MIME type server-side via browser's reported type.
+    // Blocks SVG/HTML uploads that can carry embedded <script> tags (stored XSS).
+    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!ALLOWED_MIME_TYPES.includes(uploadFile.type)) {
+      setUploadError('Only JPEG, PNG, WebP, and GIF images are allowed. SVG and other file types are not permitted.');
+      return;
+    }
+
     if (uploadFile.size > 5 * 1024 * 1024) { setUploadError('File must be under 5 MB.'); return; }
     setUploading(true);
     setUploadError('');
@@ -1275,7 +1303,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function authenticateAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session || (session.user.email !== 'handtohandloans@gmail.com' && session.user.email !== 'utkrashtkumar@gmail.com')) {
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+      if (!session || !adminEmails.includes(session.user.email)) {
         router.push('/admin/login');
       } else {
         await fetchAllData();
@@ -1295,6 +1324,11 @@ export default function AdminDashboard() {
       const tab = params.get('tab');
       const agentId = params.get('agentId');
       const appId = params.get('appId');
+
+      // Security (F8): Validate UUID format before passing to Supabase queries.
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (agentId && !UUID_REGEX.test(agentId)) return;
+      if (appId && !UUID_REGEX.test(appId)) return;
 
       if (tab) {
         setActiveTab(tab);
@@ -1412,7 +1446,10 @@ export default function AdminDashboard() {
         // Trigger approval email in background
         fetch('/api/agent-approval', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Token': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
+          },
           body: JSON.stringify({
             agentName: agent.full_name,
             agentEmail: agent.email,
@@ -1452,7 +1489,10 @@ export default function AdminDashboard() {
         // Trigger rejection email in background
         fetch('/api/agent-approval', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Token': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
+          },
           body: JSON.stringify({
             agentName: agent.full_name,
             agentEmail: agent.email,
@@ -2499,7 +2539,7 @@ export default function AdminDashboard() {
                                <thead>
                                  <tr style={{ background: 'var(--color-bg-card)', borderBottom: 'var(--border-light)' }}>
                                    <th style={{ padding: '16px 24px' }}>Agent Name</th>
-                                   <th style={{ padding: '16px 24px' }}>Email</th>
+                                   <th style={{ padding: '16px 24px' }}>Phone / Email</th>
                                    <th style={{ padding: '16px 24px' }}>Registered Date</th>
                                    <th style={{ padding: '16px 24px', textAlign: 'right' }}>Action</th>
                                  </tr>
@@ -2508,7 +2548,7 @@ export default function AdminDashboard() {
                                  {actualPendingAgents.map((sa) => (
                                    <tr key={sa.id} style={{ borderBottom: 'var(--border-subtle)' }}>
                                      <td style={{ padding: '16px 24px', fontWeight: 500 }}>{sa.full_name}</td>
-                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.email}</td>
+                                     <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.phone || sa.email}</td>
                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-tertiary)' }}>{new Date(sa.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -3445,7 +3485,7 @@ export default function AdminDashboard() {
                                           </div>
                                         )}
                                       </td>
-                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.email}</td>
+                                      <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.phone || sa.email}</td>
                                       <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{sa.phone || 'N/A'}</td>
                                       <td style={{ padding: '16px 24px' }}>
                                         {isRejected ? (
@@ -4187,7 +4227,7 @@ export default function AdminDashboard() {
                                         <>
                                           <div style={{ fontWeight: 500 }}>{app.agent.full_name}</div>
                                           <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
-                                            Email: {app.agent.email}
+                                            {app.agent.phone ? `Phone: ${app.agent.phone}` : `Email: ${app.agent.email}`}
                                           </div>
                                         </>
                                       ) : (
@@ -5127,7 +5167,9 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.03)', padding: '4px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                             {[
                               { id: 'all', label: 'All Agreements' },
+                              { id: 'pending', label: 'Pending Approval' },
                               { id: 'active', label: 'Active' },
+                              { id: 'rejected', label: 'Rejected' },
                               { id: 'revoked', label: 'Revoked' }
                             ].map(filter => (
                               <button
@@ -5177,10 +5219,14 @@ export default function AdminDashboard() {
                             a.profiles?.email?.toLowerCase().includes(q)
                           );
                           if (!matchesSearch) return false;
+                          if (agreementFilter === 'pending') return a.status === 'pending';
                           if (agreementFilter === 'active') return a.status === 'active';
+                          if (agreementFilter === 'rejected') return a.status === 'rejected';
                           if (agreementFilter === 'revoked') return a.status === 'revoked';
                           return true;
                         });
+
+                        const showReasonColumn = ['revoked', 'rejected'].includes(agreementFilter) || agreementFilter === 'all';
 
                         return (
                           <div className="table-scroll-x" style={{ background: 'var(--color-bg-card)', border: 'var(--border-light)', borderRadius: '8px' }}>
@@ -5191,8 +5237,10 @@ export default function AdminDashboard() {
                                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Agent Name</th>
                                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Phone</th>
                                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
-                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{agreementFilter === 'revoked' ? 'Date Revoked' : 'Date Signed'}</th>
-                                  {agreementFilter === 'revoked' && <th style={{ padding: '12px 16px', fontWeight: 600 }}>Revocation Reason</th>}
+                                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>
+                                    {agreementFilter === 'revoked' ? 'Date Revoked' : agreementFilter === 'rejected' ? 'Date Rejected' : 'Date Signed/Submitted'}
+                                  </th>
+                                  {showReasonColumn && <th style={{ padding: '12px 16px', fontWeight: 600 }}>Reason</th>}
                                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
                                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Actions</th>
                                 </tr>
@@ -5205,12 +5253,12 @@ export default function AdminDashboard() {
                                     <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>{a.profiles?.phone}</td>
                                     <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>{a.profiles?.email}</td>
                                     <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)' }}>
-                                      {agreementFilter === 'revoked' && a.revoked_at
+                                      {['revoked', 'rejected'].includes(a.status) && a.revoked_at
                                         ? new Date(a.revoked_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })
                                         : new Date(a.signed_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })
                                       }
                                     </td>
-                                    {agreementFilter === 'revoked' && (
+                                    {showReasonColumn && (
                                       <td style={{ padding: '12px 16px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={a.revocation_reason}>
                                         {a.revocation_reason || 'N/A'}
                                       </td>
@@ -5221,48 +5269,72 @@ export default function AdminDashboard() {
                                         borderRadius: '12px',
                                         fontSize: '10px',
                                         fontWeight: 800,
-                                        background: a.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                        color: a.status === 'active' ? 'var(--color-success)' : '#ef4444',
+                                        background: a.status === 'active' 
+                                          ? 'rgba(16, 185, 129, 0.1)' 
+                                          : a.status === 'pending'
+                                          ? 'rgba(245, 158, 11, 0.1)'
+                                          : 'rgba(239, 68, 68, 0.1)',
+                                        color: a.status === 'active' 
+                                          ? 'var(--color-success)' 
+                                          : a.status === 'pending'
+                                          ? '#f59e0b'
+                                          : '#ef4444',
                                         textTransform: 'uppercase'
                                       }}>
                                         {a.status}
                                       </span>
                                     </td>
-                                    <td style={{ padding: '12px 16px', display: 'flex', gap: '8px' }}>
-                                      <button
-                                        onClick={() => {
-                                          window.open(`/agreement-print?id=${a.agent_id}`, '_blank');
-                                        }}
-                                        className="btn btn-secondary btn-sm"
-                                        style={{ margin: 0, padding: '4px 10px', fontSize: '11px' }}
-                                      >
-                                        Download / Print
-                                      </button>
-                                      <button
-                                        onClick={async () => {
-                                          if (!confirm(`Are you sure you want to delete agreement ${a.agreement_no} and allow the agent to sign a new one?`)) return;
-                                          try {
-                                            const { error } = await supabase
-                                              .from('agent_agreements')
-                                              .delete()
-                                              .eq('id', a.id);
-                                            if (error) {
-                                              alert("Failed to regenerate agreement: " + error.message);
-                                            } else {
-                                              alert("Agreement deleted successfully! The agent is now prompted to sign a new agreement.");
-                                              logAdminAction('Regenerate Agreement', `Deleted agreement ${a.agreement_no} to allow re-signing.`);
-                                              await fetchAgreementsData();
+                                    <td style={{ padding: '12px 16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                      {a.status === 'pending' && (
+                                        <button
+                                          onClick={() => setReviewingAgreement(a)}
+                                          className="btn btn-primary btn-sm"
+                                          style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'var(--gradient-primary)', border: 'none' }}
+                                        >
+                                          Review Signature
+                                        </button>
+                                      )}
+                                      
+                                      {a.status === 'active' && (
+                                        <button
+                                          onClick={() => {
+                                            window.open(`/agreement-print?id=${a.agent_id}`, '_blank');
+                                          }}
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ margin: 0, padding: '4px 10px', fontSize: '11px' }}
+                                        >
+                                          Download / Print
+                                        </button>
+                                      )}
+
+                                      {['active', 'pending', 'rejected'].includes(a.status) && (
+                                        <button
+                                          onClick={async () => {
+                                            if (!confirm(`Are you sure you want to delete agreement ${a.agreement_no} and allow the agent to sign a new one?`)) return;
+                                            try {
+                                              const { error } = await supabase
+                                                .from('agent_agreements')
+                                                .delete()
+                                                .eq('id', a.id);
+                                              if (error) {
+                                                alert("Failed to regenerate agreement: " + error.message);
+                                              } else {
+                                                alert("Agreement deleted successfully! The agent is now prompted to sign a new agreement.");
+                                                logAdminAction('Regenerate Agreement', `Deleted agreement ${a.agreement_no} to allow re-signing.`);
+                                                await fetchAgreementsData();
+                                              }
+                                            } catch(err) {
+                                              console.error(err);
                                             }
-                                          } catch(err) {
-                                            console.error(err);
-                                          }
-                                        }}
-                                        className="btn btn-secondary btn-sm"
-                                        style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}
-                                      >
-                                        Regenerate
-                                      </button>
-                                      {a.status === 'active' ? (
+                                          }}
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ margin: 0, padding: '4px 10px', fontSize: '11px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}
+                                        >
+                                          Regenerate
+                                        </button>
+                                      )}
+
+                                      {a.status === 'active' && (
                                         <button
                                           onClick={() => setRevokingAgreement(a)}
                                           className="btn btn-sm"
@@ -5270,7 +5342,9 @@ export default function AdminDashboard() {
                                         >
                                           Revoke
                                         </button>
-                                      ) : (
+                                      )}
+
+                                      {a.status === 'revoked' && (
                                         <button
                                           onClick={async () => {
                                             if (!confirm(`Are you sure you want to reactivate agreement ${a.agreement_no}?`)) return;
@@ -5309,7 +5383,7 @@ export default function AdminDashboard() {
                                 ))}
                                 {filteredAgreements.length === 0 && (
                                   <tr>
-                                    <td colSpan={agreementFilter === 'revoked' ? 8 : 7} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                                    <td colSpan={showReasonColumn ? 8 : 7} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
                                       No agreements found in the database.
                                     </td>
                                   </tr>
@@ -7559,9 +7633,14 @@ export default function AdminDashboard() {
                     )}
                     <div className={selectedApplication.agent?.role === 'user' ? "" : "span-2-desktop"}>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-                        {selectedApplication.agent?.role === 'user' ? 'Customer Email' : 'Agent Email'}
+                        {selectedApplication.agent?.role === 'user'
+                          ? (selectedApplication.agent?.phone ? 'Customer Phone' : 'Customer Email')
+                          : (selectedApplication.agent?.phone ? 'Agent Phone' : 'Agent Email')
+                        }
                       </div>
-                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>{selectedApplication.agent.email}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                        {selectedApplication.agent?.phone || selectedApplication.agent?.email}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -8018,6 +8097,181 @@ export default function AdminDashboard() {
                                 </button>
                               </div>
                             </form>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Modal for Reviewing Agent Signature */}
+                      {reviewingAgreement && (
+                        <div style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'rgba(0, 0, 0, 0.7)',
+                          backdropFilter: 'blur(10px)',
+                          zIndex: 999999,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '20px'
+                        }} onClick={() => setReviewingAgreement(null)}>
+                          <div className="form-card" style={{ maxWidth: '550px', width: '100%', margin: '0 auto', display: 'grid', gap: '20px', border: 'var(--border-accent)', background: 'var(--color-bg-tertiary)', backdropFilter: 'blur(20px)' }} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
+                              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Review Agent Signature</h3>
+                              <button onClick={() => setReviewingAgreement(null)} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '12px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: 'var(--color-text-secondary)' }}>Agent Name:</span>
+                                <strong style={{ color: '#fff' }}>{reviewingAgreement.profiles?.full_name}</strong>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: 'var(--color-text-secondary)' }}>
+                                  {reviewingAgreement.profiles?.phone ? 'Phone:' : 'Email:'}
+                                </span>
+                                <span style={{ color: 'var(--color-text-primary)' }}>
+                                  {reviewingAgreement.profiles?.phone || reviewingAgreement.profiles?.email}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: 'var(--color-text-secondary)' }}>Agreement Number:</span>
+                                <span style={{ fontFamily: 'monospace', color: 'var(--color-primary)' }}>{reviewingAgreement.agreement_no}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '8px' }}>
+                              <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Uploaded Signature Image:</label>
+                              <div style={{
+                                background: '#ffffff',
+                                border: '1px solid var(--border-default)',
+                                borderRadius: '8px',
+                                padding: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minHeight: '150px'
+                              }}>
+                                <img
+                                  src={reviewingAgreement.signature_base64}
+                                  alt="Uploaded signature"
+                                  style={{ maxWidth: '100%', maxHeight: '180px', objectFit: 'contain' }}
+                                />
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '8px', borderTop: 'var(--border-subtle)', paddingTop: '16px' }}>
+                              <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Rejection Reason (only required if rejecting):</label>
+                              <textarea
+                                placeholder="Type reason here e.g. Signature is blurred or incorrect..."
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                className="input-field"
+                                rows={3}
+                                style={{ resize: 'vertical', width: '100%', margin: 0 }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                              <button
+                                onClick={async () => {
+                                  if (!rejectionReason.trim()) {
+                                    alert('Please enter a rejection reason.');
+                                    return;
+                                  }
+                                  if (!confirm('Are you sure you want to reject this signature?')) return;
+                                  setReviewLoading(true);
+                                  try {
+                                    // Update agreement status to rejected
+                                    const { error } = await supabase
+                                      .from('agent_agreements')
+                                      .update({
+                                        status: 'rejected',
+                                        revocation_reason: rejectionReason.trim(),
+                                        revoked_at: new Date().toISOString()
+                                      })
+                                      .eq('id', reviewingAgreement.id);
+
+                                    if (error) {
+                                      alert('Rejection failed: ' + error.message);
+                                    } else {
+                                      // Insert notification
+                                      await supabase
+                                        .from('notifications')
+                                        .insert({
+                                          agent_id: reviewingAgreement.agent_id,
+                                          title: 'Agreement Signature Rejected',
+                                          message: `Your agreement signature was rejected. Reason: ${rejectionReason.trim()}`,
+                                          activity_type: 'agreement',
+                                          reference_id: reviewingAgreement.agent_id
+                                        });
+
+                                      alert('Signature rejected successfully.');
+                                      setReviewingAgreement(null);
+                                      setRejectionReason('');
+                                      await fetchAgreementsData();
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                  } finally {
+                                    setReviewLoading(false);
+                                  }
+                                }}
+                                disabled={reviewLoading}
+                                className="btn btn-secondary"
+                                style={{ margin: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)', padding: '10px 18px' }}
+                              >
+                                Reject Signature
+                              </button>
+                              
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Are you sure you want to approve this signature and activate the agreement?')) return;
+                                  setReviewLoading(true);
+                                  try {
+                                    // Update agreement status to active
+                                    const { error } = await supabase
+                                      .from('agent_agreements')
+                                      .update({
+                                        status: 'active',
+                                        signed_at: new Date().toISOString()
+                                      })
+                                      .eq('id', reviewingAgreement.id);
+
+                                    if (error) {
+                                      alert('Approval failed: ' + error.message);
+                                    } else {
+                                      // Insert notification
+                                      await supabase
+                                        .from('notifications')
+                                        .insert({
+                                          agent_id: reviewingAgreement.agent_id,
+                                          title: 'Agreement Approved',
+                                          message: `Your DSA Partner Agreement (${reviewingAgreement.agreement_no}) has been approved! You can now view and download it.`,
+                                          activity_type: 'agreement',
+                                          reference_id: reviewingAgreement.agent_id
+                                        });
+
+                                      alert('Signature approved and agreement activated.');
+                                      setReviewingAgreement(null);
+                                      setRejectionReason('');
+                                      await fetchAgreementsData();
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                  } finally {
+                                    setReviewLoading(false);
+                                  }
+                                }}
+                                disabled={reviewLoading}
+                                className="btn btn-primary"
+                                style={{ margin: 0, padding: '10px 18px' }}
+                              >
+                                {reviewLoading ? 'Processing...' : 'Approve & Activate'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}

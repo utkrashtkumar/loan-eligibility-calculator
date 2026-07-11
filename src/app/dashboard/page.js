@@ -392,7 +392,7 @@ export default function UserDashboard() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch (err) {
-        window.open(update.image_url, '_blank');
+        window.open(update.image_url, '_blank', 'noopener,noreferrer'); // Security (F8): prevent tabnapping
       }
       return;
     }
@@ -422,7 +422,7 @@ export default function UserDashboard() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch (e) {
-        window.open(update.image_url, '_blank');
+        window.open(update.image_url, '_blank', 'noopener,noreferrer'); // Security (F8): prevent tabnapping
       }
     }
   };
@@ -703,7 +703,8 @@ export default function UserDashboard() {
         setUser(session.user);
 
         // Fetch bank policies for resolving logos in real time
-        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url, apply_url, portal_username, portal_password, direct_submit, policy_pdf');
+        // Security: portal_password is intentionally excluded — bank credentials must not reach the browser.
+        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url, apply_url, portal_username, direct_submit, policy_pdf');
         if (polData) setPolicies(polData);
 
         // Fetch profile to determine role
@@ -727,6 +728,14 @@ export default function UserDashboard() {
           await fetchInquiries(session.user.id);
         } else {
           setProfile(prof);
+
+          // Security (F8): Enforce approval gate at route level, not just in Header.
+          // Unapproved agents should not be able to access dashboard data at all.
+          if (prof.role === 'agent' && !prof.approved) {
+            await supabase.auth.signOut();
+            router.push('/login?error=pending');
+            return;
+          }
           setProfileFormData({
             full_name: prof.full_name || '',
             email: prof.email || '',
@@ -827,7 +836,10 @@ export default function UserDashboard() {
         {
           event: '*',
           schema: 'public',
-          table: 'applications'
+          table: 'applications',
+          // Security (F9): Filter at DB level so only this agent's events are pushed.
+          // Without this, all agents receive all application change payloads.
+          filter: `agent_id=eq.${user.id}`
         },
         async (payload) => {
           console.log('Realtime change detected in applications:', payload);
@@ -3074,7 +3086,7 @@ export default function UserDashboard() {
                                     <div style={{ position: 'relative' }} onClick={() => {
                                       const isPdf = update.image_url.split('?')[0].toLowerCase().endsWith('.pdf');
                                       if (isPdf) {
-                                        window.open(update.image_url, '_blank');
+                                        window.open(update.image_url, '_blank', 'noopener,noreferrer'); // Security (F8): prevent tabnapping
                                       } else {
                                         setSelectedUpdate(update);
                                       }
@@ -3207,8 +3219,8 @@ export default function UserDashboard() {
                               /* Signed agreement display */
                               <div style={{ display: 'grid', gap: '16px' }}>
                                 <div style={{
-                                  background: agreement.status === 'active' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)',
-                                  border: agreement.status === 'active' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
+                                  background: agreement.status === 'active' ? 'rgba(16, 185, 129, 0.05)' : agreement.status === 'pending' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+                                  border: agreement.status === 'active' ? '1px solid rgba(16, 185, 129, 0.2)' : agreement.status === 'pending' ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
                                   padding: '20px',
                                   borderRadius: '12px',
                                   display: 'flex',
@@ -3230,8 +3242,8 @@ export default function UserDashboard() {
                                       padding: '3px 10px',
                                       borderRadius: '12px',
                                       fontWeight: 800,
-                                      background: agreement.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                      color: agreement.status === 'active' ? '#34d399' : '#f87171',
+                                      background: agreement.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : agreement.status === 'pending' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                      color: agreement.status === 'active' ? '#34d399' : agreement.status === 'pending' ? '#f59e0b' : '#f87171',
                                       textTransform: 'uppercase'
                                     }}>
                                       {agreement.status}
@@ -3239,10 +3251,18 @@ export default function UserDashboard() {
                                   </div>
                                   {agreement.status !== 'active' && agreement.revocation_reason && (
                                     <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '10px', marginTop: '4px' }}>
-                                      <div style={{ fontSize: 'var(--text-xs)', color: '#f87171', fontWeight: 600 }}>Termination Reason:</div>
+                                      <div style={{ fontSize: 'var(--text-xs)', color: '#f87171', fontWeight: 600 }}>
+                                        {agreement.status === 'rejected' ? 'Rejection Reason:' : 'Termination Reason:'}
+                                      </div>
                                       <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px', lineHeight: '1.5' }}>{agreement.revocation_reason}</p>
                                     </div>
                                   )}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '4px' }}>
+                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Submitted Signature:</div>
+                                    <div style={{ background: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px', display: 'inline-flex', alignSelf: 'flex-start', marginTop: '4px' }}>
+                                      <img src={agreement.signature_base64} alt="Uploaded Signature" style={{ maxHeight: '50px', width: 'auto', objectFit: 'contain' }} />
+                                    </div>
+                                  </div>
                                 </div>
 
                                 {/* Admin-approved regen request banner */}
@@ -3344,25 +3364,93 @@ export default function UserDashboard() {
                                     </div>
                                   </div>
                                 )}
-                                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
-                                  <button
-                                    onClick={() => window.open(`/agreement-print`, '_blank')}
-                                    className="btn btn-primary"
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}
-                                  >
-                                    📄 View / Download Agreement PDF
-                                  </button>
-                                  {/* Request Re-sign button — only if no pending/approved request */}
-                                  {(!regenRequest || ['rejected', 'resolved'].includes(regenRequest.status)) && (
+
+                                {agreement.status === 'active' && (
+                                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
                                     <button
-                                      onClick={() => setShowRegenModal(true)}
-                                      className="btn btn-secondary"
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}
+                                      onClick={() => window.open(`/agreement-print`, '_blank')}
+                                      className="btn btn-primary"
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}
                                     >
-                                      🔄 Request Re-sign
+                                      📄 View / Download Agreement PDF
                                     </button>
-                                  )}
-                                </div>
+                                    {/* Request Re-sign button — only if no pending/approved request */}
+                                    {(!regenRequest || ['rejected', 'resolved'].includes(regenRequest.status)) && (
+                                      <button
+                                        onClick={() => setShowRegenModal(true)}
+                                        className="btn btn-secondary"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}
+                                      >
+                                        🔄 Request Re-sign
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+
+                                {agreement.status === 'pending' && (
+                                  <div style={{
+                                    background: 'rgba(245, 158, 11, 0.06)',
+                                    border: '1px solid rgba(245, 158, 11, 0.2)',
+                                    borderRadius: '10px',
+                                    padding: '14px 16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    marginTop: '8px'
+                                  }}>
+                                    <span style={{ fontSize: '18px' }}>⏳</span>
+                                    <div>
+                                      <div style={{ color: '#f59e0b', fontWeight: 600, fontSize: 'var(--text-xs)' }}>Agreement Generation Pending Approval</div>
+                                      <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '2px', lineHeight: 1.4 }}>
+                                        Your uploaded signature is pending review by the administrator. Once approved, your official agreement will be generated and made available here for download.
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {agreement.status === 'rejected' && (
+                                  <div style={{ display: 'grid', gap: '12px', marginTop: '8px' }}>
+                                    <div style={{
+                                      background: 'rgba(239, 68, 68, 0.06)',
+                                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                                      borderRadius: '10px',
+                                      padding: '14px 16px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '10px'
+                                    }}>
+                                      <span style={{ fontSize: '18px' }}>❌</span>
+                                      <div>
+                                        <div style={{ color: '#f87171', fontWeight: 600, fontSize: 'var(--text-xs)' }}>Signature Rejection Notice</div>
+                                        <div style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', marginTop: '2px', lineHeight: 1.4 }}>
+                                          The administrator rejected your agreement signature. Please click below to delete the rejected submission and upload a valid signature.
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('This will clear the rejected signature and let you upload a new signature. Proceed?')) return;
+                                        try {
+                                          const { error: delErr } = await supabase.from('agent_agreements').delete().eq('agent_id', user.id);
+                                          if (delErr) { alert('Failed to delete rejected agreement: ' + delErr.message); return; }
+                                          setAgreement(null);
+                                          setSignatureFile('');
+                                          setAgreeTerms(false);
+                                          setSigningError('');
+                                          setSigningSuccess('');
+                                        } catch (err) {
+                                          console.error(err);
+                                          alert('Failed to reset signature. Please try again.');
+                                        }
+                                      }}
+                                      className="btn btn-primary"
+                                      style={{ alignSelf: 'flex-start', padding: '10px 20px', fontSize: 'var(--text-xs)', background: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+                                    >
+                                      ❌ Re-upload Signature
+                                    </button>
+                                  </div>
+                                )}
 
                                 {/* Re-sign Request Modal */}
                                 {showRegenModal && (
@@ -3726,7 +3814,7 @@ export default function UserDashboard() {
                                         agent_id: profile.id,
                                         agreement_no: agreementNo,
                                         signature_base64: signatureFile,
-                                        status: 'active'
+                                        status: 'pending'
                                       })
                                       .select()
                                       .single();

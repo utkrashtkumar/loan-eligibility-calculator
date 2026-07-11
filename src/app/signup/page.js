@@ -10,7 +10,11 @@ import Footer from '@/components/Footer';
 function SignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/dashboard';
+
+  // Security: Sanitize redirect path to prevent Open Redirect attacks.
+  // Only allow same-origin relative paths (must start with '/').
+  const rawRedirect = searchParams.get('redirect') || '/dashboard';
+  const redirectPath = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/dashboard';
 
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -21,7 +25,10 @@ function SignupContent() {
     const roleParam = searchParams.get('role');
     const referredByParam = searchParams.get('referred_by');
     if (referredByParam) return 'agent';
-    return roleParam === 'agent' ? 'agent' : 'user';
+    // Security (F1): Strict allowlist — only 'user' or 'agent' accepted.
+    // Prevents ?role=admin self-elevation even if a DB trigger reads user_metadata.role.
+    const ALLOWED_ROLES = ['user', 'agent'];
+    return ALLOWED_ROLES.includes(roleParam) ? roleParam : 'user';
   });
   const [referredBy, setReferredBy] = useState(() => {
     return searchParams.get('referred_by') || '';
@@ -62,8 +69,8 @@ function SignupContent() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       setLoading(false);
       return;
     }

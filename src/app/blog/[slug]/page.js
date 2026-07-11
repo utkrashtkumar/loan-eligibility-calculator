@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DOMPurify from 'dompurify'; // Security (F1): Prevent stored XSS in blog content
 
 export default function BlogDetailPage() {
   const { slug } = useParams();
@@ -192,10 +193,14 @@ export default function BlogDetailPage() {
             </div>
           )}
 
-          {/* Article Content */}
+          {/* Article Content — Security (F1): Sanitized with DOMPurify to prevent stored XSS. */}
           <article 
             className="blog-content-body"
-            dangerouslySetInnerHTML={{ __html: blog.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content, {
+              USE_PROFILES: { html: true },
+              FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
+              FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+            }) }}
             style={{
               color: 'var(--color-text-primary)',
               fontSize: '16px',

@@ -15,7 +15,31 @@ export default function ScrollToTop() {
     };
 
     window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
+
+    // Dynamic mobile table label injector
+    const updateTableLabels = () => {
+      document.querySelectorAll('table').forEach((table) => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+        if (headers.length === 0) return;
+        table.querySelectorAll('tbody tr').forEach((row) => {
+          row.querySelectorAll('td').forEach((td, index) => {
+            const headerText = headers[index];
+            if (headerText && td.getAttribute('data-label') !== headerText) {
+              td.setAttribute('data-label', headerText);
+            }
+          });
+        });
+      });
+    };
+
+    updateTableLabels();
+    const observer = new MutationObserver(updateTableLabels);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      window.removeEventListener('scroll', toggleVisibility);
+      observer.disconnect();
+    };
   }, []);
 
   const scrollToTop = () => {

@@ -19,6 +19,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
+  metadataBase: new URL('https://handtohandloans.in'),
   title: 'HandToHand Loans Platform',
   description:
     'Check loan eligibility instantly across 100+ banks and NBFCs, manage client applications, track agent earnings, and build your referral tree on the premium HandToHand Loans platform.',

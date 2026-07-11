@@ -5,6 +5,26 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+// Security (F5): Read admin emails from env var, never hardcode in client bundle.
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim())
+  .filter(Boolean);
+const isAdminEmail = (email) => ADMIN_EMAILS.includes(email);
+
+// Security (F11): Strict schema validation for localStorage pending application payload.
+// Prevents poisoned data (via XSS or manual injection) from being committed to DB.
+const VALID_LOAN_TYPES = ['PL', 'BL', 'CC', 'HL', 'GL', 'AL', 'EL'];
+function validatePendingApplication(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  if (typeof obj.clientName !== 'string' || obj.clientName.trim().length === 0 || obj.clientName.length > 120) return false;
+  if (typeof obj.clientMobile !== 'string' || !/^\d{10}$/.test(obj.clientMobile.trim())) return false;
+  if (typeof obj.bankName !== 'string' || obj.bankName.trim().length === 0 || obj.bankName.length > 100) return false;
+  if (typeof obj.loanAmount !== 'number' || obj.loanAmount <= 0 || obj.loanAmount > 100000000) return false;
+  if (typeof obj.loanType !== 'string' || !VALID_LOAN_TYPES.includes(obj.loanType)) return false;
+  return true;
+}
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loansDropdownOpen, setLoansDropdownOpen] = useState(false);
@@ -31,9 +51,17 @@ export default function Header() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
+          // Security (F11): Validate schema before trusting localStorage data.
+          // Prevents injected/poisoned payloads from creating fraudulent applications.
+          if (!validatePendingApplication(parsed)) {
+            console.warn('Security: Invalid pending_bank_application payload detected — cleared.');
+            localStorage.removeItem('pending_bank_application');
+            return;
+          }
           setPendingApplication(parsed);
         } catch (e) {
           console.error('Error parsing pending bank application:', e);
+          localStorage.removeItem('pending_bank_application');
         }
       }
     };
@@ -49,7 +77,8 @@ export default function Header() {
     if (!pendingApplication || !user) return;
     setSubmittingStatus(true);
     try {
-      const uniqueAppId = `H2H-APP-${Math.floor(100000 + Math.random() * 900000)}`;
+      // Security (F4): Use crypto.randomUUID() — cryptographically secure, collision-resistant.
+      const uniqueAppId = `H2H-APP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
       const { error } = await supabase.from('applications').insert({
         agent_id: user.id,
         client_name: pendingApplication.clientName,
@@ -94,12 +123,10 @@ export default function Header() {
 
     const savedFont = localStorage.getItem('user-font') || 'Jakarta';
 
-    const timer = setTimeout(() => {
-      setMounted(true);
-      setUserFont(savedFont);
-      setTheme(savedTheme);
-    }, 0);
-    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    setUserFont(savedFont);
+    setTheme(savedTheme);
   }, []);
 
   const changeFont = (newFont) => {
@@ -253,7 +280,7 @@ export default function Header() {
 
     fetchNotifications();
 
-    const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+    const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
 
     const channel = supabase
       .channel('realtime:notifications')
@@ -276,7 +303,7 @@ export default function Header() {
   const markAllRead = async () => {
     if (!user || unreadCount === 0) return;
     try {
-      const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+      const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
       const query = supabase
         .from('notifications')
         .update({ read: true })
@@ -299,7 +326,7 @@ export default function Header() {
   const clearReadNotifications = async () => {
     if (!user) return;
     try {
-      const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+      const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
       const query = supabase
         .from('notifications')
         .delete()
@@ -336,7 +363,7 @@ export default function Header() {
     }
 
     // 2. Determine redirect URL
-    const isAdmin = user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com';
+    const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
     let targetUrl = '/dashboard';
     
     if (isAdmin) {
@@ -400,82 +427,7 @@ export default function Header() {
 
   const isLinkActive = (path) => pathname === path;
 
-  if (!mounted) {
-    return (
-      <header className="header">
-        <div className="header-inner">
-          <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.png"
-              alt="HandToHand Loans Logo"
-              style={{ display: 'block', height: '36px', width: 'auto', flexShrink: 0, objectFit: 'contain' }}
-            />
-            <div className="logo-text-group">
-              <span className="logo-text">
-                HandToHand Loans
-              </span>
-              <span className="logo-badge-fintech">
-                FINTECH
-              </span>
-            </div>
-          </Link>
 
-          <nav className="desktop-nav">
-            <ul className="nav-links"></ul>
-          </nav>
-
-          <div className="header-actions">
-            {/* Fallback Font Cycler button */}
-            <button
-              className="theme-toggle-btn"
-              style={{ 
-                margin: 0, 
-                marginRight: '6px', 
-                padding: '0', 
-                fontSize: '14px', 
-                fontWeight: 700, 
-                fontFamily: 'var(--font-body)', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                width: '36px',
-                height: '36px',
-                textTransform: 'none',
-                cursor: 'pointer'
-              }}
-              title="Font: Jakarta (Tap to cycle)"
-              aria-label="Cycle Font Style"
-            >
-              Aa
-            </button>
-
-            {/* Fallback theme toggle button */}
-            <button 
-              className="theme-toggle-btn"
-              aria-label="Toggle Theme"
-              title="Switch Theme"
-              style={{ margin: 0 }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-              <span className="theme-toggle-text">Light Mode</span>
-            </button>
-
-            <button
-              className="hamburger"
-              aria-label="Toggle menu"
-            >
-              <span></span>
-              <span></span>
-              <span></span>
-            </button>
-          </div>
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header className="header">
@@ -500,8 +452,6 @@ export default function Header() {
         {/* Desktop Navigation */}
         <nav className="desktop-nav">
           <ul className="nav-links">
-            {mounted && (
-              <>
             <li>
               <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`}>
                 Home
@@ -555,7 +505,7 @@ export default function Header() {
                 }}>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=instant" : "/#banks"} 
+                      href="/banks/instant" 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -572,7 +522,7 @@ export default function Header() {
                   </li>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=salary" : "/#banks"} 
+                      href="/banks/salary" 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -589,7 +539,7 @@ export default function Header() {
                   </li>
                   <li>
                     <Link 
-                      href={user ? "/banks?category=business" : "/#banks"} 
+                      href="/banks/business" 
                       className="dropdown-item" 
                       onClick={() => setLoansDropdownOpen(false)}
                       style={{
@@ -608,11 +558,21 @@ export default function Header() {
               )}
             </li>
 
+            {/* Banks */}
+            <li>
+              <Link 
+                href="/banks" 
+                className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`}
+              >
+                Banks
+              </Link>
+            </li>
+
             {/* Credit Cards */}
             <li>
               <Link 
-                href={user ? '/credit-cards' : '/#home-credit-cards'} 
-                className={`nav-link ${isLinkActive(user ? '/credit-cards' : '/#home-credit-cards') ? 'active' : ''}`}
+                href="/credit-cards" 
+                className={`nav-link ${isLinkActive('/credit-cards') ? 'active' : ''}`}
               >
                 Credit Cards
               </Link>
@@ -623,7 +583,7 @@ export default function Header() {
               </Link>
             </li>
             <li>
-              <Link href="/#emi-calculator" className="nav-link">
+              <Link href="/emi-calculator" className={`nav-link ${isLinkActive('/emi-calculator') ? 'active' : ''}`}>
                 EMI Calculator
               </Link>
             </li>
@@ -649,19 +609,13 @@ export default function Header() {
             </li>
             {user ? (
               <>
-                {(userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
-                <li>
-                  <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`}>
-                    Banks
-                  </Link>
-                </li>
-                )}
+                {/* Hidden banks from here as it is public now */}
                 <li>
                   <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`}>
                     Dashboard
                   </Link>
                 </li>
-                {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
+                {isAdminEmail(user.email) && ( // Security (F5): uses env var
                   <li>
                     <Link href="/admin" className={`nav-link ${isLinkActive('/admin') ? 'active' : ''}`} style={{ color: 'var(--color-success)', fontWeight: 600 }}>
                       Admin Panel
@@ -676,18 +630,12 @@ export default function Header() {
               </>
             ) : (
               <>
-                <li>
-                  <Link href="/#banks" className="nav-link">
-                    Banks
-                  </Link>
-                </li>
+                {/* Hidden duplicate banks link from here */}
                 <li>
                   <Link href="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: '8px' }}>
                     Sign In
                   </Link>
                 </li>
-              </>
-            )}
               </>
             )}
           </ul>
@@ -739,7 +687,7 @@ export default function Header() {
                       <div className="profile-dropdown-name">{userProfile?.full_name || 'User'}</div>
                       <div className="profile-dropdown-phone">{userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}</div>
                       <div className="profile-dropdown-role-badge">
-                        {userRole === 'agent' ? 'Agent' : (user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') ? 'Admin' : 'Client'}
+                        {userRole === 'agent' ? 'Agent' : isAdminEmail(user.email) ? 'Admin' : 'Client'} {/* Security (F5) */}
                       </div>
                     </div>
                   </div>
@@ -761,7 +709,7 @@ export default function Header() {
                       Dashboard
                     </Link>
                     
-                    {(user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') && (
+                    {isAdminEmail(user.email) && ( // Security (F5): uses env var
                       <Link 
                         href="/admin" 
                         className="profile-dropdown-item-link admin-link"
@@ -891,7 +839,7 @@ export default function Header() {
 
           {/* Font Cycler Button */}
           <button
-            onClick={cycleFont}
+            onClick={mounted ? cycleFont : undefined}
             className="theme-toggle-btn nav-font-cycler"
             style={{ 
               margin: 0, 
@@ -909,14 +857,14 @@ export default function Header() {
               cursor: 'pointer',
               flexShrink: 0
             }}
-            title={`Font: ${userFont} (Tap to cycle)`}
+            title={mounted ? `Font: ${userFont} (Tap to cycle)` : "Font: Jakarta (Tap to cycle)"}
             aria-label="Cycle Font Style"
           >
             Aa
           </button>
 
           <button 
-            onClick={toggleTheme} 
+            onClick={mounted ? toggleTheme : undefined} 
             className="theme-toggle-btn nav-theme-toggle"
             aria-label="Toggle Theme"
             title={mounted ? (theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode') : 'Switch Theme'}
@@ -952,8 +900,8 @@ export default function Header() {
           </button>
 
           <button
-            className={`hamburger ${menuOpen ? 'active' : ''}`}
-            onClick={toggleMenu}
+            className={`hamburger ${mounted && menuOpen ? 'active' : ''}`}
+            onClick={mounted ? toggleMenu : undefined}
             aria-label="Toggle menu"
             style={{ flexShrink: 0, marginLeft: '2px' }}
           >
@@ -965,39 +913,37 @@ export default function Header() {
       </div>
 
       {/* Mobile Menu Backdrop */}
-      {menuOpen && (
+      {mounted && menuOpen && (
         <div className="mobile-menu-backdrop" onClick={closeMenu} />
       )}
 
       {/* Mobile Menu */}
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        {mounted && (
-          <>
-          {user && (
-            <Link href="/dashboard?tab=profile" onClick={closeMenu} style={{ textDecoration: 'none', display: 'block', color: 'inherit' }}>
-              <div className="mobile-profile-card" style={{ cursor: 'pointer' }}>
-                <div className="mobile-profile-avatar">
-                  {userProfile?.avatar ? (
-                    <img src={userProfile.avatar} alt="Avatar" />
-                  ) : (
-                    getInitials(userProfile, user)
-                  )}
-                </div>
-                <div className="mobile-profile-details">
-                  <div className="mobile-profile-name">{userProfile?.full_name || 'User'}</div>
-                  <div className="mobile-profile-phone" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                    {userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}
-                  </div>
-                  <span className="mobile-profile-role-badge">
-                    {userRole === 'agent' ? 'Agent' : (user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') ? 'Admin' : 'Client'}
-                  </span>
-                </div>
+      <div className={`mobile-menu ${mounted && menuOpen ? 'open' : ''}`}>
+        {user && (
+          <Link href="/dashboard?tab=profile" onClick={closeMenu} style={{ textDecoration: 'none', display: 'block', color: 'inherit' }}>
+            <div className="mobile-profile-card" style={{ cursor: 'pointer' }}>
+              <div className="mobile-profile-avatar">
+                {userProfile?.avatar ? (
+                  <img src={userProfile.avatar} alt="Avatar" />
+                ) : (
+                  getInitials(userProfile, user)
+                )}
               </div>
-            </Link>
-          )}
-          <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`} onClick={closeMenu}>
-            Home
+              <div className="mobile-profile-details">
+                <div className="mobile-profile-name">{userProfile?.full_name || 'User'}</div>
+                <div className="mobile-profile-phone" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                  {userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}
+                </div>
+                <span className="mobile-profile-role-badge">
+                  {userRole === 'agent' ? 'Agent' : (user.email === 'handtohandloans@gmail.com' || user.email === 'utkrashtkumar@gmail.com') ? 'Admin' : 'Client'}
+                </span>
+              </div>
+            </div>
           </Link>
+        )}
+        <Link href="/" className={`nav-link ${isLinkActive('/') ? 'active' : ''}`} onClick={closeMenu}>
+          Home
+        </Link>
         
         {/* Mobile Loans Dropdown (Accordion) */}
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '4px 0' }}>
@@ -1030,13 +976,13 @@ export default function Header() {
               background: 'none',
               padding: '4px 0'
             }}>
-              <Link href={user ? "/banks?category=instant" : "/#banks"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href="/banks/instant" className="mobile-dropdown-item" onClick={closeMenu}>
                 Instant Loan
               </Link>
-              <Link href={user ? "/banks?category=salary" : "/#banks"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href="/banks/salary" className="mobile-dropdown-item" onClick={closeMenu}>
                 Salary Loan
               </Link>
-              <Link href={user ? "/banks?category=business" : "/#banks"} className="mobile-dropdown-item" onClick={closeMenu}>
+              <Link href="/banks/business" className="mobile-dropdown-item" onClick={closeMenu}>
                 Business Loan
               </Link>
             </div>
@@ -1044,15 +990,9 @@ export default function Header() {
         </div>
 
         {/* Mobile Credit Cards */}
-        {user ? (
-          <Link href="/credit-cards" className={`nav-link ${isLinkActive('/credit-cards') ? 'active' : ''}`} onClick={closeMenu}>
-            Credit Cards
-          </Link>
-        ) : (
-          <Link href="/#home-credit-cards" className="nav-link" onClick={closeMenu}>
-            Credit Cards
-          </Link>
-        )}
+        <Link href="/credit-cards" className={`nav-link ${isLinkActive('/credit-cards') ? 'active' : ''}`} onClick={closeMenu}>
+          Credit Cards
+        </Link>
         <Link href="/check" className={`nav-link ${isLinkActive('/check') ? 'active' : ''}`} onClick={closeMenu}>
           Check Eligibility
         </Link>
@@ -1067,18 +1007,10 @@ export default function Header() {
         >
           Check CIBIL Score <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-text-tertiary)' }}>(PNB Partnership)</span>
         </Link>
-        {user ? (
-          (userRole === 'agent' || userRole === 'user' || user.email === 'handtohandloans@gmail.com') && (
-            <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} onClick={closeMenu}>
-              Banks
-            </Link>
-          )
-        ) : (
-          <Link href="/#banks" className="nav-link" onClick={closeMenu}>
-            Banks
-          </Link>
-        )}
-        <Link href="/#emi-calculator" className="nav-link" onClick={closeMenu}>
+        <Link href="/banks" className={`nav-link ${isLinkActive('/banks') ? 'active' : ''}`} onClick={closeMenu}>
+          Banks
+        </Link>
+        <Link href="/emi-calculator" className={`nav-link ${isLinkActive('/emi-calculator') ? 'active' : ''}`} onClick={closeMenu}>
           EMI Calculator
         </Link>
         <Link href="/verify-agreement" className={`nav-link ${isLinkActive('/verify-agreement') ? 'active' : ''}`} onClick={closeMenu}>
@@ -1113,7 +1045,7 @@ export default function Header() {
             {['Jakarta', 'Inter', 'Poppins', 'Outfit', 'Lora', 'Playfair', 'JetBrains'].map((font) => (
               <button
                 key={font}
-                onClick={() => changeFont(font)}
+                onClick={mounted ? () => changeFont(font) : undefined}
                 style={{
                   padding: '5px 12px',
                   borderRadius: '20px',
@@ -1131,8 +1063,6 @@ export default function Header() {
             ))}
           </div>
         </div>
-          </>
-        )}
       </div>
 
       {/* Global Applied/Not Applied Return Popup */}

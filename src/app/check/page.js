@@ -132,9 +132,10 @@ export default function CheckPage() {
         setUser(session.user);
 
         // Retrieve role/agent status
+        // Security (F13): Only fetch fields needed — avoids sending full KYC data to browser.
         const { data: profile } = await supabase
           .from('profiles')
-          .select('*')
+          .select('role, approved, phone, agent_code')
           .eq('id', session.user.id)
           .single();
         if (profile) {
@@ -306,10 +307,13 @@ export default function CheckPage() {
         };
         localStorage.setItem('pending_bank_application', JSON.stringify(pendingData));
         setApplySuccess(`Opening portal link in a new tab...`);
-        window.open(affiliateLink, '_blank');
+        // Security (F3): 'noopener,noreferrer' prevents reverse tabnapping — the opened
+        // affiliate site cannot access window.opener to hijack the parent tab.
+        window.open(affiliateLink, '_blank', 'noopener,noreferrer');
       } else {
         // No link -> Offline application, insert immediately
-        const uniqueAppId = `H2H-APP-${Math.floor(100000 + Math.random() * 900000)}`;
+        // Security (F4): Use crypto.randomUUID() — unpredictable, no collisions.
+        const uniqueAppId = `H2H-APP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
         const { error } = await supabase.from('applications').insert({
           agent_id: user.id,
           client_name: clientName.trim(),
@@ -321,6 +325,8 @@ export default function CheckPage() {
           commission_amount: Number(loanAmount) * 0.02,
           status: 'Applied',
           application_id: uniqueAppId
+          // Security (F3): commission_rate and commission_amount are enforced by DB trigger.
+          // Client-supplied values are ignored — see supabase_rls_policies.sql.
         });
 
         if (error) {
@@ -669,6 +675,112 @@ export default function CheckPage() {
                   </p>
                 </div>
 
+                {/* Category Selection Panel at top */}
+                <div style={{
+                  background: 'var(--color-bg-card)',
+                  border: 'var(--border-light)',
+                  borderRadius: 'var(--border-radius-lg)',
+                  padding: '24px',
+                  backdropFilter: 'blur(20px)',
+                  display: 'grid',
+                  gap: '16px',
+                  maxWidth: '720px',
+                  width: '100%',
+                  margin: '0 auto'
+                }}>
+                  <label className="input-label" style={{ textAlign: 'center', fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
+                    Select Loan Category <span className="required">*</span>
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    justifyContent: 'center',
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateField('employmentType', 'salaried');
+                        updateField('loanType', 'PL');
+                      }}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '999px',
+                        border: formData.employmentType === 'salaried' ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                        background: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-bg-input)',
+                        color: formData.employmentType === 'salaried' ? '#ffffff' : 'var(--color-text-secondary)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: 'var(--text-xs)',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>💼</span>
+                      <span>Salary Loan</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateField('employmentType', 'self_employed');
+                        updateField('loanType', 'PL');
+                      }}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '999px',
+                        border: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                        background: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? 'var(--color-primary)' : 'var(--color-bg-input)',
+                        color: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? '#ffffff' : 'var(--color-text-secondary)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: 'var(--text-xs)',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>⚡</span>
+                      <span>Instant Loan</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateField('employmentType', 'self_employed');
+                        updateField('loanType', 'BL');
+                      }}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '999px',
+                        border: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? '2px solid var(--color-primary)' : 'var(--border-light)',
+                        background: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? 'var(--color-primary)' : 'var(--color-bg-input)',
+                        color: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? '#ffffff' : 'var(--color-text-secondary)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: 'var(--text-xs)',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>🏢</span>
+                      <span>Business Loan</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* 3-Column Inputs Layout */}
                 <div style={{
                   display: 'grid',
@@ -814,89 +926,6 @@ export default function CheckPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', borderBottom: 'var(--border-subtle)', paddingBottom: '12px' }}>
                       <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyText: 'center', justifyContent: 'center', fontWeight: 600 }}>3</span>
                       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Financial profile</h2>
-                    </div>
-                    {/* Employment Type Toggle */}
-                    <div className="input-group">
-                      <label className="input-label">Employment Type <span className="required">*</span></label>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                        gap: '12px',
-                        marginTop: '4px'
-                      }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateField('employmentType', 'salaried');
-                            updateField('loanType', 'PL');
-                          }}
-                          style={{
-                            padding: '14px 16px',
-                            borderRadius: 'var(--border-radius-md)',
-                            border: formData.employmentType === 'salaried' ? '2px solid var(--color-primary)' : 'var(--border-light)',
-                            background: formData.employmentType === 'salaried' ? 'var(--color-primary)' : 'var(--color-bg-input)',
-                            color: formData.employmentType === 'salaried' ? '#ffffff' : 'var(--color-text-secondary)',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                          }}
-                        >
-                          Salary Loan
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateField('employmentType', 'self_employed');
-                            updateField('loanType', 'PL');
-                          }}
-                          style={{
-                            padding: '14px 16px',
-                            borderRadius: 'var(--border-radius-md)',
-                            border: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? '2px solid var(--color-primary)' : 'var(--border-light)',
-                            background: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? 'var(--color-primary)' : 'var(--color-bg-input)',
-                            color: (formData.employmentType === 'self_employed' && formData.loanType === 'PL') ? '#ffffff' : 'var(--color-text-secondary)',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                          }}
-                        >
-                          Instant Loan
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateField('employmentType', 'self_employed');
-                            updateField('loanType', 'BL');
-                          }}
-                          style={{
-                            padding: '14px 16px',
-                            borderRadius: 'var(--border-radius-md)',
-                            border: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? '2px solid var(--color-primary)' : 'var(--border-light)',
-                            background: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? 'var(--color-primary)' : 'var(--color-bg-input)',
-                            color: (formData.employmentType === 'self_employed' && formData.loanType === 'BL') ? '#ffffff' : 'var(--color-text-secondary)',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                          }}
-                        >
-                          Business Loan
-                        </button>
-                      </div>
                     </div>
 
                     {formData.employmentType === 'salaried' && (

@@ -1,7 +1,22 @@
 import { NextResponse } from 'next/server';
 
+// Allowlist of valid action values to prevent injection
+const VALID_ACTIONS = ['approved', 'rejected'];
+
 export async function POST(request) {
   try {
+    // ── Security: verify internal shared secret ──────────────────────────────
+    const internalSecret = process.env.NEXT_PUBLIC_INTERNAL_API_SECRET;
+    if (!internalSecret) {
+      console.error('INTERNAL_API_SECRET is not configured — route is unprotected.');
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+    const callerToken = request.headers.get('x-internal-token');
+    if (!callerToken || callerToken !== internalSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const { agentName, agentEmail, action, reason } = await request.json();
 
     if (!agentEmail || !agentName || !action) {
@@ -10,6 +25,15 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    // ── Security: validate action against allowlist ───────────────────────────
+    if (!VALID_ACTIONS.includes(action)) {
+      return NextResponse.json(
+        { error: 'Invalid action value' },
+        { status: 400 }
+      );
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const resendApiKey = process.env.RESEND_API_KEY;
     if (!resendApiKey) {
@@ -20,8 +44,23 @@ export async function POST(request) {
       );
     }
 
-    const origin = request.headers.get('origin') || 'https://handtohandloans.com';
-    const loginUrl = `${origin}/login`;
+    // Security (F7): Build loginUrl from env var, not the spoofable 'Origin' request header.
+    // If an attacker knows the internal token, they could set Origin: https://evil.com
+    // causing approval emails to link to a phishing site.
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://handtohandloans.in';
+    const loginUrl = `${appOrigin}/login`;
+
+    // Security (F6): HTML-encode values that come from the database before injecting into email HTML.
+    // Prevents email HTML injection if an agent registers with a name like <script>...</script>.
+    const escapeHtml = (str) => String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const safeAgentName = escapeHtml(agentName);
+    const safeReason = escapeHtml(reason || 'No specific reason provided.');
 
     let subject = '';
     let html = '';
@@ -108,7 +147,7 @@ export async function POST(request) {
                 <tr>
                   <td align="center" style="padding-bottom:14px;">
                     <h1 style="margin:0;font-size:22px;font-weight:700;color:#f8fafc;letter-spacing:-0.3px;line-height:30px;">
-                      Welcome Aboard, ${agentName}!
+                      Welcome Aboard, ${safeAgentName}!
                     </h1>
                   </td>
                 </tr>
@@ -287,7 +326,7 @@ export async function POST(request) {
                   <td style="background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:18px;margin-bottom:32px;">
                     <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;color:#f87171;letter-spacing:0.8px;">Reason for Rejection:</p>
                     <p style="margin:0;font-size:13px;line-height:1.6;color:#fca5a5;">
-                      ${reason || 'No specific reason provided.'}
+                      ${safeReason}
                     </p>
                   </td>
                 </tr>
@@ -358,7 +397,7 @@ export async function POST(request) {
     } else {
       sender = 'HandToHand Loans <noreply@handtohandloans.in>';
     }
-    console.log(`Attempting to send email to ${agentEmail} from ${sender}...`);
+    // Internal routing info intentionally not logged in production
 
     let response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -375,7 +414,6 @@ export async function POST(request) {
     });
 
     let data = await response.json();
-    console.log('Resend first attempt result:', data);
 
     // Fallback: If the domain is not verified yet, send from onboarding@resend.dev
     if (!response.ok && data.message && (data.message.toLowerCase().includes('domain') || data.message.toLowerCase().includes('permission'))) {
@@ -396,7 +434,6 @@ export async function POST(request) {
         })
       });
       data = await response.json();
-      console.log('Resend fallback attempt result:', data);
     }
 
     if (!response.ok) {
@@ -410,7 +447,8 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error in agent-approval email route:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      // Security (F4): Return generic message — never expose internal error.message to callers.
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

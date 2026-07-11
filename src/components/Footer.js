@@ -408,11 +408,15 @@ export default function Footer() {
               Quick Links
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: 'var(--text-xs)' }}>
-              <li><Link href="/#about" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>About Us</Link></li>
+              <li><Link href="/about" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>About Us</Link></li>
               <li><Link href="/signup?role=agent" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>DSA Program</Link></li>
               <li><Link href="/check" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Loan Products</Link></li>
+              <li><Link href="/banks" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Partner Banks</Link></li>
+              <li><Link href="/credit-cards" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Credit Cards</Link></li>
+              <li><Link href="/verify-agreement" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Verify Agreement</Link></li>
+              <li><Link href="/emi-calculator" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>EMI Calculator</Link></li>
               <li><Link href="/blog" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Blog</Link></li>
-              <li><Link href="/#contact" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Contact Us</Link></li>
+              <li><Link href="/contact" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}>Contact Us</Link></li>
             </ul>
           </div>
 
@@ -460,8 +464,8 @@ export default function Footer() {
                   </svg>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <a href="mailto:support@handtohandloans.com" style={{ color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)', fontWeight: 700, textDecoration: 'none', wordBreak: 'break-all' }}>
-                    support@handtohandloans.com
+                  <a href="mailto:support@handtohandloans.in" style={{ color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)', fontWeight: 700, textDecoration: 'none', wordBreak: 'break-all' }}>
+                    support@handtohandloans.in
                   </a>
                   <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                     Replies within 24h
