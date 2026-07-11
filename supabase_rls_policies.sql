@@ -420,12 +420,13 @@ CREATE POLICY "regen: agent inserts own"
 
 -- Agents can only mark their own request as 'resolved' (after re-signing)
 -- Admins use the admin updates policy which has no status restriction
+-- Note: In RLS WITH CHECK, column names reference the new row directly (no NEW. prefix)
 CREATE POLICY "regen: agent updates own"
   ON public.agreement_regen_requests FOR UPDATE
   USING (agent_id = auth.uid())
   WITH CHECK (
     agent_id = auth.uid()
-    AND NEW.status = 'resolved'
+    AND status = 'resolved'
   );
 
 CREATE POLICY "regen: admin updates all"
