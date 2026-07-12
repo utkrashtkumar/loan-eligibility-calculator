@@ -1303,8 +1303,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function authenticateAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
-      if (!session || !adminEmails.includes(session.user.email)) {
+      if (!session) {
+        router.push('/admin/login');
+        return;
+      }
+
+      // Fetch profile to verify admin role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile || profile.role !== 'admin') {
         router.push('/admin/login');
       } else {
         await fetchAllData();

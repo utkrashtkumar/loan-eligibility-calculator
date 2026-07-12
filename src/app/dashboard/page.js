@@ -240,6 +240,7 @@ export default function UserDashboard() {
   // Normal User inquiries
   const [inquiries, setInquiries] = useState([]);
   const [policies, setPolicies] = useState([]);
+  const [secureCredentials, setSecureCredentials] = useState({});
 
   // Agent Specific Data
   const [activeTab, setActiveTab] = useState(() => {
@@ -703,8 +704,8 @@ export default function UserDashboard() {
         setUser(session.user);
 
         // Fetch bank policies for resolving logos in real time
-        // Security: portal_password is intentionally excluded — bank credentials must not reach the browser.
-        const { data: polData } = await supabase.from('bank_policies').select('bank_name, logo_url, apply_url, portal_username, direct_submit, policy_pdf');
+        // Security: portal_password and portal_username are intentionally excluded — bank credentials must not reach the browser.
+        const { data: polData } = await supabase.from('bank_policies').select('id, bank_name, logo_url, apply_url, direct_submit, policy_pdf');
         if (polData) setPolicies(polData);
 
         // Fetch profile to determine role
@@ -735,6 +736,23 @@ export default function UserDashboard() {
             await supabase.auth.signOut();
             router.push('/login?error=pending');
             return;
+          }
+
+          // Fetch secure portal credentials if the user is verified agent/admin
+          if (prof.role === 'agent' || prof.role === 'admin') {
+            try {
+              const credsRes = await fetch('/api/agent/credentials', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              });
+              if (credsRes.ok) {
+                const credsData = await credsRes.json();
+                setSecureCredentials(credsData.credentials || {});
+              }
+            } catch (credsErr) {
+              console.error('Error fetching secure bank credentials:', credsErr);
+            }
           }
           setProfileFormData({
             full_name: prof.full_name || '',
@@ -4826,7 +4844,7 @@ export default function UserDashboard() {
           const matchedPolicy = policies.find(p => p.bank_name.toUpperCase().replace(/\(BL\)/g, '').trim() === selectedApplication.bank_name?.toUpperCase().replace(/\(BL\)/g, '').trim());
           const appLink = matchedPolicy?.direct_submit
             ? null
-            : (matchedPolicy?.apply_url || getAffiliateLink(selectedApplication.bank_name, selectedApplication.loan_type));
+            : (secureCredentials[matchedPolicy?.id]?.apply_url || matchedPolicy?.apply_url || getAffiliateLink(selectedApplication.bank_name, selectedApplication.loan_type));
           const isFinalStatus = ['disbursed', 'rejected'].includes(selectedApplication.status?.toLowerCase());
 
           return (
@@ -4933,8 +4951,8 @@ export default function UserDashboard() {
                   const isFinnable = selectedApplication.bank_name?.toUpperCase()?.includes('FINNABLE');
                   const isIncred = selectedApplication.bank_name?.toUpperCase()?.includes('INCRED');
                   
-                  let username = matchedPolicy?.portal_username || '';
-                  let password = matchedPolicy?.portal_password || '';
+                  let username = secureCredentials[matchedPolicy?.id]?.portal_username || '';
+                  let password = secureCredentials[matchedPolicy?.id]?.portal_password || '';
                   
                   if (!username && isFinnable) username = '9389119399';
                   if (!password && isFinnable) password = 'Call 9389119399 (OTP Support)';

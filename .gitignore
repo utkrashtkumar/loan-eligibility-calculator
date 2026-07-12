@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# scratch / debug scripts
+src/app/admin/scratch/
+/scratch/
+
