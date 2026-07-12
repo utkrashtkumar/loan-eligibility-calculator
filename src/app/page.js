@@ -80,7 +80,7 @@ export default function Home() {
         return;
       }
       const script = document.createElement('script');
-      script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+      script.src = "/html5-qrcode.min.js";
       script.async = true;
       script.onload = () => resolve(window.Html5Qrcode);
       script.onerror = (e) => reject(e);

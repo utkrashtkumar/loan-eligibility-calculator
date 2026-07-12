@@ -7352,27 +7352,83 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File</div>
-                    {selectedAgent.id_file ? (
-                      selectedAgent.id_file.startsWith('data:application/pdf') || !selectedAgent.id_file.startsWith('data:image/') ? (
-                        <a
-                          href={selectedAgent.id_file}
-                          download={`identity-${selectedAgent.id_type || 'verification'}`}
-                          className="btn btn-secondary btn-sm"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                          </svg>
-                          View / Download Identity Proof PDF
-                        </a>
-                      ) : (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={selectedAgent.id_file} alt="ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
-                      )
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File(s)</div>
+                    {selectedAgent.id_type === 'Aadhaar Card' ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                        {/* Front / Combined File */}
+                        <div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Front Image / Combined File:</div>
+                          {selectedAgent.id_file ? (
+                            selectedAgent.id_file.startsWith('data:application/pdf') || !selectedAgent.id_file.startsWith('data:image/') ? (
+                              <a
+                                href={selectedAgent.id_file}
+                                download={`aadhar-front-${selectedAgent.full_name || 'agent'}`}
+                                className="btn btn-secondary btn-sm"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                View / Download Front
+                              </a>
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={selectedAgent.id_file} alt="Aadhaar Front" style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)', objectFit: 'contain' }} />
+                            )
+                          ) : (
+                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                          )}
+                        </div>
+
+                        {/* Back File */}
+                        <div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Back Image (Optional):</div>
+                          {selectedAgent.id_file_back ? (
+                            selectedAgent.id_file_back.startsWith('data:application/pdf') || !selectedAgent.id_file_back.startsWith('data:image/') ? (
+                              <a
+                                href={selectedAgent.id_file_back}
+                                download={`aadhar-back-${selectedAgent.full_name || 'agent'}`}
+                                className="btn btn-secondary btn-sm"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                View / Download Back
+                              </a>
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={selectedAgent.id_file_back} alt="Aadhaar Back" style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)', objectFit: 'contain' }} />
+                            )
+                          ) : (
+                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Not uploaded (Back is optional/combined)</span>
+                          )}
+                        </div>
+                      </div>
                     ) : (
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                      selectedAgent.id_file ? (
+                        selectedAgent.id_file.startsWith('data:application/pdf') || !selectedAgent.id_file.startsWith('data:image/') ? (
+                          <a
+                            href={selectedAgent.id_file}
+                            download={`identity-${selectedAgent.id_type || 'verification'}`}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                            View / Download Identity Proof PDF
+                          </a>
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={selectedAgent.id_file} alt="ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                        )
+                      ) : (
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                      )
                     )}
                   </div>
 
@@ -7390,27 +7446,83 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File</div>
-                      {selectedAgent.id_file_2 ? (
-                        selectedAgent.id_file_2.startsWith('data:application/pdf') || !selectedAgent.id_file_2.startsWith('data:image/') ? (
-                          <a
-                            href={selectedAgent.id_file_2}
-                            download={`secondary-identity-${selectedAgent.id_type_2 || 'verification'}`}
-                            className="btn btn-secondary btn-sm"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                            </svg>
-                            View / Download Secondary Identity Proof PDF
-                          </a>
-                        ) : (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={selectedAgent.id_file_2} alt="Secondary ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
-                        )
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginBottom: '8px' }}>Identity Document File(s)</div>
+                      {selectedAgent.id_type_2 === 'Aadhaar Card' ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                          {/* Front / Combined File */}
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Front Image / Combined File:</div>
+                            {selectedAgent.id_file_2 ? (
+                              selectedAgent.id_file_2.startsWith('data:application/pdf') || !selectedAgent.id_file_2.startsWith('data:image/') ? (
+                                <a
+                                  href={selectedAgent.id_file_2}
+                                  download={`aadhar-2-front-${selectedAgent.full_name || 'agent'}`}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                  </svg>
+                                  View / Download Front
+                                </a>
+                              ) : (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={selectedAgent.id_file_2} alt="Aadhaar 2 Front" style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)', objectFit: 'contain' }} />
+                              )
+                            ) : (
+                              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                            )}
+                          </div>
+
+                          {/* Back File */}
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Back Image (Optional):</div>
+                            {selectedAgent.id_file_2_back ? (
+                              selectedAgent.id_file_2_back.startsWith('data:application/pdf') || !selectedAgent.id_file_2_back.startsWith('data:image/') ? (
+                                <a
+                                  href={selectedAgent.id_file_2_back}
+                                  download={`aadhar-2-back-${selectedAgent.full_name || 'agent'}`}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                  </svg>
+                                  View / Download Back
+                                </a>
+                              ) : (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={selectedAgent.id_file_2_back} alt="Aadhaar 2 Back" style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)', objectFit: 'contain' }} />
+                              )
+                            ) : (
+                              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Not uploaded (Back is optional/combined)</span>
+                            )}
+                          </div>
+                        </div>
                       ) : (
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                        selectedAgent.id_file_2 ? (
+                          selectedAgent.id_file_2.startsWith('data:application/pdf') || !selectedAgent.id_file_2.startsWith('data:image/') ? (
+                            <a
+                              href={selectedAgent.id_file_2}
+                              download={`secondary-identity-${selectedAgent.id_type_2 || 'verification'}`}
+                              className="btn btn-secondary btn-sm"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                              View / Download Secondary Identity Proof PDF
+                            </a>
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={selectedAgent.id_file_2} alt="Secondary ID Verification" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                          )
+                        ) : (
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>No document uploaded</span>
+                        )
                       )}
                     </div>
                   </div>

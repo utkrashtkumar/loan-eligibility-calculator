@@ -18,7 +18,7 @@ const securityHeaders = [
   {
     // Restrict access to browser features not used by this app
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), payment=()',
+    value: 'camera=(self), microphone=(), geolocation=(), payment=()',
   },
   {
     // Enforce HTTPS for 1 year (only effective on HTTPS deployments)

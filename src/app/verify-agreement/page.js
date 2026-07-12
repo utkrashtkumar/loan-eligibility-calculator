@@ -36,12 +36,8 @@ function VerifyAgreementContent() {
         return;
       }
       const script = document.createElement('script');
-      script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+      script.src = "/html5-qrcode.min.js";
       script.async = true;
-      // Security (F10): Subresource Integrity hash prevents CDN supply chain attacks.
-      // If the file is tampered, the browser will refuse to execute it.
-      script.integrity = "sha384-c9d8RFSL+u3exBOJ4Yp3HUJXS4znl9f+z66d1y54ig+ea249SpqR+w1wyvXz/lk+";
-      script.crossOrigin = "anonymous";
       script.onload = () => resolve(window.Html5Qrcode);
       script.onerror = (e) => reject(e);
       document.body.appendChild(script);

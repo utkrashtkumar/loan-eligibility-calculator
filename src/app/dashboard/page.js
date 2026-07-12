@@ -322,9 +322,11 @@ export default function UserDashboard() {
     id_type: '',
     id_number: '',
     id_file: '',
+    id_file_back: '',
     id_type_2: '',
     id_number_2: '',
     id_file_2: '',
+    id_file_2_back: '',
     selfie: '',
     cancelled_cheque: '',
     bank_holder_name: '',
@@ -770,9 +772,11 @@ export default function UserDashboard() {
             id_type: prof.id_type || '',
             id_number: prof.id_number || '',
             id_file: prof.id_file || '',
+            id_file_back: prof.id_file_back || '',
             id_type_2: prof.id_type_2 || '',
             id_number_2: prof.id_number_2 || '',
             id_file_2: prof.id_file_2 || '',
+            id_file_2_back: prof.id_file_2_back || '',
             selfie: prof.selfie || '',
             cancelled_cheque: prof.cancelled_cheque || '',
             bank_holder_name: prof.bank_holder_name || '',
@@ -1055,6 +1059,28 @@ export default function UserDashboard() {
     }
   };
 
+  const handleIdFileBackChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setProfileSuccess('');
+      setProfileError('');
+      if (file.type === 'application/pdf') {
+        const base64 = await processPdf(file);
+        setProfileFormData(prev => ({ ...prev, id_file_back: base64 }));
+      } else if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        setProfileFormData(prev => ({ ...prev, id_file_back: base64 }));
+      } else {
+        alert('Please upload a valid JPEG/PNG image or PDF document.');
+        setProfileError('Please upload a valid JPEG/PNG image or PDF document.');
+      }
+    } catch (err) {
+      alert(err.message);
+      setProfileError(err.message);
+    }
+  };
+
   const handleIdFile2Change = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1067,6 +1093,28 @@ export default function UserDashboard() {
       } else if (file.type.startsWith('image/')) {
         const base64 = await compressImage(file);
         setProfileFormData(prev => ({ ...prev, id_file_2: base64 }));
+      } else {
+        alert('Please upload a valid JPEG/PNG image or PDF document.');
+        setProfileError('Please upload a valid JPEG/PNG image or PDF document.');
+      }
+    } catch (err) {
+      alert(err.message);
+      setProfileError(err.message);
+    }
+  };
+
+  const handleIdFile2BackChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setProfileSuccess('');
+      setProfileError('');
+      if (file.type === 'application/pdf') {
+        const base64 = await processPdf(file);
+        setProfileFormData(prev => ({ ...prev, id_file_2_back: base64 }));
+      } else if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        setProfileFormData(prev => ({ ...prev, id_file_2_back: base64 }));
       } else {
         alert('Please upload a valid JPEG/PNG image or PDF document.');
         setProfileError('Please upload a valid JPEG/PNG image or PDF document.');
@@ -1183,9 +1231,11 @@ export default function UserDashboard() {
           id_type: profileFormData.id_type,
           id_number: profileFormData.id_number,
           id_file: profileFormData.id_file,
+          id_file_back: profileFormData.id_file_back,
           id_type_2: profileFormData.id_type_2,
           id_number_2: profileFormData.id_number_2,
           id_file_2: profileFormData.id_file_2,
+          id_file_2_back: profileFormData.id_file_2_back,
           selfie: profileFormData.selfie,
           cancelled_cheque: profileFormData.cancelled_cheque,
           bank_holder_name: profileFormData.bank_holder_name,
@@ -2573,10 +2623,10 @@ export default function UserDashboard() {
                                         disabled={profile?.profile_locked}
                                       >
                                         <option value="">Select ID Type</option>
-                                        <option value="Aadhaar Card">Aadhaar Card</option>
-                                        <option value="PAN Card">PAN Card</option>
-                                        <option value="Passport">Passport</option>
-                                        <option value="Voter ID Card">Voter ID Card</option>
+                                        <option value="Aadhaar Card" disabled={profileFormData.id_type_2 === 'Aadhaar Card'}>Aadhaar Card</option>
+                                        <option value="PAN Card" disabled={profileFormData.id_type_2 === 'PAN Card'}>PAN Card</option>
+                                        <option value="Passport" disabled={profileFormData.id_type_2 === 'Passport'}>Passport</option>
+                                        <option value="Voter ID Card" disabled={profileFormData.id_type_2 === 'Voter ID Card'}>Voter ID Card</option>
                                       </select>
                                     </div>
                                     <div className="input-group">
@@ -2592,35 +2642,103 @@ export default function UserDashboard() {
                                       />
                                     </div>
                                   </div>
-                                  <div className="input-group">
-                                    <label className="input-label">Identity Document File (PDF or Image) <span style={{ color: 'var(--color-error)' }}>*</span></label>
-                                    <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFileChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
-                                    <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
-                                    {profileFormData.id_file && (
-                                      <div style={{ marginTop: '8px' }}>
-                                        {profileFormData.id_file.startsWith('data:application/pdf') || !profileFormData.id_file.startsWith('data:image/') ? (
-                                          <a
-                                            href={profileFormData.id_file}
-                                            download={`identity-document-1-${profileFormData.id_type || 'proof'}`}
-                                            className="btn btn-secondary btn-sm"
-                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                                          >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
-                                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                              <polyline points="14 2 14 8 20 8" />
-                                            </svg>
-                                            Download / View Uploaded PDF
-                                          </a>
-                                        ) : (
-                                          <div style={{ display: 'grid', gap: '4px' }}>
-                                            <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={profileFormData.id_file} alt="ID Document Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
-                                          </div>
-                                        )}
+                                  {profileFormData.id_type === 'Aadhaar Card' ? (
+                                    <div style={{ display: 'grid', gap: '16px', marginTop: '4px' }}>
+                                      <div style={{ background: 'rgba(255, 255, 255, 0.01)', padding: '12px', borderRadius: 'var(--border-radius-sm)', border: 'var(--border-light)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                                        {/* Aadhaar Front Section */}
+                                        <div className="input-group">
+                                          <label className="input-label" style={{ fontWeight: 600 }}>Upload Front Image (or single image/PDF containing both sides) <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                          <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFileChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                          <p className="input-hint" style={{ marginTop: '4px' }}>JPEG/PNG or PDF. Size limit: 500kb.</p>
+                                          {profileFormData.id_file && (
+                                            <div style={{ marginTop: '8px' }}>
+                                              {profileFormData.id_file.startsWith('data:application/pdf') || !profileFormData.id_file.startsWith('data:image/') ? (
+                                                <a
+                                                  href={profileFormData.id_file}
+                                                  download={`aadhar-front-${profileFormData.id_number || 'card'}`}
+                                                  className="btn btn-secondary btn-sm"
+                                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                >
+                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                    <polyline points="14 2 14 8 20 8" />
+                                                  </svg>
+                                                  Download / View Front Document
+                                                </a>
+                                              ) : (
+                                                <div style={{ display: 'grid', gap: '4px' }}>
+                                                  <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Front Preview / Combined:</span>
+                                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                  <img src={profileFormData.id_file} alt="Aadhaar Front Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Aadhaar Back Section */}
+                                        <div className="input-group">
+                                          <label className="input-label" style={{ fontWeight: 600 }}>Upload Back Image (Optional)</label>
+                                          <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFileBackChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                          <p className="input-hint" style={{ marginTop: '4px' }}>Submit separate back side image. Or leave blank if front file contains both sides.</p>
+                                          {profileFormData.id_file_back && (
+                                            <div style={{ marginTop: '8px' }}>
+                                              {profileFormData.id_file_back.startsWith('data:application/pdf') || !profileFormData.id_file_back.startsWith('data:image/') ? (
+                                                <a
+                                                  href={profileFormData.id_file_back}
+                                                  download={`aadhar-back-${profileFormData.id_number || 'card'}`}
+                                                  className="btn btn-secondary btn-sm"
+                                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                >
+                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                    <polyline points="14 2 14 8 20 8" />
+                                                  </svg>
+                                                  Download / View Back Document
+                                                </a>
+                                              ) : (
+                                                <div style={{ display: 'grid', gap: '4px' }}>
+                                                  <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Back Preview:</span>
+                                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                  <img src={profileFormData.id_file_back} alt="Aadhaar Back Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  ) : (
+                                    <div className="input-group">
+                                      <label className="input-label">Identity Document File (PDF or Image) <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                      <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFileChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                      <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
+                                      {profileFormData.id_file && (
+                                        <div style={{ marginTop: '8px' }}>
+                                          {profileFormData.id_file.startsWith('data:application/pdf') || !profileFormData.id_file.startsWith('data:image/') ? (
+                                            <a
+                                              href={profileFormData.id_file}
+                                              download={`identity-document-1-${profileFormData.id_type || 'proof'}`}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                            >
+                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                              </svg>
+                                              Download / View Uploaded PDF
+                                            </a>
+                                          ) : (
+                                            <div style={{ display: 'grid', gap: '4px' }}>
+                                              <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
+                                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                                              <img src={profileFormData.id_file} alt="ID Document Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Identity Proof 2 */}
@@ -2636,10 +2754,10 @@ export default function UserDashboard() {
                                         disabled={profile?.profile_locked}
                                       >
                                         <option value="">Select ID Type</option>
-                                        <option value="Aadhaar Card">Aadhaar Card</option>
-                                        <option value="PAN Card">PAN Card</option>
-                                        <option value="Passport">Passport</option>
-                                        <option value="Voter ID Card">Voter ID Card</option>
+                                        <option value="Aadhaar Card" disabled={profileFormData.id_type === 'Aadhaar Card'}>Aadhaar Card</option>
+                                        <option value="PAN Card" disabled={profileFormData.id_type === 'PAN Card'}>PAN Card</option>
+                                        <option value="Passport" disabled={profileFormData.id_type === 'Passport'}>Passport</option>
+                                        <option value="Voter ID Card" disabled={profileFormData.id_type === 'Voter ID Card'}>Voter ID Card</option>
                                       </select>
                                     </div>
                                     <div className="input-group">
@@ -2655,35 +2773,103 @@ export default function UserDashboard() {
                                       />
                                     </div>
                                   </div>
-                                  <div className="input-group">
-                                    <label className="input-label">Identity Document File (PDF or Image) <span style={{ color: 'var(--color-error)' }}>*</span></label>
-                                    <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFile2Change} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
-                                    <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
-                                    {profileFormData.id_file_2 && (
-                                      <div style={{ marginTop: '8px' }}>
-                                        {profileFormData.id_file_2.startsWith('data:application/pdf') || !profileFormData.id_file_2.startsWith('data:image/') ? (
-                                          <a
-                                            href={profileFormData.id_file_2}
-                                            download={`identity-document-2-${profileFormData.id_type_2 || 'proof'}`}
-                                            className="btn btn-secondary btn-sm"
-                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                                          >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
-                                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                              <polyline points="14 2 14 8 20 8" />
-                                            </svg>
-                                            Download / View Uploaded PDF
-                                          </a>
-                                        ) : (
-                                          <div style={{ display: 'grid', gap: '4px' }}>
-                                            <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={profileFormData.id_file_2} alt="ID Document 2 Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
-                                          </div>
-                                        )}
+                                  {profileFormData.id_type_2 === 'Aadhaar Card' ? (
+                                    <div style={{ display: 'grid', gap: '16px', marginTop: '4px' }}>
+                                      <div style={{ background: 'rgba(255, 255, 255, 0.01)', padding: '12px', borderRadius: 'var(--border-radius-sm)', border: 'var(--border-light)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                                        {/* Aadhaar Front Section */}
+                                        <div className="input-group">
+                                          <label className="input-label" style={{ fontWeight: 600 }}>Upload Front Image (or single image/PDF containing both sides) <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                          <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFile2Change} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                          <p className="input-hint" style={{ marginTop: '4px' }}>JPEG/PNG or PDF. Size limit: 500kb.</p>
+                                          {profileFormData.id_file_2 && (
+                                            <div style={{ marginTop: '8px' }}>
+                                              {profileFormData.id_file_2.startsWith('data:application/pdf') || !profileFormData.id_file_2.startsWith('data:image/') ? (
+                                                <a
+                                                  href={profileFormData.id_file_2}
+                                                  download={`aadhar-2-front-${profileFormData.id_number_2 || 'card'}`}
+                                                  className="btn btn-secondary btn-sm"
+                                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                >
+                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                    <polyline points="14 2 14 8 20 8" />
+                                                  </svg>
+                                                  Download / View Front Document
+                                                </a>
+                                              ) : (
+                                                <div style={{ display: 'grid', gap: '4px' }}>
+                                                  <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Front Preview / Combined:</span>
+                                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                  <img src={profileFormData.id_file_2} alt="Aadhaar 2 Front Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Aadhaar Back Section */}
+                                        <div className="input-group">
+                                          <label className="input-label" style={{ fontWeight: 600 }}>Upload Back Image (Optional)</label>
+                                          <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFile2BackChange} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                          <p className="input-hint" style={{ marginTop: '4px' }}>Submit separate back side image. Or leave blank if front file contains both sides.</p>
+                                          {profileFormData.id_file_2_back && (
+                                            <div style={{ marginTop: '8px' }}>
+                                              {profileFormData.id_file_2_back.startsWith('data:application/pdf') || !profileFormData.id_file_2_back.startsWith('data:image/') ? (
+                                                <a
+                                                  href={profileFormData.id_file_2_back}
+                                                  download={`aadhar-2-back-${profileFormData.id_number_2 || 'card'}`}
+                                                  className="btn btn-secondary btn-sm"
+                                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                >
+                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                    <polyline points="14 2 14 8 20 8" />
+                                                  </svg>
+                                                  Download / View Back Document
+                                                </a>
+                                              ) : (
+                                                <div style={{ display: 'grid', gap: '4px' }}>
+                                                  <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Back Preview:</span>
+                                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                  <img src={profileFormData.id_file_2_back} alt="Aadhaar 2 Back Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  ) : (
+                                    <div className="input-group">
+                                      <label className="input-label">Identity Document File (PDF or Image) <span style={{ color: 'var(--color-error)' }}>*</span></label>
+                                      <input type="file" accept="image/jpeg, image/png, application/pdf" onChange={handleIdFile2Change} style={{ fontSize: 'var(--text-xs)' }} disabled={profile?.profile_locked} />
+                                      <p className="input-hint">JPEG/PNG images will be auto-compressed. PDF size limit: 500kb.</p>
+                                      {profileFormData.id_file_2 && (
+                                        <div style={{ marginTop: '8px' }}>
+                                          {profileFormData.id_file_2.startsWith('data:application/pdf') || !profileFormData.id_file_2.startsWith('data:image/') ? (
+                                            <a
+                                              href={profileFormData.id_file_2}
+                                              download={`identity-document-2-${profileFormData.id_type_2 || 'proof'}`}
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                            >
+                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                              </svg>
+                                              Download / View Uploaded PDF
+                                            </a>
+                                          ) : (
+                                            <div style={{ display: 'grid', gap: '4px' }}>
+                                              <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ID File Preview:</span>
+                                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                                              <img src={profileFormData.id_file_2} alt="ID Document 2 Preview" style={{ maxWidth: '240px', maxHeight: '180px', borderRadius: '8px', border: 'var(--border-light)' }} />
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
