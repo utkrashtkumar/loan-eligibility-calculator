@@ -860,7 +860,7 @@ export default function Header() {
 
               {showNotifications && (
                 <div className="header-notification-dropdown">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--border-default)' }}>
                     <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Notifications</span>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {unreadCount > 0 && (
@@ -885,11 +885,10 @@ export default function Header() {
                         <div
                           key={n.id}
                           onClick={() => handleNotificationClick(n)}
-                          className="header-notification-item"
+                          className={`header-notification-item ${n.read ? 'read' : 'unread'}`}
                           style={{
                             padding: '10px',
                             borderRadius: '8px',
-                            background: n.read ? 'rgba(255,255,255,0.02)' : 'rgba(99, 102, 241, 0.05)',
                             borderLeft: n.read ? '3px solid transparent' : '3px solid var(--color-primary)',
                             fontSize: 'var(--text-xs)',
                             lineHeight: 1.4,

@@ -2626,7 +2626,7 @@ textarea.input-field {
   /* Accent Colors */
   --color-accent-indigo: var(--color-primary);
   --color-accent-violet: var(--color-accent);
-  --color-accent-purple: var(--color-secondary);
+  --color-accent-purple: #7c3aed;
   --color-accent-blue: var(--color-primary);
   --color-accent-cyan: var(--color-primary-hover);
 
@@ -2966,6 +2966,31 @@ select.input-field option {
 [data-theme='light'] .mobile-menu .nav-link.nav-admin:hover {
   background: rgba(22, 163, 74, 0.1) !important;
   border-color: #16a34a !important;
+}
+
+/* Light Theme Header & Notification UI Overrides */
+[data-theme='light'] .theme-toggle-btn {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+[data-theme='light'] .theme-toggle-btn:hover {
+  background: #f8fafc;
+  border-color: var(--color-primary);
+}
+[data-theme='light'] .header-notification-dropdown {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+}
+[data-theme='light'] .header-notification-item.read {
+  background: #f8fafc !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+[data-theme='light'] .header-notification-item.unread {
+  background: rgba(5, 150, 105, 0.05) !important;
+  border-bottom: 1px solid rgba(5, 150, 105, 0.1);
 }
 
 /* ============================================
