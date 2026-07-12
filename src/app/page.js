@@ -101,12 +101,13 @@ export default function Home() {
     try {
       const { data: agreementData, error: fetchErr } = await supabase
         .from('agent_agreements')
-        .select('*')
+        .select('id, agent_id, agreement_no, signed_at, status, revocation_reason')
         .eq('agreement_no', code)
         .maybeSingle();
 
       if (fetchErr) {
-        setVerificationError('Query error: ' + fetchErr.message);
+        console.error('Agreement fetch error:', fetchErr);
+        setVerificationError('Verification lookup failed. Please try again later.');
       } else if (!agreementData) {
         setVerificationError(`Agreement number "${code}" is invalid or does not exist in our official records.`);
       } else {
@@ -254,7 +255,7 @@ export default function Home() {
       try {
         const { data, error } = await supabase
           .from('credit_cards')
-          .select('*')
+          .select('id, bank_name, logo_url, apply_url, created_at')
           .order('bank_name', { ascending: true });
         if (!error && data) {
           setCreditCards(data);

@@ -5,12 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-// Security (F5): Read admin emails from env var, never hardcode in client bundle.
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(e => e.trim())
-  .filter(Boolean);
-const isAdminEmail = (email) => ADMIN_EMAILS.includes(email);
+
 
 // Security (F11): Strict schema validation for localStorage pending application payload.
 // Prevents poisoned data (via XSS or manual injection) from being committed to DB.
@@ -256,19 +251,19 @@ export default function Header() {
   }, [router]);
 
   useEffect(() => {
-    if (!user) {
-      const timer = setTimeout(() => {
+    if (!user || userRole === null) {
+      if (!user) {
         setNotifications([]);
         setUnreadCount(0);
-      }, 0);
-      return () => clearTimeout(timer);
+      }
+      return;
     }
 
     const fetchNotifications = async () => {
       try {
         const { data, error } = await supabase
           .from('notifications')
-          .select('*')
+          .select('id, agent_id, title, message, read, created_at, activity_type, reference_id')
           .order('created_at', { ascending: false })
           .limit(20);
         if (!error && data) {
@@ -282,7 +277,7 @@ export default function Header() {
 
     fetchNotifications();
 
-    const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
+    const isAdmin = userRole === 'admin';
 
     const channel = supabase
       .channel('realtime:notifications')
@@ -300,12 +295,12 @@ export default function Header() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, userRole]);
 
   const markAllRead = async () => {
     if (!user || unreadCount === 0) return;
     try {
-      const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
+      const isAdmin = userRole === 'admin';
       const query = supabase
         .from('notifications')
         .update({ read: true })
@@ -328,7 +323,7 @@ export default function Header() {
   const clearReadNotifications = async () => {
     if (!user) return;
     try {
-      const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
+      const isAdmin = userRole === 'admin';
       const query = supabase
         .from('notifications')
         .delete()
@@ -365,7 +360,7 @@ export default function Header() {
     }
 
     // 2. Determine redirect URL
-    const isAdmin = isAdminEmail(user.email); // Security (F5): uses env var
+    const isAdmin = userRole === 'admin';
     let targetUrl = '/dashboard';
     
     if (isAdmin) {
@@ -698,7 +693,7 @@ export default function Header() {
                     Dashboard
                   </Link>
                 </li>
-                {isAdminEmail(user.email) && ( // Security (F5): uses env var
+                {userRole === 'admin' && (
                   <li>
                     <Link href="/admin" className={`nav-link ${isLinkActive('/admin') ? 'active' : ''}`} style={{ color: 'var(--color-success)', fontWeight: 600 }}>
                       Admin Panel
@@ -713,7 +708,6 @@ export default function Header() {
               </>
             ) : (
               <>
-                {/* Hidden duplicate banks link from here */}
                 <li>
                   <Link href="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: '8px' }}>
                     Sign In
@@ -770,7 +764,7 @@ export default function Header() {
                       <div className="profile-dropdown-name">{userProfile?.full_name || 'User'}</div>
                       <div className="profile-dropdown-phone">{userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}</div>
                       <div className="profile-dropdown-role-badge">
-                        {userRole === 'agent' ? 'Agent' : isAdminEmail(user.email) ? 'Admin' : 'Client'} {/* Security (F5) */}
+                        {userRole === 'agent' ? 'Agent' : userRole === 'admin' ? 'Admin' : 'Client'}
                       </div>
                     </div>
                   </div>
@@ -792,7 +786,7 @@ export default function Header() {
                       Dashboard
                     </Link>
                     
-                    {isAdminEmail(user.email) && ( // Security (F5): uses env var
+                    {userRole === 'admin' && (
                       <Link 
                         href="/admin" 
                         className="profile-dropdown-item-link admin-link"
@@ -1018,7 +1012,7 @@ export default function Header() {
                   {userProfile?.phone || user.user_metadata?.phone || 'No Mobile'}
                 </div>
                 <span className="mobile-profile-role-badge">
-                  {userRole === 'agent' ? 'Agent' : (userRole === 'admin' || isAdminEmail(user.email)) ? 'Admin' : 'Client'}
+                   {userRole === 'agent' ? 'Agent' : userRole === 'admin' ? 'Admin' : 'Client'}
                 </span>
               </div>
             </div>
@@ -1148,7 +1142,7 @@ export default function Header() {
             <Link href="/dashboard" className={`nav-link ${isLinkActive('/dashboard') ? 'active' : ''}`} onClick={closeMenu}>
               Dashboard
             </Link>
-            {(userRole === 'admin' || isAdminEmail(user.email)) && (
+             {userRole === 'admin' && (
               <Link href="/admin" className={`nav-link nav-admin ${isLinkActive('/admin') ? 'active' : ''}`} onClick={closeMenu}>
                 Admin Panel
               </Link>

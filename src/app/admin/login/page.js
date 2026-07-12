@@ -14,18 +14,19 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Security (F2): Read admin emails from env var — same source as admin/page.js and Header.js.
-  const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-    .split(',')
-    .map(e => e.trim())
-    .filter(Boolean);
-
   // If already logged in as admin, redirect to dashboard
   useEffect(() => {
     async function checkAdmin() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session && ADMIN_EMAILS.includes(session.user.email)) {
-        router.push('/admin');
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        if (profile && profile.role === 'admin') {
+          router.push('/admin');
+        }
       }
     }
     checkAdmin();
@@ -37,9 +38,8 @@ export default function AdminLoginPage() {
     setError('');
     setSuccess('');
 
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!ADMIN_EMAILS.includes(trimmedEmail)) {
-      setError('Invalid admin credentials.');
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
       setLoading(false);
       return;
     }
@@ -54,8 +54,14 @@ export default function AdminLoginPage() {
         setError(signInError.message);
       } else {
         const user = data.user;
-        const userEmail = user.email ? user.email.toLowerCase() : '';
-        if (!ADMIN_EMAILS.includes(userEmail)) { // Security (F2): env var check
+        // Fetch profile to verify admin role
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError || !profile || profile.role !== 'admin') {
           // Log out unauthorized user
           await supabase.auth.signOut();
           setError('Access Denied: You are not authorized to view the admin portal.');

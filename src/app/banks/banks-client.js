@@ -363,7 +363,7 @@ export default function BanksClient({ defaultCategory = 'ALL' }) {
         // Fetch role
         const { data: profile } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, role, approved')
           .eq('id', session.user.id)
           .maybeSingle();
 

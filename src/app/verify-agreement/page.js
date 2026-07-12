@@ -68,7 +68,7 @@ function VerifyAgreementContent() {
 
     const { data, error: fetchErr } = await supabase
       .from('agent_agreements')
-      .select('*')
+      .select('id, agent_id, agreement_no, signed_at, status, revocation_reason')
       .eq('agreement_no', cleanNo)
       .maybeSingle();
 
