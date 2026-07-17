@@ -1,4 +1,4 @@
-# <img src="public/favicon.ico" width="32" height="32" align="center" /> HandToHand Loans
+# <img src="https://www.handtohandloans.com/icon-192x192.png" width="32" height="32" align="center" /> HandToHand Loans
 
 [![Next.js 15](https://img.shields.io/badge/Next.js-15.5-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
