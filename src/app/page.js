@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -2395,6 +2395,8 @@ export default function Home() {
         </div>
       </section>
 
+      <CalculatorsSection isHomeSection={true} />
+
 
       {/* Commodities Section */}
       <section style={{ padding: '80px 0', background: 'var(--color-bg-secondary)' }}>
@@ -2991,8 +2993,6 @@ export default function Home() {
       </section>
 
 
-
-      <CalculatorsSection isHomeSection={true} />
 
       <Footer />
     </>
