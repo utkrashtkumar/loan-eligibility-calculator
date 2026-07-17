@@ -92,11 +92,15 @@ export default function BlogDetailClient({ blog, readTime }) {
           {/* Article Content — Sanitized with DOMPurify to prevent stored XSS. */}
           <article 
             className="blog-content-body"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content, {
-              USE_PROFILES: { html: true },
-              FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
-              FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
-            }) }}
+            dangerouslySetInnerHTML={{ 
+              __html: (typeof window !== 'undefined' && DOMPurify && typeof DOMPurify.sanitize === 'function')
+                ? DOMPurify.sanitize(blog.content, {
+                    USE_PROFILES: { html: true },
+                    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
+                    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+                  })
+                : blog.content 
+            }}
             style={{
               color: 'var(--color-text-primary)',
               fontSize: '16px',

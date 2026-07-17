@@ -2357,17 +2357,19 @@ export default function AdminDashboard() {
                           left: 0,
                           right: 0,
                           marginTop: '8px',
-                          background: 'rgba(17, 24, 39, 0.95)',
+                          background: 'var(--color-bg-glass-heavy)',
                           backdropFilter: 'blur(30px)',
                           WebkitBackdropFilter: 'blur(30px)',
-                          border: 'var(--border-accent)',
+                          border: 'var(--border-subtle)',
                           borderRadius: 'var(--border-radius-lg)',
-                          padding: '8px',
+                          padding: '10px 8px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '6px',
+                          gap: '10px',
                           boxShadow: 'var(--shadow-lg)',
-                          zIndex: 99999
+                          zIndex: 99999,
+                          maxHeight: '320px',
+                          overflowY: 'auto'
                         }}
                       >
                         {[
@@ -2402,8 +2404,8 @@ export default function AdminDashboard() {
                             style={{
                               width: '100%',
                               textAlign: 'left',
-                              padding: '12px 16px',
-                              fontSize: 'var(--text-sm)',
+                              padding: '16px 20px',
+                              fontSize: 'var(--text-base)',
                               background: activeTab === tab.id ? 'var(--gradient-primary)' : 'transparent',
                               border: 'none',
                               color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary)',
@@ -2485,7 +2487,7 @@ export default function AdminDashboard() {
                              <div 
                                key={notif.id} 
                                style={{ 
-                                 background: 'rgba(17, 24, 39, 0.4)', 
+                                 background: 'var(--color-bg-tertiary)', 
                                  border: 'var(--border-light)', 
                                  borderRadius: '12px', 
                                  padding: '16px 20px', 
@@ -4064,9 +4066,9 @@ export default function AdminDashboard() {
                                 margin: 0,
                                 padding: '6px 12px',
                                 fontSize: 'var(--text-xs)',
-                                background: appStatusFilter === subTab.id ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)',
+                                background: appStatusFilter === subTab.id ? 'var(--gradient-primary)' : 'var(--color-bg-tertiary)',
                                 color: appStatusFilter === subTab.id ? '#fff' : 'var(--color-text-secondary)',
-                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-light)',
+                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-subtle)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px',
@@ -4077,11 +4079,12 @@ export default function AdminDashboard() {
                             >
                               {subTab.label}
                               <span style={{
-                                background: appStatusFilter === subTab.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                                background: appStatusFilter === subTab.id ? 'rgba(255,255,255,0.2)' : 'var(--color-bg-secondary)',
+                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-subtle)',
                                 padding: '2px 6px',
                                 borderRadius: '10px',
                                 fontSize: '10px',
-                                color: '#fff'
+                                color: appStatusFilter === subTab.id ? '#fff' : 'var(--color-text-secondary)'
                               }}>
                                 {count}
                               </span>
@@ -4297,9 +4300,9 @@ export default function AdminDashboard() {
                                 margin: 0,
                                 padding: '6px 12px',
                                 fontSize: 'var(--text-xs)',
-                                background: appStatusFilter === subTab.id ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)',
+                                background: appStatusFilter === subTab.id ? 'var(--gradient-primary)' : 'var(--color-bg-tertiary)',
                                 color: appStatusFilter === subTab.id ? '#fff' : 'var(--color-text-secondary)',
-                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-light)',
+                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-subtle)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px',
@@ -4310,11 +4313,12 @@ export default function AdminDashboard() {
                             >
                               {subTab.label}
                               <span style={{
-                                background: appStatusFilter === subTab.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                                background: appStatusFilter === subTab.id ? 'rgba(255,255,255,0.2)' : 'var(--color-bg-secondary)',
+                                border: appStatusFilter === subTab.id ? 'none' : 'var(--border-subtle)',
                                 padding: '2px 6px',
                                 borderRadius: '10px',
                                 fontSize: '10px',
-                                color: '#fff'
+                                color: appStatusFilter === subTab.id ? '#fff' : 'var(--color-text-secondary)'
                               }}>
                                 {count}
                               </span>
@@ -4497,9 +4501,9 @@ export default function AdminDashboard() {
                               margin: 0,
                               padding: '6px 12px',
                               fontSize: 'var(--text-xs)',
-                              background: activePolicyCategory === subTab.id ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.05)',
+                              background: activePolicyCategory === subTab.id ? 'var(--gradient-primary)' : 'var(--color-bg-tertiary)',
                               color: activePolicyCategory === subTab.id ? '#fff' : 'var(--color-text-secondary)',
-                              border: activePolicyCategory === subTab.id ? 'none' : 'var(--border-light)',
+                              border: activePolicyCategory === subTab.id ? 'none' : 'var(--border-subtle)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '6px',
@@ -4512,11 +4516,12 @@ export default function AdminDashboard() {
                             <span>{subTab.emoji}</span>
                             {subTab.label}
                             <span style={{
-                              background: activePolicyCategory === subTab.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                              background: activePolicyCategory === subTab.id ? 'rgba(255,255,255,0.2)' : 'var(--color-bg-secondary)',
+                              border: activePolicyCategory === subTab.id ? 'none' : 'var(--border-subtle)',
                               padding: '2px 6px',
                               borderRadius: '10px',
                               fontSize: '10px',
-                              color: '#fff',
+                              color: activePolicyCategory === subTab.id ? '#fff' : 'var(--color-text-secondary)',
                               marginLeft: '2px'
                             }}>
                               {subTab.count}

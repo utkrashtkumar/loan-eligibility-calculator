@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 // ─── Lazy Initializers for URL Parameter Sync (Server-Side Safe) ───────────
 function getInitialAmount() {
@@ -457,707 +458,766 @@ export default function EmiCalculator({
   };
 
   return (
-    <div className="form-card" style={{
-      padding: 'clamp(16px, 3vw, 32px)',
-      background: 'var(--color-bg-glass-heavy)',
-      backdropFilter: 'blur(20px)',
-      border: 'var(--border-light)',
-      borderRadius: 'var(--border-radius-xl)',
-      boxShadow: 'var(--shadow-lg)'
+    <div className="calculator-container" style={{
+      background: 'var(--color-bg-glass, rgba(15, 23, 42, 0.03))',
+      border: 'var(--border-light, 1px solid rgba(255, 255, 255, 0.08))',
+      borderRadius: '20px',
+      padding: 'clamp(20px, 4vw, 36px)',
+      boxShadow: 'var(--shadow-xl)',
+      color: 'var(--color-text-primary, #ffffff)'
     }}>
       <style jsx>{`
-        .inputs-grid {
+        .calculator-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 32px;
-          margin-bottom: 24px;
-        }
-        .eligibility-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 32px;
-          margin-bottom: 32px;
-          padding: 24px 0;
-          border-top: 1px dashed var(--border-default);
+          grid-template-columns: 1.1fr 0.9fr;
+          gap: 40px;
         }
         @media (max-width: 992px) {
-          .inputs-grid, .eligibility-grid {
+          .calculator-grid {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 32px;
           }
         }
-        .comparison-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 32px;
-          border-top: 1px solid var(--border-default);
-          padding-top: 32px;
-        }
-        @media (max-width: 768px) {
-          .comparison-grid {
-            grid-template-columns: 1fr;
-            gap: 24px;
-          }
-        }
-        .slider-container {
+        .inputs-column {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 24px;
         }
-        .slider-header {
+        .input-row-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .input-label-container {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        .slider-title {
-          font-size: var(--text-sm);
-          color: var(--color-text-secondary);
-          font-weight: 600;
+        .input-label {
+          font-size: var(--text-sm, 14px);
+          font-weight: 700;
+          color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
+          font-family: 'Outfit', sans-serif;
         }
-        .slider-input-wrapper {
+        .input-box-wrapper {
+          display: flex;
+          border: 1px solid var(--border-default, rgba(255, 255, 255, 0.2));
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--color-bg-input, rgba(0, 0, 0, 0.25));
+          height: 38px;
+          align-items: center;
+          transition: border-color 0.2s;
+        }
+        .input-box-wrapper:focus-within {
+          border-color: var(--color-primary, #00d756);
+        }
+        .badge-prefix, .badge-suffix {
+          background: var(--color-text-primary, #ffffff);
+          color: var(--color-bg-secondary, #090d16);
           display: flex;
           align-items: center;
-          gap: 12px;
+          justify-content: center;
+          width: 36px;
+          height: 100%;
+          font-weight: 800;
+          font-size: 13px;
         }
-        .slider-input {
-          background: var(--color-bg-secondary) !important;
-          border: var(--border-light) !important;
-          color: var(--color-text-primary) !important;
-          padding: 8px 12px !important;
-          border-radius: 8px !important;
-          font-size: var(--text-sm) !important;
-          font-weight: 600 !important;
-          width: 120px !important;
-          text-align: right !important;
-          outline: none !important;
+        .dropdown-select {
+          background: transparent;
+          border: none;
+          color: var(--color-text-primary, #ffffff);
+          outline: none;
+          padding: 0 8px;
+          font-size: 12px;
+          font-weight: 700;
+          height: 100%;
+          cursor: pointer;
+          border-right: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
         }
-        .slider-input:focus {
-          border-color: var(--color-primary) !important;
+        .dropdown-select option {
+          background: var(--color-bg-secondary, #0f1422);
+          color: var(--color-text-primary, #ffffff);
+        }
+        .raw-input {
+          background: transparent;
+          border: none;
+          color: var(--color-text-primary, #ffffff);
+          outline: none;
+          padding: 0 12px;
+          font-size: 14px;
+          font-weight: 700;
+          text-align: right;
+          width: 120px;
+          height: 100%;
         }
         .range-slider {
           -webkit-appearance: none;
           width: 100%;
-          height: 6px;
-          border-radius: 3px;
-          background: var(--color-bg-secondary);
+          height: 4px;
+          border-radius: 2px;
+          background: var(--border-default, rgba(255, 255, 255, 0.15));
           outline: none;
-          border: var(--border-subtle);
           cursor: pointer;
+          margin-top: 4px;
         }
         .range-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 20px;
-          height: 20px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
-          background: var(--gradient-primary);
-          border: none;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+          background: var(--color-bg-secondary, #ffffff);
+          border: 3px solid var(--color-primary, #00d756);
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(0, 215, 86, 0.6);
           transition: transform 0.1s ease;
         }
         .range-slider::-webkit-slider-thumb:hover {
-          transform: scale(1.15);
+          transform: scale(1.25);
         }
-        .donut-container {
+        .limits-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
+          margin-top: 2px;
+        }
+        .results-column {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
         }
-        .donut-chart {
-          width: 140px;
-          height: 140px;
-          border-radius: 50%;
+        .tab-toggles {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          box-shadow: var(--shadow-md);
+          gap: 12px;
+          margin-bottom: 16px;
         }
-        .donut-center {
-          width: 100px;
-          height: 100px;
-          border-radius: 50%;
-          background: var(--color-bg-card);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          position: absolute;
-          border: var(--border-subtle);
+        .tab-btn {
+          flex: 1;
+          padding: 10px 0;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
         }
-        .legend-dot {
-          width: 12px;
-          height: 12px;
-          border-radius: 3px;
-          display: inline-block;
+        .tab-btn.active {
+          background: var(--color-text-primary, #ffffff);
+          color: var(--color-bg-secondary, #090d16);
+          border: 1px solid var(--color-text-primary, #ffffff);
         }
-        .result-card-inner {
-          background: var(--color-bg-card);
+        .tab-btn.inactive {
+          background: transparent;
+          color: var(--color-text-primary, #ffffff);
+          border: 1px solid var(--border-default, rgba(255, 255, 255, 0.3));
+        }
+        .tab-btn.inactive:hover {
+          background: var(--color-bg-card-hover, rgba(255, 255, 255, 0.05));
+        }
+        .results-white-card {
+          background: var(--color-bg-secondary, #ffffff);
           border-radius: 16px;
           padding: 24px;
-          transition: all var(--transition-base);
-          box-shadow: var(--shadow-md);
+          color: var(--color-text-primary, #090d16);
+          border: var(--border-light);
+          box-shadow: var(--shadow-lg);
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
+          flex: 1;
+          min-height: 380px;
         }
-        .result-card-inner:hover {
-          transform: translateY(-2px);
-          box-shadow: var(--shadow-lg);
+        .stat-label-small {
+          font-size: 9px;
+          font-weight: 800;
+          color: var(--color-text-secondary, #64748b);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
-        .result-card-reducing {
-          border: 1px solid rgba(45, 212, 191, 0.2);
-          box-shadow: 0 0 15px rgba(45, 212, 191, 0.03);
+        .stat-value-large {
+          font-size: 22px;
+          font-weight: 800;
+          color: var(--color-text-primary, #090d16);
+          margin-top: 4px;
         }
-        .result-card-reducing:hover {
-          border-color: rgba(45, 212, 191, 0.4);
-          box-shadow: var(--shadow-glow-indigo);
+        .stat-label-tiny {
+          font-size: 8px;
+          font-weight: 800;
+          color: var(--color-text-secondary, #64748b);
+          text-transform: uppercase;
         }
-        .result-card-flat {
-          border: 1px solid rgba(251, 146, 60, 0.2);
-          box-shadow: 0 0 15px rgba(251, 146, 60, 0.03);
+        .stat-value-medium {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--color-text-primary, #090d16);
+          margin-top: 4px;
         }
-        .result-card-flat:hover {
-          border-color: rgba(251, 146, 60, 0.4);
-          box-shadow: var(--shadow-glow-purple);
+        .card-divider {
+          border: none;
+          border-top: 1px solid var(--border-default, #e2e8f0);
+          margin: 0;
         }
-        .amortization-table-container {
-          max-height: 380px;
+        .donut-section {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          margin: 8px 0;
+        }
+        @media (max-width: 480px) {
+          .donut-section {
+            flex-direction: column;
+            gap: 16px;
+          }
+        }
+        .legend-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-size: 11px;
+          text-align: left;
+        }
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .legend-bullet {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+        .download-btn {
+          width: 100%;
+          padding: 12px 0;
+          background: var(--color-text-primary, #090d16);
+          color: var(--color-bg-secondary, #ffffff);
+          border: none;
+          border-radius: 8px;
+          font-weight: 800;
+          font-size: 11px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: auto;
+          transition: opacity 0.2s;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .download-btn:hover {
+          opacity: 0.9;
+        }
+        .schedule-table-wrapper {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          height: 250px;
+        }
+        .schedule-scroll {
+          flex: 1;
           overflow-y: auto;
-          border: var(--border-light);
-          border-radius: 12px;
-          background: var(--color-bg-card);
+          border: 1px solid var(--border-default, #e2e8f0);
+          border-radius: 8px;
+          margin-bottom: 16px;
         }
-        .amortization-table {
+        .schedule-table {
           width: 100%;
           border-collapse: collapse;
+          font-size: 10px;
           text-align: left;
-          font-size: var(--text-xs);
         }
-        .amortization-table th {
+        .schedule-table th {
+          background: var(--color-bg-secondary, #f8fafc);
+          border-bottom: 1px solid var(--border-default, #e2e8f0);
           position: sticky;
           top: 0;
-          background: var(--color-bg-secondary);
-          padding: 12px 16px;
+          padding: 8px 10px;
           font-weight: 700;
-          color: var(--color-text-secondary);
-          border-bottom: 1px solid var(--border-default);
-          z-index: 10;
+          color: var(--color-text-secondary, #475569);
         }
-        .amortization-table td {
-          padding: 10px 16px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-          color: var(--color-text-primary);
+        .schedule-table td {
+          padding: 6px 10px;
+          border-bottom: 1px solid var(--border-default, #f1f5f9);
+          color: var(--color-text-primary, #090d16);
         }
       `}</style>
 
-      <div>
-        {/* Header Block */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-          <div>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: '6px' }}>
-              Advanced EMI & Eligibility Calculator
-            </h3>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-              Calculate EMIs, compare flat vs reducing methods, and check income obligations in real-time.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              onClick={handleGeneratePdf}
-              disabled={generatingPdf}
-              style={{
-                padding: '8px 16px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                borderRadius: '8px',
-                color: '#10b981',
-                fontWeight: 600,
-                fontSize: 'var(--text-xs)',
-                cursor: generatingPdf ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s',
-                opacity: generatingPdf ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => { if (!generatingPdf) e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'; }}
-              onMouseLeave={(e) => { if (!generatingPdf) e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }}
-            >
-              {generatingPdf ? 'Generating PDF...' : '📄 Generate PDF'}
-            </button>
-            <button
-              onClick={handleCopyLink}
-              style={{
-                padding: '8px 16px',
-                background: 'rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.25)',
-                borderRadius: '8px',
-                color: 'var(--color-primary)',
-                fontWeight: 600,
-                fontSize: 'var(--text-xs)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'}
-            >
-              🔗 {copied ? 'Link Copied!' : 'Share Link'}
-            </button>
-          </div>
-        </div>
-
-        {/* ─── Top Section: Main Calculator Inputs ──────────────────────────── */}
-        <div className="inputs-grid">
-          {/* Principal Amount Input */}
-          <div className="slider-container">
-            <div className="slider-header">
-              <span className="slider-title">Loan Amount (₹)</span>
-              <div className="slider-input-wrapper">
+      <div className="calculator-grid">
+        {/* Left Column: Input Sliders */}
+        <div className="inputs-column">
+          {/* Loan Amount Input */}
+          <div className="input-row-group">
+            <div className="input-label-container">
+              <span className="input-label">Loan Amount</span>
+              <div className="input-box-wrapper">
+                <div className="badge-prefix">₹</div>
                 <input
-                  type="number"
-                  min="10000"
-                  max="100000000"
-                  className="slider-input"
-                  value={loanAmount}
-                  onChange={(e) => handleAmountChange(e.target.value)}
+                  type="text"
+                  className="raw-input"
+                  value={loanAmount.toLocaleString('en-IN')}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/,/g, '');
+                    if (!isNaN(clean) && clean !== '') handleAmountChange(Number(clean));
+                    else if (clean === '') setLoanAmount('');
+                  }}
                 />
               </div>
             </div>
             <input
               type="range"
               min="10000"
-              max="20000000"
+              max={P > 20000000 ? 100000000 : 20000000}
               step="10000"
               className="range-slider"
-              value={loanAmount}
+              value={Number(loanAmount) || 0}
               onChange={(e) => handleAmountChange(e.target.value)}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
-              <span>₹10,000</span>
-              <span>₹2 Cr</span>
+            <div className="limits-row">
+              <span>Min ₹10K</span>
+              <span>Max {P > 20000000 ? '₹10 Cr' : '₹2 Cr'}</span>
             </div>
           </div>
 
           {/* Interest Rate Input */}
-          <div className="slider-container">
-            <div className="slider-header">
-              <span className="slider-title">Interest Rate (% P.A.)</span>
-              <div className="slider-input-wrapper">
+          <div className="input-row-group">
+            <div className="input-label-container">
+              <span className="input-label">Rate of Interest (p.a)</span>
+              <div className="input-box-wrapper">
                 <input
                   type="number"
-                  min="1"
-                  max="50"
                   step="0.05"
-                  className="slider-input"
+                  className="raw-input"
                   value={interestRate}
                   onChange={(e) => handleRateChange(e.target.value)}
                 />
+                <div className="badge-suffix">%</div>
               </div>
             </div>
             <input
               type="range"
-              min="1"
-              max="36"
+              min="5"
+              max="25"
               step="0.05"
               className="range-slider"
-              value={interestRate}
+              value={Number(interestRate) || 0}
               onChange={(e) => handleRateChange(e.target.value)}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
-              <span>1%</span>
-              <span>36%</span>
+            <div className="limits-row">
+              <span>Min 5%</span>
+              <span>Max 25%</span>
             </div>
           </div>
 
-          {/* Tenure Input */}
-          <div className="slider-container">
-            <div className="slider-header">
-              <span className="slider-title">Loan Tenure</span>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Loan Tenure Input */}
+          <div className="input-row-group">
+            <div className="input-label-container">
+              <span className="input-label">Loan Tenure</span>
+              <div className="input-box-wrapper">
+                <select
+                  value={tenureType}
+                  onChange={(e) => toggleTenureType(e.target.value)}
+                  className="dropdown-select"
+                >
+                  <option value="months">Months</option>
+                  <option value="years">Years</option>
+                </select>
                 <input
                   type="number"
-                  min="1"
-                  max={tenureType === 'years' ? 30 : 360}
-                  className="slider-input"
+                  className="raw-input"
                   value={tenure}
                   onChange={(e) => handleTenureChange(e.target.value)}
-                  style={{ width: '65px' }}
+                  style={{ width: '60px' }}
                 />
-                <div style={{ display: 'flex', background: 'var(--color-bg-secondary)', border: 'var(--border-light)', borderRadius: '6px', padding: '2px' }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleTenureType('years')}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      borderRadius: '4px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: tenureType === 'years' ? 'var(--gradient-primary)' : 'transparent',
-                      color: tenureType === 'years' ? '#ffffff' : 'var(--color-text-secondary)'
-                    }}
-                  >
-                    Yr
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleTenureType('months')}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      borderRadius: '4px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: tenureType === 'months' ? 'var(--gradient-primary)' : 'transparent',
-                      color: tenureType === 'months' ? '#ffffff' : 'var(--color-text-secondary)'
-                    }}
-                  >
-                    Mo
-                  </button>
-                </div>
               </div>
             </div>
             <input
               type="range"
-              min="1"
+              min={tenureType === 'years' ? 1 : 3}
               max={tenureType === 'years' ? 30 : 120}
               step="1"
               className="range-slider"
-              value={tenure}
+              value={Number(tenure) || 0}
               onChange={(e) => handleTenureChange(e.target.value)}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
-              <span>1 {tenureType === 'years' ? 'Year' : 'Month'}</span>
-              <span>{tenureType === 'years' ? '30 Years' : '10 Years'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── Middle Section: Optional Eligibility Checks ─────────────────── */}
-        <div className="eligibility-grid">
-          {/* Monthly Net Salary Input */}
-          <div className="slider-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
-                Monthly Income (Net) <span style={{ fontSize: '9px', opacity: 0.6 }}>(Optional)</span>
-              </label>
-              <input
-                type="number"
-                placeholder="e.g. 50000"
-                className="slider-input"
-                value={monthlyIncome}
-                onChange={(e) => setMonthlyIncome(e.target.value)}
-              />
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="500000"
-              step="5000"
-              className="range-slider"
-              value={monthlyIncome || 0}
-              onChange={(e) => setMonthlyIncome(e.target.value)}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
-              <span>₹0</span>
-              <span>₹5 Lakhs</span>
+            <div className="limits-row">
+              <span>{tenureType === 'years' ? 'Min 1 Yr' : 'Min 3 Months'}</span>
+              <span>{tenureType === 'years' ? 'Max 30 Yrs' : 'Max 120 Months'}</span>
             </div>
           </div>
 
-          {/* Existing EMIs Input */}
-          <div className="slider-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="slider-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Existing Monthly EMIs <span style={{ fontSize: '9px', opacity: 0.6 }}>(Optional)</span>
-              </span>
-              <input
-                type="number"
-                placeholder="e.g. 10000"
-                className="slider-input"
-                value={existingEmi}
-                onChange={(e) => setExistingEmi(e.target.value)}
-              />
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="150000"
-              step="2000"
-              className="range-slider"
-              value={existingEmi || 0}
-              onChange={(e) => setExistingEmi(e.target.value)}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
-              <span>₹0</span>
-              <span>₹1.5 Lakhs</span>
+          {/* Optional Eligibility Check Toggle */}
+          <div style={{ borderTop: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))', paddingTop: '20px', marginTop: '8px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-primary, #00d756)', letterSpacing: '0.5px', display: 'block', marginBottom: '16px', textTransform: 'uppercase' }}>
+              Eligibility Check (Optional)
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.7))', display: 'block', marginBottom: '6px' }}>Monthly Income (Net)</span>
+                <input
+                  type="number"
+                  placeholder="e.g. 50000"
+                  className="raw-input"
+                  value={monthlyIncome}
+                  onChange={(e) => setMonthlyIncome(e.target.value)}
+                  style={{ width: '100%', height: '36px', border: '1px solid var(--border-default, rgba(255,255,255,0.15))', borderRadius: '6px', padding: '0 12px', background: 'var(--color-bg-input, rgba(0,0,0,0.2))' }}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.7))', display: 'block', marginBottom: '6px' }}>Existing Monthly EMIs</span>
+                <input
+                  type="number"
+                  placeholder="e.g. 10000"
+                  className="raw-input"
+                  value={existingEmi}
+                  onChange={(e) => setExistingEmi(e.target.value)}
+                  style={{ width: '100%', height: '36px', border: '1px solid var(--border-default, rgba(255,255,255,0.15))', borderRadius: '6px', padding: '0 12px', background: 'var(--color-bg-input, rgba(0,0,0,0.2))' }}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ─── Real-Time FOIR Eligibility Output Card ──────────────────────── */}
-        {eligibilityStatus !== 'none' && (
-          <div style={{
-            marginBottom: '32px',
-            borderRadius: '16px',
-            padding: '20px',
-            border: eligibilityStatus === 'high' 
-              ? '1px solid rgba(16, 185, 129, 0.25)' 
-              : eligibilityStatus === 'medium'
-              ? '1px solid rgba(245, 158, 11, 0.25)'
-              : '1px solid rgba(239, 68, 68, 0.25)',
-            background: eligibilityStatus === 'high' 
-              ? 'rgba(16, 185, 129, 0.05)' 
-              : eligibilityStatus === 'medium'
-              ? 'rgba(245, 158, 11, 0.05)'
-              : 'rgba(239, 68, 68, 0.05)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-              <strong style={{
-                fontSize: '13px',
-                color: eligibilityStatus === 'high' ? 'var(--color-primary)' : eligibilityStatus === 'medium' ? 'var(--color-warning)' : 'var(--color-error)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
+          {/* Real-time FOIR Eligibility Indicator */}
+          {eligibilityStatus !== 'none' && (
+            <div style={{
+              borderRadius: '10px',
+              padding: '12px 16px',
+              border: eligibilityStatus === 'high' 
+                ? '1px solid rgba(16, 185, 129, 0.2)' 
+                : eligibilityStatus === 'medium'
+                ? '1px solid rgba(245, 158, 11, 0.2)'
+                : '1px solid rgba(239, 68, 68, 0.2)',
+              background: eligibilityStatus === 'high' 
+                ? 'rgba(16, 185, 129, 0.05)' 
+                : eligibilityStatus === 'medium'
+                ? 'rgba(245, 158, 11, 0.05)'
+                : 'rgba(239, 68, 68, 0.05)',
+              fontSize: '11px',
+              textAlign: 'left'
+            }}>
+              <strong style={{ color: eligibilityStatus === 'high' ? '#10b981' : eligibilityStatus === 'medium' ? '#f59e0b' : '#ef4444' }}>
                 {eligibilityStatus === 'high' && 'High Eligibility (Low Risk)'}
                 {eligibilityStatus === 'medium' && 'Moderate Eligibility (Medium Risk)'}
                 {eligibilityStatus === 'low' && 'Low Eligibility (High Debt Risk)'}
               </strong>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-                Your Income Obligations (FOIR): <strong>{foir}%</strong>
-              </span>
+              <div style={{ color: 'var(--color-text-secondary)', marginTop: '4px', lineHeight: 1.4 }}>
+                Your debt-to-income ratio (FOIR) is <strong>{foir}%</strong>. 
+                {eligibilityStatus === 'high' && ' Lenders typically prefer a FOIR under 50%. You have a strong chance of fast approval.'}
+                {eligibilityStatus === 'medium' && ' Try increasing the tenure or lowering the amount to reduce FOIR below 50%.'}
+                {eligibilityStatus === 'low' && ' High risk profile. Consider paying off existing liabilities first.'}
+              </div>
             </div>
-            <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              {eligibilityStatus === 'high' && `Excellent! Your total EMIs (₹${totalObligations.toLocaleString('en-IN')}) consume only ${foir}% of your monthly income. Most lenders prefer a FOIR below 50%. You have a strong chance of approval.`}
-              {eligibilityStatus === 'medium' && `Your total monthly EMIs consume ${foir}% of your income. While still eligible, lenders may inspect your file more carefully. Consider reducing the loan amount or increasing the tenure to drop the FOIR below 50% for premium interest rates.`}
-              {eligibilityStatus === 'low' && `Attention: Your total EMIs consume ${foir}% of your monthly salary. Lenders rarely approve files with a FOIR above 65% as it indicates high debt-to-income stress. We suggest applying for a smaller loan amount or arranging a co-applicant to increase eligible income.`}
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* ─── Comparison Grid (Reducing vs Flat) ──────────────────────────── */}
-        <div className="comparison-grid">
-          {/* Reducing Balance Method Card */}
-          <div className="result-card-inner result-card-reducing">
-            <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              Reducing Balance Method
-            </h4>
-            
-            <div style={{
-              background: 'var(--color-bg-secondary)',
-              border: '1px solid rgba(45, 212, 191, 0.15)',
-              borderRadius: '12px',
-              padding: '16px',
+          {/* CTA Actions */}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
+            <Link href="/check" className="btn btn-primary" style={{
+              fontWeight: 800,
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              borderRadius: '8px',
+              padding: '12px 28px',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Monthly Loan EMI
-              </div>
-              <div style={{
-                fontSize: 'var(--text-2xl)',
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 800,
-                color: 'var(--color-primary)',
-                marginTop: '4px'
-              }}>
-                ₹{reducingEmi.toLocaleString('en-IN')}
-              </div>
-            </div>
+              Apply Now
+            </Link>
 
-            {/* Donut Chart */}
-            <div className="donut-container">
-              <div className="donut-chart" style={{
-                background: `conic-gradient(var(--color-primary) 0% ${reducingPrincipalPercent}%, var(--color-accent) ${reducingPrincipalPercent}% 100%)`
-              }}>
-                <div className="donut-center">
-                  <span style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Total Payment</span>
-                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-                    ₹{reducingTotalPayment.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Details Ledger */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                  <span className="legend-dot" style={{ background: 'var(--color-primary)' }}></span>
-                  Principal Amount
-                </span>
-                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  ₹{loanAmount.toLocaleString('en-IN')} ({reducingPrincipalPercent}%)
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                  <span className="legend-dot" style={{ background: 'var(--color-accent)' }}></span>
-                  Total Interest
-                </span>
-                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  ₹{reducingTotalInterest.toLocaleString('en-IN')} ({reducingInterestPercent}%)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Flat Rate Method Card */}
-          <div className="result-card-inner result-card-flat">
-            <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              Flat / Fixed Rate Method
-            </h4>
-            
-            <div style={{
-              background: 'var(--color-bg-secondary)',
-              border: '1px solid rgba(251, 146, 60, 0.15)',
-              borderRadius: '12px',
-              padding: '16px',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Monthly Loan EMI
-              </div>
-              <div style={{
-                fontSize: 'var(--text-2xl)',
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 800,
-                color: 'var(--color-accent)',
-                marginTop: '4px'
-              }}>
-                ₹{flatEmi.toLocaleString('en-IN')}
-              </div>
-            </div>
-
-            {/* Donut Chart */}
-            <div className="donut-container">
-              <div className="donut-chart" style={{
-                background: `conic-gradient(var(--color-primary) 0% ${flatPrincipalPercent}%, var(--color-accent) ${flatPrincipalPercent}% 100%)`
-              }}>
-                <div className="donut-center">
-                  <span style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Total Payment</span>
-                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-                    ₹{flatTotalPayment.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Details Ledger */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                  <span className="legend-dot" style={{ background: 'var(--color-primary)' }}></span>
-                  Principal Amount
-                </span>
-                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  ₹{loanAmount.toLocaleString('en-IN')} ({flatPrincipalPercent}%)
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                  <span className="legend-dot" style={{ background: 'var(--color-accent)' }}></span>
-                  Total Interest
-                </span>
-                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  ₹{flatTotalInterest.toLocaleString('en-IN')} ({flatInterestPercent}%)
-                </span>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              style={{
+                background: 'transparent',
+                color: 'var(--color-text-primary, #ffffff)',
+                border: '1px solid var(--border-default, rgba(255, 255, 255, 0.3))',
+                borderRadius: '8px',
+                padding: '12px 20px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--color-bg-card-hover, rgba(255, 255, 255, 0.05))'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              🔗 {copied ? 'Link Copied!' : 'Share Link'}
+            </button>
           </div>
         </div>
 
-        {/* ─── Bottom Action: Amortization Schedule ────────────────────────── */}
-        <div style={{ marginTop: '32px', textAlign: 'center' }}>
-          {/* Toggle repayment schedule button */}
-          <button
-            onClick={() => setShowAmortization(!showAmortization)}
-            className="btn btn-secondary"
-            style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
-          >
-            {showAmortization ? 'Hide Repayment Schedule' : 'Show Month-by-Month Repayment Schedule'}
-          </button>
-        </div>
-
-        {showAmortization && (
-          <div style={{ marginTop: '24px', animation: 'pwa-slide-up 0.3s ease-out' }}>
-            {/* Tab Selector for reducing vs flat schedule */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', borderBottom: '1px solid var(--border-default)', paddingBottom: '12px' }}>
-              <button
-                onClick={() => setAmortizationTab('reducing')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  background: amortizationTab === 'reducing' ? 'rgba(45, 212, 191, 0.15)' : 'transparent',
-                  color: amortizationTab === 'reducing' ? 'var(--color-primary)' : 'var(--color-text-secondary)'
-                }}
-              >
-                Reducing Balance Schedule
-              </button>
-              <button
-                onClick={() => setAmortizationTab('flat')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  background: amortizationTab === 'flat' ? 'rgba(251, 146, 60, 0.15)' : 'transparent',
-                  color: amortizationTab === 'flat' ? 'var(--color-accent)' : 'var(--color-text-secondary)'
-                }}
-              >
-                Flat Rate Schedule
-              </button>
-            </div>
-
-            {/* Table Container */}
-            <div className="amortization-table-container">
-              <table className="amortization-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '80px' }}>Month</th>
-                    <th>Opening Bal</th>
-                    <th>Payment (EMI)</th>
-                    <th>Interest Paid</th>
-                    <th>Principal Paid</th>
-                    <th>Closing Bal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(amortizationTab === 'reducing' ? reducingSchedule : flatSchedule).map((row) => (
-                    <tr key={row.month}>
-                      <td style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{row.month}</td>
-                      <td>₹{row.opening.toLocaleString('en-IN')}</td>
-                      <td style={{ fontWeight: 600 }}>₹{row.emi.toLocaleString('en-IN')}</td>
-                      <td style={{ color: 'var(--color-error)' }}>₹{row.interest.toLocaleString('en-IN')}</td>
-                      <td style={{ color: 'var(--color-success)' }}>₹{row.principal.toLocaleString('en-IN')}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-                        ₹{row.closing.toLocaleString('en-IN')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Right Column: Tabbed Output display */}
+        <div className="results-column">
+          <div className="tab-toggles">
+            <button
+              type="button"
+              className={`tab-btn ${!showAmortization ? 'active' : 'inactive'}`}
+              onClick={() => setShowAmortization(false)}
+            >
+              Visual Breakdown
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${showAmortization ? 'active' : 'inactive'}`}
+              onClick={() => setShowAmortization(true)}
+            >
+              EMI Schedule
+            </button>
           </div>
-        )}
+
+          {/* Results Display White Card */}
+          <div className="results-white-card">
+            {!showAmortization ? (
+              <>
+                {/* Block 1 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', textAlign: 'center' }}>
+                  <div style={{ borderRight: '1px solid var(--border-default, #e2e8f0)', paddingRight: '8px' }}>
+                    <span className="stat-label-small">YOUR MONTHLY EMI</span>
+                    <div className="stat-value-large">
+                      ₹{reducingEmi.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="stat-label-small">TOTAL AMOUNT PAYABLE</span>
+                    <div className="stat-value-large">
+                      ₹{reducingTotalPayment.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="card-divider" />
+
+                {/* Block 2 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
+                  <div>
+                    <span className="stat-label-tiny">LOAN AMOUNT</span>
+                    <div className="stat-value-medium">
+                      ₹{Number(loanAmount || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div style={{ borderLeft: '1px solid var(--border-default, #e2e8f0)', borderRight: '1px solid var(--border-default, #e2e8f0)' }}>
+                    <span className="stat-label-tiny">TOTAL INTEREST</span>
+                    <div className="stat-value-medium">
+                      ₹{reducingTotalInterest.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="stat-label-tiny">TENURE</span>
+                    <div className="stat-value-medium">
+                      {tenure} {tenureType === 'years' ? 'Yr' : 'Mo'}
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="card-divider" />
+
+                {/* Block 3 */}
+                <div className="donut-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', width: '100%', gap: '12px' }}>
+                    {/* Donut 1: Reducing */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--color-text-secondary, #64748b)', textTransform: 'uppercase' }}>Reducing Method</span>
+                      <svg width="85" height="85" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-bg-tertiary, #f1f5f9)" strokeWidth="4.2" />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.915"
+                          fill="none"
+                          stroke="var(--border-default, #e2e8f0)"
+                          strokeWidth="4.2"
+                          strokeDasharray={`${reducingPrincipalPercent} ${100 - reducingPrincipalPercent}`}
+                          strokeDashoffset="0"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.915"
+                          fill="none"
+                          stroke="var(--color-primary, #00d756)"
+                          strokeWidth="4.2"
+                          strokeDasharray={`${reducingInterestPercent} ${100 - reducingInterestPercent}`}
+                          strokeDashoffset={`${100 - reducingPrincipalPercent}`}
+                        />
+                      </svg>
+                      <span style={{ fontSize: '8.5px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                        {reducingPrincipalPercent}% P / {reducingInterestPercent}% I
+                      </span>
+                    </div>
+
+                    {/* Donut 2: Flat Rate */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--color-text-secondary, #64748b)', textTransform: 'uppercase' }}>Flat Rate Method</span>
+                      <svg width="85" height="85" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-bg-tertiary, #f1f5f9)" strokeWidth="4.2" />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.915"
+                          fill="none"
+                          stroke="var(--border-default, #e2e8f0)"
+                          strokeWidth="4.2"
+                          strokeDasharray={`${flatPrincipalPercent} ${100 - flatPrincipalPercent}`}
+                          strokeDashoffset="0"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.915"
+                          fill="none"
+                          stroke="var(--color-primary, #00d756)"
+                          strokeWidth="4.2"
+                          strokeDasharray={`${flatInterestPercent} ${100 - flatInterestPercent}`}
+                          strokeDashoffset={`${100 - flatPrincipalPercent}`}
+                        />
+                      </svg>
+                      <span style={{ fontSize: '8.5px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                        {flatPrincipalPercent}% P / {flatInterestPercent}% I
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Legend List */}
+                  <div className="legend-list" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '16px', fontSize: '10px' }}>
+                    <div className="legend-item">
+                      <span className="legend-bullet" style={{ background: 'var(--border-default, #e2e8f0)' }}></span>
+                      <span style={{ color: 'var(--color-text-secondary, #475569)', fontWeight: 600 }}>Principal (P)</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-bullet" style={{ background: 'var(--color-primary, #00d756)' }}></span>
+                      <span style={{ color: 'var(--color-text-secondary, #475569)', fontWeight: 600 }}>Interest (I)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="card-divider" />
+
+                {/* Method Comparison Table */}
+                <div style={{ textAlign: 'left', fontSize: '10px' }}>
+                  <span className="stat-label-tiny" style={{ display: 'block', marginBottom: '8px', fontSize: '9px', fontWeight: 800 }}>Flat vs Reducing Comparison</span>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-default, #e2e8f0)', color: 'var(--color-text-secondary, #64748b)' }}>
+                          <th style={{ padding: '6px 4px', fontWeight: 700 }}>Method</th>
+                          <th style={{ padding: '6px 4px', fontWeight: 700 }}>Monthly EMI</th>
+                          <th style={{ padding: '6px 4px', fontWeight: 700 }}>Total Interest</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={{ borderBottom: '1px solid var(--border-default, #f1f5f9)' }}>
+                          <td style={{ padding: '6px 4px', fontWeight: 'bold' }}>Reducing Balance</td>
+                          <td style={{ padding: '6px 4px' }}>₹{reducingEmi.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '6px 4px' }}>₹{reducingTotalInterest.toLocaleString('en-IN')}</td>
+                        </tr>
+                        <tr style={{ borderBottom: '1px solid var(--border-default, #f1f5f9)' }}>
+                          <td style={{ padding: '6px 4px', fontWeight: 'bold' }}>Flat Rate</td>
+                          <td style={{ padding: '6px 4px' }}>₹{flatEmi.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '6px 4px' }}>₹{flatTotalInterest.toLocaleString('en-IN')}</td>
+                        </tr>
+                        {flatTotalInterest - reducingTotalInterest > 0 && (
+                          <tr>
+                            <td colSpan="3" style={{ padding: '8px 4px 0 4px', color: '#16a34a', fontWeight: 'bold', fontSize: '9px' }}>
+                              💡 Reducing method saves you ₹{(flatTotalInterest - reducingTotalInterest).toLocaleString('en-IN')} in total interest!
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Download PDF Button */}
+                <button
+                  type="button"
+                  className="download-btn"
+                  onClick={handleGeneratePdf}
+                  disabled={generatingPdf}
+                >
+                  {generatingPdf ? 'GENERATING...' : <>DOWNLOAD <span style={{ fontSize: '12px' }}>📥</span></>}
+                </button>
+              </>
+            ) : (
+              <div className="schedule-table-wrapper">
+                {/* Repayment Schedule Tab Toggle */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAmortizationTab('reducing')}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: amortizationTab === 'reducing' ? 'var(--color-text-primary, #090d16)' : 'transparent',
+                      color: amortizationTab === 'reducing' ? 'var(--color-bg-secondary, #ffffff)' : 'var(--color-text-secondary, #64748b)',
+                      border: '1px solid var(--border-default, #cbd5e1)'
+                    }}
+                  >
+                    Reducing Schedule
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAmortizationTab('flat')}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: amortizationTab === 'flat' ? 'var(--color-text-primary, #090d16)' : 'transparent',
+                      color: amortizationTab === 'flat' ? 'var(--color-bg-secondary, #ffffff)' : 'var(--color-text-secondary, #64748b)',
+                      border: '1px solid var(--border-default, #cbd5e1)'
+                    }}
+                  >
+                    Flat Rate Schedule
+                  </button>
+                </div>
+
+                <div className="schedule-scroll">
+                  <table className="schedule-table">
+                    <thead>
+                      <tr>
+                        <th>Month</th>
+                        <th>EMI</th>
+                        <th>Principal</th>
+                        <th>Interest</th>
+                        <th>Closing Bal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(amortizationTab === 'reducing' ? reducingSchedule : flatSchedule).map((row) => (
+                        <tr key={row.month}>
+                          <td style={{ fontWeight: 'bold' }}>{row.month}</td>
+                          <td>₹{row.emi.toLocaleString('en-IN')}</td>
+                          <td style={{ color: '#16a34a', fontWeight: 600 }}>₹{row.principal.toLocaleString('en-IN')}</td>
+                          <td style={{ color: '#dc2626' }}>₹{row.interest.toLocaleString('en-IN')}</td>
+                          <td>₹{row.closing.toLocaleString('en-IN')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Download PDF Button */}
+                <button
+                  type="button"
+                  className="download-btn"
+                  onClick={handleGeneratePdf}
+                  disabled={generatingPdf}
+                >
+                  {generatingPdf ? 'GENERATING...' : <>DOWNLOAD <span style={{ fontSize: '12px' }}>📥</span></>}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

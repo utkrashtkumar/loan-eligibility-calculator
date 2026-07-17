@@ -1961,17 +1961,19 @@ export default function UserDashboard() {
                                 left: 0,
                                 right: 0,
                                 marginTop: '8px',
-                                background: 'rgba(17, 24, 39, 0.95)',
+                                background: 'var(--color-bg-glass-heavy)',
                                 backdropFilter: 'blur(30px)',
                                 WebkitBackdropFilter: 'blur(30px)',
-                                border: 'var(--border-accent)',
+                                border: 'var(--border-subtle)',
                                 borderRadius: 'var(--border-radius-lg)',
-                                padding: '8px',
+                                padding: '10px 8px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '6px',
+                                gap: '10px',
                                 boxShadow: 'var(--shadow-lg)',
-                                zIndex: 99999
+                                zIndex: 99999,
+                                maxHeight: '320px',
+                                overflowY: 'auto'
                               }}
                             >
                               {userTabs.map((tab) => (
@@ -1985,8 +1987,8 @@ export default function UserDashboard() {
                                   style={{
                                     width: '100%',
                                     textAlign: 'left',
-                                    padding: '12px 16px',
-                                    fontSize: 'var(--text-sm)',
+                                    padding: '16px 20px',
+                                    fontSize: 'var(--text-base)',
                                     background: activeTab === tab.id ? 'var(--gradient-primary)' : 'transparent',
                                     border: 'none',
                                     color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary)',
@@ -2159,17 +2161,19 @@ export default function UserDashboard() {
                             left: 0,
                             right: 0,
                             marginTop: '8px',
-                            background: 'rgba(17, 24, 39, 0.95)',
+                            background: 'var(--color-bg-glass-heavy)',
                             backdropFilter: 'blur(30px)',
                             WebkitBackdropFilter: 'blur(30px)',
-                            border: 'var(--border-accent)',
+                            border: 'var(--border-subtle)',
                             borderRadius: 'var(--border-radius-lg)',
-                            padding: '8px',
+                            padding: '10px 8px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '6px',
+                            gap: '10px',
                             boxShadow: 'var(--shadow-lg)',
-                            zIndex: 99999
+                            zIndex: 99999,
+                            maxHeight: '320px',
+                            overflowY: 'auto'
                           }}
                         >
                           {[
@@ -2191,8 +2195,8 @@ export default function UserDashboard() {
                               style={{
                                 width: '100%',
                                 textAlign: 'left',
-                                padding: '12px 16px',
-                                fontSize: 'var(--text-sm)',
+                                padding: '16px 20px',
+                                fontSize: 'var(--text-base)',
                                 background: activeTab === tab.id ? 'var(--gradient-primary)' : 'transparent',
                                 border: 'none',
                                 color: activeTab === tab.id ? '#ffffff' : 'var(--color-text-secondary)',
@@ -3023,18 +3027,18 @@ export default function UserDashboard() {
 
                             {/* View Switcher Toggle */}
                             {applications.length > 0 && (
-                              <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '4px', borderRadius: 'var(--border-radius-md)', border: 'var(--border-light)' }}>
+                              <div style={{ display: 'flex', gap: '8px', background: 'var(--color-bg-tertiary)', padding: '4px', borderRadius: 'var(--border-radius-md)', border: 'var(--border-subtle)' }}>
                                 <button 
                                   onClick={() => setViewMode('table')} 
                                   className={`btn btn-sm`}
-                                  style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'table' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: '#ffffff' }}
+                                  style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'table' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: viewMode === 'table' ? '#ffffff' : 'var(--color-text-secondary)' }}
                                 >
                                   List View
                                 </button>
                                 <button 
                                   onClick={() => setViewMode('kanban')} 
                                   className={`btn btn-sm`}
-                                  style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'kanban' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: '#ffffff' }}
+                                  style={{ margin: 0, padding: '6px 12px', fontSize: 'var(--text-xs)', background: viewMode === 'kanban' ? 'var(--gradient-primary)' : 'transparent', border: 'none', color: viewMode === 'kanban' ? '#ffffff' : 'var(--color-text-secondary)' }}
                                 >
                                   Kanban Board
                                 </button>
@@ -3170,9 +3174,9 @@ export default function UserDashboard() {
                                     <div 
                                       key={col.title}
                                       style={{
-                                        background: 'rgba(255, 255, 255, 0.02)',
+                                        background: 'var(--color-bg-tertiary)',
                                         borderRadius: 'var(--border-radius-md)',
-                                        border: 'var(--border-light)',
+                                        border: 'var(--border-subtle)',
                                         padding: '16px 12px',
                                         display: 'flex',
                                         flexDirection: 'column',
@@ -3180,19 +3184,19 @@ export default function UserDashboard() {
                                         minHeight: '400px'
                                       }}
                                     >
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '8px', marginBottom: '4px' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-default)', paddingBottom: '8px', marginBottom: '4px' }}>
                                         <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)' }}>
                                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: col.color, display: 'inline-block' }}></span>
                                           {col.title}
                                         </span>
-                                        <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--color-text-secondary)' }}>
+                                        <span style={{ fontSize: '10px', background: 'var(--color-bg-secondary)', border: 'var(--border-subtle)', padding: '2px 6px', borderRadius: '4px', color: 'var(--color-text-secondary)' }}>
                                           {colApps.length}
                                         </span>
                                       </div>
 
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto' }}>
                                         {colApps.length === 0 ? (
-                                          <div style={{ textAlign: 'center', padding: '24px 8px', fontSize: '11px', color: 'var(--color-text-tertiary)', border: '1px dashed rgba(255,255,255,0.05)', borderRadius: 'var(--border-radius-sm)' }}>
+                                          <div style={{ textAlign: 'center', padding: '24px 8px', fontSize: '11px', color: 'var(--color-text-tertiary)', border: '1px dashed var(--border-default)', borderRadius: 'var(--border-radius-sm)' }}>
                                             No applications
                                           </div>
                                         ) : (
@@ -3206,18 +3210,18 @@ export default function UserDashboard() {
                                               }}
                                               style={{
                                                 background: 'var(--color-bg-card)',
-                                                border: 'var(--border-light)',
+                                                border: 'var(--border-subtle)',
                                                 borderRadius: 'var(--border-radius-sm)',
                                                 padding: '12px',
                                                 cursor: 'pointer',
                                                 transition: 'transform 0.15s ease, border-color 0.15s ease'
                                               }}
                                               onMouseEnter={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                                                e.currentTarget.style.borderColor = 'var(--color-primary)';
                                                 e.currentTarget.style.transform = 'translateY(-2px)';
                                               }}
                                               onMouseLeave={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+                                                e.currentTarget.style.borderColor = '';
                                                 e.currentTarget.style.transform = 'translateY(0)';
                                               }}
                                             >
@@ -5052,13 +5056,13 @@ export default function UserDashboard() {
                 margin: '0 auto',
                 display: 'grid',
                 gap: '20px',
-                background: 'rgba(20, 20, 20, 0.85)',
+                background: 'var(--color-bg-secondary)',
                 backdropFilter: 'blur(25px)',
-                border: 'var(--border-light)',
+                border: 'var(--border-subtle)',
                 boxShadow: 'var(--shadow-xl)',
                 borderRadius: 'var(--border-radius-lg)',
                 padding: '28px',
-                color: '#fff',
+                color: 'var(--color-text-primary)',
                 maxHeight: '90vh',
                 overflowY: 'auto'
               }} onClick={(e) => e.stopPropagation()}>
@@ -5088,7 +5092,7 @@ export default function UserDashboard() {
                 </div>
 
                 {/* Client & Loan Details Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: 'var(--border-subtle)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--color-bg-tertiary)', padding: '16px', borderRadius: '8px', border: 'var(--border-subtle)' }}>
                   <div>
                     <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Client Name</label>
                     <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginTop: '2px' }}>{selectedApplication.client_name}</div>
@@ -5440,7 +5444,7 @@ export default function UserDashboard() {
               boxShadow: 'var(--shadow-xl)',
               borderRadius: 'var(--border-radius-lg)',
               padding: '32px',
-              color: '#fff'
+              color: 'var(--color-text-primary)'
             }} onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 'var(--border-subtle)', paddingBottom: '16px' }}>
@@ -5497,7 +5501,7 @@ export default function UserDashboard() {
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Total Business</div>
-                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#fff', marginTop: '4px' }}>{"\u20B9"}{saTotalBusiness.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '4px' }}>{"\u20B9"}{saTotalBusiness.toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Your Earning (0.5%)</div>

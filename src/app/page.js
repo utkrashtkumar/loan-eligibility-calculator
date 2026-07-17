@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import EmiCalculator from '@/components/EmiCalculator';
+import CalculatorsSection from '@/components/CalculatorsSection';
 import BankLogo from '@/components/BankLogo';
 import { supabase } from '@/lib/supabase';
 
@@ -389,6 +390,7 @@ export default function Home() {
       />
       <Header />
 
+
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-bg">
@@ -624,6 +626,971 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+
+      {/* Why HandToHand? Section */}
+      <section className="section features-section" style={{ paddingBottom: '32px' }}>
+        <div className="container">
+          <h2 className="section-title" style={{ textAlign: 'center', marginBottom: '48px' }}>
+            Why <span className="text-gradient">HandToHand?</span>
+          </h2>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
+            gap: '24px'
+          }}>
+            {/* Faster Approvals */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(6, 182, 212, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(6, 182, 212, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Faster Approvals
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                API integrations directly with lenders cut processing times by 80%.
+              </p>
+            </div>
+
+            {/* Smart Matching */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2z" />
+                  <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2z" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Smart Matching
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                Say goodbye to rejections. Apply only where approval probability is high.
+              </p>
+            </div>
+
+            {/* Human + AI */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(6, 182, 212, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(6, 182, 212, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Human + AI
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                The efficiency of algorithms backed by expert human relationship managers.
+              </p>
+            </div>
+
+            {/* 100% Transparent */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(6, 182, 212, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(6, 182, 212, 0.15)',
+                marginBottom: '8px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                100% Transparent
+              </h3>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                Real-time tracking for every file, payout, and status update.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* Component 5: The HandToHand Lead Journey */}
+      <section className="section light-section-subtle" style={{ borderBottom: '1px solid var(--border-default)', padding: '80px 0' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <span className="light-tag" style={{ color: '#10b981' }}>THE PROCESS</span>
+            <h2 className="light-title" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', color: 'var(--color-text-primary)', marginBottom: '12px', marginTop: '8px' }}>
+              The HandToHand Lead Journey
+            </h2>
+            <p className="light-subtitle" style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--color-text-secondary)' }}>
+              End-to-end support from file login to account credit. Every step tracked, automated, and transparent.
+            </p>
+          </div>
+
+          {/* Timeline Steps */}
+          <div className="process-timeline-wrapper">
+            {/* Step 1 */}
+            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--color-bg-primary)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                border: '1px solid var(--border-default)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                color: '#3b82f6'
+              }}>
+                01
+              </div>
+              <div style={{ color: '#3b82f6', margin: '8px 0' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="19" y1="8" x2="19" y2="14" />
+                  <line x1="16" y1="11" x2="22" y2="11" />
+                </svg>
+              </div>
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Lead Entry</h4>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                Agent enters basic customer details — Salary, CIBIL score, Loan Amount, and Pincode via the React Dashboard.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--color-bg-primary)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                border: '1px solid var(--border-default)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                color: '#10b981'
+              }}>
+                02
+              </div>
+              <div style={{ color: '#10b981', margin: '8px 0' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>AI Bank Matching</h4>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                50+ bank policies scanned in real time. Top-3 bank matches with confidence scores are instantly generated.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--color-bg-primary)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                border: '1px solid var(--border-default)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                color: '#d97706'
+              }}>
+                03
+              </div>
+              <div style={{ color: '#d97706', margin: '8px 0' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </div>
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Document Upload & QC</h4>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                KYC, income proof, and bank statements uploaded. AI QC immediately checks document quality and completeness.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--color-bg-primary)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                border: '1px solid var(--border-default)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                color: '#a855f7'
+              }}>
+                04
+              </div>
+              <div style={{ color: '#a855f7', margin: '8px 0' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              </div>
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Bank Login</h4>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                Pre-filtered &quot;Disbursement-Ready&quot; profile submitted to the bank via API. Parallel processing for borderline profiles.
+              </p>
+            </div>
+
+            {/* Step 5 */}
+            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--color-bg-primary)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                border: '1px solid var(--border-default)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                color: '#10b981'
+              }}>
+                05
+              </div>
+              <div style={{ color: '#10b981', margin: '8px 0' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 8 8 12 12 16" />
+                  <line x1="16" y1="12" x2="8" y2="12" />
+                </svg>
+              </div>
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Disbursement & Payout</h4>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                Loan credited to customer. Real-time Socket.io notification updates agent wallet. Override commission auto-calculated.
+              </p>
+            </div>
+          </div>
+
+          {/* 3 Dark Stats Cards Below */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
+            marginTop: '56px'
+          }}>
+            {/* Stat Block 1 */}
+            <div className="dark-stat-block">
+              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
+                <AnimatedCounter target={15} suffix=" min" />
+              </div>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+                File Submission
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: '#94a3b8' }}>
+                vs 4 hours industry average
+              </div>
+            </div>
+
+            {/* Stat Block 2 */}
+            <div className="dark-stat-block">
+              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
+                <AnimatedCounter target={40} suffix="%" />
+              </div>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+                Faster TAT
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: '#94a3b8' }}>
+                Turn Around Time reduced
+              </div>
+            </div>
+
+            {/* Stat Block 3 */}
+            <div className="dark-stat-block">
+              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
+                <AnimatedCounter target={70} suffix="%" />
+              </div>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+                Rejection Reduction
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: '#94a3b8' }}>
+                Target through AI matching
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* Smart Loan Solutions Section */}
+      <section className="section solutions-section" style={{ paddingTop: '32px', borderTop: 'var(--border-subtle)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 className="section-title">
+              Smart <span className="text-gradient">Loan Solutions</span>
+            </h2>
+            <p className="section-subtitle" style={{ maxWidth: '600px', margin: '8px auto 0' }}>
+              Instant AI-driven loan infrastructure for every financial need.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+            gap: '24px'
+          }}>
+            {/* Salary Loans */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '20px'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                  Salary Loans
+                </h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  Tailored loan matches for salaried individuals with steady employment at top banks.
+                </p>
+              </div>
+              <Link href="/banks/salary" className="btn btn-primary btn-sm" style={{
+                marginTop: 'auto',
+                padding: '10px 24px',
+                borderRadius: '8px',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                background: 'var(--gradient-primary)',
+                boxShadow: 'var(--shadow-glow-purple)',
+                color: '#ffffff',
+                border: 'none'
+              }}>
+                View Available Banks
+              </Link>
+            </div>
+
+            {/* Business Loans */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '20px'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                  Business Loans
+                </h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  Smart capital infrastructure for startups, MSMEs, and growing enterprises.
+                </p>
+              </div>
+              <Link href="/banks/business" className="btn btn-primary btn-sm" style={{
+                marginTop: 'auto',
+                padding: '10px 24px',
+                borderRadius: '8px',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                background: 'var(--gradient-primary)',
+                boxShadow: 'var(--shadow-glow-purple)',
+                color: '#ffffff',
+                border: 'none'
+              }}>
+                View Available Banks
+              </Link>
+            </div>
+
+            {/* Instant Loans */}
+            <div className="feature-card" style={{
+              background: 'var(--color-bg-glass-heavy)',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--border-radius-lg)',
+              padding: '40px 32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '20px'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(16, 185, 129, 0.15)'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                  Instant Loans
+                </h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  Real-time digital verification with ultra-fast AI-powered approvals.
+                </p>
+              </div>
+              <Link href="/banks/instant" className="btn btn-primary btn-sm" style={{
+                marginTop: 'auto',
+                padding: '10px 24px',
+                borderRadius: '8px',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                background: 'var(--gradient-primary)',
+                boxShadow: 'var(--shadow-glow-purple)',
+                color: '#ffffff',
+                border: 'none'
+              }}>
+                View Available Banks
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* Available Banks Section */}
+      <section id="banks" className="section banks-section" style={{ borderTop: 'var(--border-subtle)', background: 'var(--color-bg-secondary)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <div className="hero-badge" style={{ margin: '0 auto 16px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)' }}>
+              <span className="hero-badge-dot" style={{ backgroundColor: 'var(--color-primary)' }}></span>
+              Our Financial Network
+            </div>
+            <h2 className="section-title">
+              Available <span className="text-gradient">Partner Banks</span>
+            </h2>
+            <p className="section-subtitle" style={{ maxWidth: '650px', margin: '12px auto 0' }}>
+              We partner with India&apos;s leading banks and NBFCs to offer you the best loan deals. Check the details and apply.
+            </p>
+          </div>
+
+          {/* Category Tabs */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            marginBottom: '32px',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { id: 'all', label: 'All Partners' },
+              { id: 'instant', label: 'Instant Loans' },
+              { id: 'salary', label: 'Salary Loans' },
+              { id: 'business', label: 'Business Loans' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveCategory(tab.id);
+                  if (tab.id === 'all') {
+                    window.history.replaceState(null, '', ' ');
+                  } else {
+                    window.history.replaceState(null, '', `#banks-${tab.id}`);
+                  }
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  border: activeCategory === tab.id ? '1px solid var(--color-primary)' : '1px solid var(--border-default)',
+                  background: activeCategory === tab.id ? 'var(--color-primary-light)' : 'rgba(255,255,255,0.02)',
+                  color: activeCategory === tab.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseOver={(e) => {
+                  if (activeCategory !== tab.id) {
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                    e.currentTarget.style.color = 'var(--color-primary)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (activeCategory !== tab.id) {
+                    e.currentTarget.style.borderColor = 'var(--border-default)';
+                    e.currentTarget.style.color = 'var(--color-text-secondary)';
+                  }
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {loadingBanks ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto' }} />
+              <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading partner banks…</p>
+            </div>
+          ) : banks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
+              No partner banks configured yet.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
+              {(() => {
+                const filteredBanks = activeCategory === 'all'
+                  ? banks
+                  : banks.filter(bank => (bank.policy_category || 'salary') === activeCategory);
+                if (filteredBanks.length === 0) {
+                  return (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', background: 'var(--color-bg-card)', border: 'var(--border-subtle)', borderRadius: 'var(--border-radius-lg)' }}>
+                      No partner banks match the selected category.
+                    </div>
+                  );
+                }
+                return filteredBanks.map((bank) => (
+                  <div key={bank.id} style={{
+                    background: 'var(--color-bg-card)',
+                    border: 'var(--border-subtle)',
+                    borderRadius: 'var(--border-radius-lg)',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    justifyContent: 'space-between',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)'
+                  }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <BankLogo bankName={bank.bank_name} logoUrl={bank.logo_url} size={32} />
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
+                          {bank.bank_name}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '99px',
+                          color: bank.policy_category === 'salary' ? 'var(--color-primary)' : bank.policy_category === 'instant' ? 'var(--color-success)' : 'var(--color-warning)',
+                          background: bank.policy_category === 'salary' ? 'rgba(99, 102, 241, 0.1)' : bank.policy_category === 'instant' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.15)',
+                          textTransform: 'uppercase'
+                        }}>
+                          {bank.policy_category || 'salary'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', borderTop: 'var(--border-subtle)', paddingTop: '12px' }}>
+                        {bank.min_salary > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Min Salary:</span>
+                            <strong style={{ color: 'var(--color-text-primary)' }}>₹{Number(bank.min_salary).toLocaleString('en-IN')}</strong>
+                          </div>
+                        )}
+                        {bank.min_cibil > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Min CIBIL:</span>
+                            <strong style={{ color: 'var(--color-text-primary)' }}>{bank.min_cibil}</strong>
+                          </div>
+                        )}
+                        {bank.foir_max > 0 && bank.foir_max < 100 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Max FOIR:</span>
+                            <strong style={{ color: 'var(--color-text-primary)' }}>{bank.foir_max}%</strong>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <Link
+                      href="/banks"
+                      className="btn btn-primary btn-sm"
+                      style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
+                    >
+                      Apply Now
+                    </Link>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </div>
+      </section>
+
+
+      {/* Available Credit Cards Section */}
+      <section id="home-credit-cards" className="section credit-cards-section" style={{ borderTop: 'var(--border-subtle)', background: 'var(--color-bg-primary)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <div className="hero-badge" style={{ margin: '0 auto 16px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)' }}>
+              <span className="hero-badge-dot" style={{ backgroundColor: 'var(--color-primary)' }}></span>
+              Exclusive Card Offers
+            </div>
+            <h2 className="section-title">
+              Featured <span className="text-gradient">Partner Credit Cards</span>
+            </h2>
+            <p className="section-subtitle" style={{ maxWidth: '650px', margin: '12px auto 0' }}>
+              Explore premium credit cards from our verified banking partners and apply instantly.
+            </p>
+          </div>
+
+          {loadingCards ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto' }} />
+              <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading credit card partners...</p>
+            </div>
+          ) : creditCards.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
+              No credit card partners configured yet.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
+              {creditCards.map((card) => (
+                <div key={card.id} style={{
+                  background: 'var(--color-bg-card)',
+                  border: 'var(--border-subtle)',
+                  borderRadius: 'var(--border-radius-lg)',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  justifyContent: 'space-between',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)'
+                }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <BankLogo bankName={card.bank_name} logoUrl={card.logo_url} size={32} />
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
+                        {card.bank_name}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/credit-cards"
+                    className="btn btn-primary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
+                  >
+                    Apply Now
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+
+      {/* Component 3: Our Business Success in Numbers */}
+      <section style={{ position: 'relative' }}>
+        {/* Dark Blue Header Band */}
+        <div style={{
+          background: '#004899',
+          padding: '80px 0 60px 0',
+          textAlign: 'center',
+          color: '#ffffff'
+        }}>
+          <div className="container">
+            <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: '#ffffff', marginBottom: '12px' }}>
+              Our Business Success in Numbers
+            </h2>
+            <p style={{ color: '#e2e8f0', fontSize: 'var(--text-base)', maxWidth: '600px', margin: '0 auto' }}>
+              We connect people with the best financial solutions across India.
+            </p>
+          </div>
+        </div>
+
+        {/* Overlapping Pill Badge */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginTop: '-24px',
+          position: 'relative',
+          zIndex: 10,
+          padding: '0 16px'
+        }}>
+          <div style={{
+            background: 'var(--color-bg-secondary)',
+            border: '2px solid #10b981',
+            borderRadius: '9999px',
+            padding: '12px 32px',
+            fontWeight: 700,
+            color: '#10b981',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            fontSize: 'var(--text-sm)',
+            textAlign: 'center'
+          }}>
+            Over ₹<AnimatedCounter target={1.5} decimals={1} suffix=" Lakh Crores" /> Loans Disbursed Annually
+          </div>
+        </div>
+
+        {/* Cards Section */}
+        <div style={{
+          background: 'var(--color-bg-primary)',
+          padding: '60px 0',
+          borderBottom: '1px solid var(--border-default)'
+        }}>
+          <div className="container">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '24px'
+            }}>
+              {/* Card 1 */}
+              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ color: 'var(--color-accent)' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  <AnimatedCounter target={4000} suffix="+" />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
+                  Serviceable Across All<br />Pan India PIN Codes
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ color: 'var(--color-accent)' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    <line x1="15" y1="3" x2="15" y2="21" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="3" y1="15" x2="21" y2="15" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  <AnimatedCounter target={250} suffix="+" />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
+                  Branch Network
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ color: 'var(--color-accent)' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="11" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  <AnimatedCounter target={150} suffix="+" />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
+                  Trusted Bank Partners
+                </div>
+              </div>
+
+              {/* Card 4 */}
+              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ color: 'var(--color-accent)' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  <AnimatedCounter target={5000} suffix="+" />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
+                  Employees
+                </div>
+              </div>
+
+              {/* Card 5 */}
+              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ color: 'var(--color-accent)' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  <AnimatedCounter target={10000} suffix="+" />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
+                  Active Loan Agents
+                </div>
+              </div>
+
+              {/* Card 6 */}
+              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ color: 'var(--color-accent)' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                  <AnimatedCounter target={25000} suffix="+" />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
+                  Financial Expert<br />Advisors
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* Component 2: Who Can Join & Performance Tiers */}
       <section className="section light-section-subtle" style={{ borderBottom: '1px solid #e2e8f0', padding: '60px 0' }}>
@@ -1258,1007 +2225,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Component 3: Our Business Success in Numbers */}
-      <section style={{ position: 'relative' }}>
-        {/* Dark Blue Header Band */}
-        <div style={{
-          background: '#004899',
-          padding: '80px 0 60px 0',
-          textAlign: 'center',
-          color: '#ffffff'
-        }}>
-          <div className="container">
-            <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: '#ffffff', marginBottom: '12px' }}>
-              Our Business Success in Numbers
-            </h2>
-            <p style={{ color: '#e2e8f0', fontSize: 'var(--text-base)', maxWidth: '600px', margin: '0 auto' }}>
-              We connect people with the best financial solutions across India.
-            </p>
-          </div>
-        </div>
-
-        {/* Overlapping Pill Badge */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginTop: '-24px',
-          position: 'relative',
-          zIndex: 10,
-          padding: '0 16px'
-        }}>
-          <div style={{
-            background: 'var(--color-bg-secondary)',
-            border: '2px solid #10b981',
-            borderRadius: '9999px',
-            padding: '12px 32px',
-            fontWeight: 700,
-            color: '#10b981',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            fontSize: 'var(--text-sm)',
-            textAlign: 'center'
-          }}>
-            Over ₹<AnimatedCounter target={1.5} decimals={1} suffix=" Lakh Crores" /> Loans Disbursed Annually
-          </div>
-        </div>
-
-        {/* Cards Section */}
-        <div style={{
-          background: 'var(--color-bg-primary)',
-          padding: '60px 0',
-          borderBottom: '1px solid var(--border-default)'
-        }}>
-          <div className="container">
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '24px'
-            }}>
-              {/* Card 1 */}
-              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ color: 'var(--color-accent)' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  <AnimatedCounter target={4000} suffix="+" />
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
-                  Serviceable Across All<br />Pan India PIN Codes
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ color: 'var(--color-accent)' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <line x1="9" y1="3" x2="9" y2="21" />
-                    <line x1="15" y1="3" x2="15" y2="21" />
-                    <line x1="3" y1="9" x2="21" y2="9" />
-                    <line x1="3" y1="15" x2="21" y2="15" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  <AnimatedCounter target={250} suffix="+" />
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
-                  Branch Network
-                </div>
-              </div>
-
-              {/* Card 3 */}
-              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ color: 'var(--color-accent)' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" y1="22" x2="4" y2="11" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  <AnimatedCounter target={150} suffix="+" />
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
-                  Trusted Bank Partners
-                </div>
-              </div>
-
-              {/* Card 4 */}
-              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ color: 'var(--color-accent)' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  <AnimatedCounter target={5000} suffix="+" />
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
-                  Employees
-                </div>
-              </div>
-
-              {/* Card 5 */}
-              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ color: 'var(--color-accent)' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  <AnimatedCounter target={10000} suffix="+" />
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
-                  Active Loan Agents
-                </div>
-              </div>
-
-              {/* Card 6 */}
-              <div className="white-card" style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ color: 'var(--color-accent)' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  <AnimatedCounter target={25000} suffix="+" />
-                </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.4 }}>
-                  Financial Expert<br />Advisors
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Available Banks Section */}
-      <section id="banks" className="section banks-section" style={{ borderTop: 'var(--border-subtle)', background: 'var(--color-bg-secondary)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <div className="hero-badge" style={{ margin: '0 auto 16px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)' }}>
-              <span className="hero-badge-dot" style={{ backgroundColor: 'var(--color-primary)' }}></span>
-              Our Financial Network
-            </div>
-            <h2 className="section-title">
-              Available <span className="text-gradient">Partner Banks</span>
-            </h2>
-            <p className="section-subtitle" style={{ maxWidth: '650px', margin: '12px auto 0' }}>
-              We partner with India&apos;s leading banks and NBFCs to offer you the best loan deals. Check the details and apply.
-            </p>
-          </div>
-
-          {/* Category Tabs */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '12px',
-            marginBottom: '32px',
-            flexWrap: 'wrap'
-          }}>
-            {[
-              { id: 'all', label: 'All Partners' },
-              { id: 'instant', label: 'Instant Loans' },
-              { id: 'salary', label: 'Salary Loans' },
-              { id: 'business', label: 'Business Loans' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveCategory(tab.id);
-                  if (tab.id === 'all') {
-                    window.history.replaceState(null, '', ' ');
-                  } else {
-                    window.history.replaceState(null, '', `#banks-${tab.id}`);
-                  }
-                }}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '20px',
-                  border: activeCategory === tab.id ? '1px solid var(--color-primary)' : '1px solid var(--border-default)',
-                  background: activeCategory === tab.id ? 'var(--color-primary-light)' : 'rgba(255,255,255,0.02)',
-                  color: activeCategory === tab.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
-                onMouseOver={(e) => {
-                  if (activeCategory !== tab.id) {
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-                    e.currentTarget.style.color = 'var(--color-primary)';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (activeCategory !== tab.id) {
-                    e.currentTarget.style.borderColor = 'var(--border-default)';
-                    e.currentTarget.style.color = 'var(--color-text-secondary)';
-                  }
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {loadingBanks ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <div className="loading-spinner" style={{ margin: '0 auto' }} />
-              <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading partner banks…</p>
-            </div>
-          ) : banks.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
-              No partner banks configured yet.
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
-              {(() => {
-                const filteredBanks = activeCategory === 'all'
-                  ? banks
-                  : banks.filter(bank => (bank.policy_category || 'salary') === activeCategory);
-                if (filteredBanks.length === 0) {
-                  return (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', background: 'var(--color-bg-card)', border: 'var(--border-subtle)', borderRadius: 'var(--border-radius-lg)' }}>
-                      No partner banks match the selected category.
-                    </div>
-                  );
-                }
-                return filteredBanks.map((bank) => (
-                  <div key={bank.id} style={{
-                    background: 'var(--color-bg-card)',
-                    border: 'var(--border-subtle)',
-                    borderRadius: 'var(--border-radius-lg)',
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '16px',
-                    justifyContent: 'space-between',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)'
-                  }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <BankLogo bankName={bank.bank_name} logoUrl={bank.logo_url} size={32} />
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                          {bank.bank_name}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                        <span style={{
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: '99px',
-                          color: bank.policy_category === 'salary' ? 'var(--color-primary)' : bank.policy_category === 'instant' ? 'var(--color-success)' : 'var(--color-warning)',
-                          background: bank.policy_category === 'salary' ? 'rgba(99, 102, 241, 0.1)' : bank.policy_category === 'instant' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.15)',
-                          textTransform: 'uppercase'
-                        }}>
-                          {bank.policy_category || 'salary'}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', borderTop: 'var(--border-subtle)', paddingTop: '12px' }}>
-                        {bank.min_salary > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Min Salary:</span>
-                            <strong style={{ color: 'var(--color-text-primary)' }}>₹{Number(bank.min_salary).toLocaleString('en-IN')}</strong>
-                          </div>
-                        )}
-                        {bank.min_cibil > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Min CIBIL:</span>
-                            <strong style={{ color: 'var(--color-text-primary)' }}>{bank.min_cibil}</strong>
-                          </div>
-                        )}
-                        {bank.foir_max > 0 && bank.foir_max < 100 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Max FOIR:</span>
-                            <strong style={{ color: 'var(--color-text-primary)' }}>{bank.foir_max}%</strong>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <Link
-                      href="/banks"
-                      className="btn btn-primary btn-sm"
-                      style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
-                    >
-                      Apply Now
-                    </Link>
-                  </div>
-                ));
-              })()}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Available Credit Cards Section */}
-      <section id="home-credit-cards" className="section credit-cards-section" style={{ borderTop: 'var(--border-subtle)', background: 'var(--color-bg-primary)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <div className="hero-badge" style={{ margin: '0 auto 16px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)' }}>
-              <span className="hero-badge-dot" style={{ backgroundColor: 'var(--color-primary)' }}></span>
-              Exclusive Card Offers
-            </div>
-            <h2 className="section-title">
-              Featured <span className="text-gradient">Partner Credit Cards</span>
-            </h2>
-            <p className="section-subtitle" style={{ maxWidth: '650px', margin: '12px auto 0' }}>
-              Explore premium credit cards from our verified banking partners and apply instantly.
-            </p>
-          </div>
-
-          {loadingCards ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <div className="loading-spinner" style={{ margin: '0 auto' }} />
-              <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading credit card partners...</p>
-            </div>
-          ) : creditCards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
-              No credit card partners configured yet.
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
-              {creditCards.map((card) => (
-                <div key={card.id} style={{
-                  background: 'var(--color-bg-card)',
-                  border: 'var(--border-subtle)',
-                  borderRadius: 'var(--border-radius-lg)',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  justifyContent: 'space-between',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)'
-                }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                      <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <BankLogo bankName={card.bank_name} logoUrl={card.logo_url} size={32} />
-                      </div>
-                      <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-text-primary)' }}>
-                        {card.bank_name}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/credit-cards"
-                    className="btn btn-primary btn-sm"
-                    style={{ width: '100%', justifyContent: 'center', marginTop: '12px', background: 'var(--gradient-primary)', border: 'none', color: '#ffffff' }}
-                  >
-                    Apply Now
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* EMI Calculator Section */}
-      <section id="emi-calculator" className="section emi-calculator-section" style={{ borderTop: 'var(--border-subtle)' }}>
-        <div className="container" style={{ maxWidth: '1200px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 className="section-title">
-              Calculate Your <span className="text-gradient">Loan EMIs</span>
-            </h2>
-            <p className="section-subtitle">
-              Check your monthly payments instantly using fixed or reducing interest rate structures.
-            </p>
-          </div>
-          <EmiCalculator />
-        </div>
-      </section>
-
-      {/* Why HandToHand? Section */}
-      <section className="section features-section" style={{ paddingBottom: '32px' }}>
-        <div className="container">
-          <h2 className="section-title" style={{ textAlign: 'center', marginBottom: '48px' }}>
-            Why <span className="text-gradient">HandToHand?</span>
-          </h2>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
-            gap: '24px'
-          }}>
-            {/* Faster Approvals */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: 'rgba(6, 182, 212, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(6, 182, 212, 0.15)',
-                marginBottom: '8px'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Faster Approvals
-              </h3>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                API integrations directly with lenders cut processing times by 80%.
-              </p>
-            </div>
-
-            {/* Smart Matching */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(16, 185, 129, 0.15)',
-                marginBottom: '8px'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2z" />
-                  <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2z" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Smart Matching
-              </h3>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                Say goodbye to rejections. Apply only where approval probability is high.
-              </p>
-            </div>
-
-            {/* Human + AI */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: 'rgba(6, 182, 212, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(6, 182, 212, 0.15)',
-                marginBottom: '8px'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Human + AI
-              </h3>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                The efficiency of algorithms backed by expert human relationship managers.
-              </p>
-            </div>
-
-            {/* 100% Transparent */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: 'rgba(6, 182, 212, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(6, 182, 212, 0.15)',
-                marginBottom: '8px'
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                100% Transparent
-              </h3>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                Real-time tracking for every file, payout, and status update.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Smart Loan Solutions Section */}
-      <section className="section solutions-section" style={{ paddingTop: '32px', borderTop: 'var(--border-subtle)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 className="section-title">
-              Smart <span className="text-gradient">Loan Solutions</span>
-            </h2>
-            <p className="section-subtitle" style={{ maxWidth: '600px', margin: '8px auto 0' }}>
-              Instant AI-driven loan infrastructure for every financial need.
-            </p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-            gap: '24px'
-          }}>
-            {/* Salary Loans */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 32px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '20px'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '12px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(16, 185, 129, 0.15)'
-              }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                  Salary Loans
-                </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                  Tailored loan matches for salaried individuals with steady employment at top banks.
-                </p>
-              </div>
-              <Link href="/banks/salary" className="btn btn-primary btn-sm" style={{
-                marginTop: 'auto',
-                padding: '10px 24px',
-                borderRadius: '8px',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                background: 'var(--gradient-primary)',
-                boxShadow: 'var(--shadow-glow-purple)',
-                color: '#ffffff',
-                border: 'none'
-              }}>
-                View Available Banks
-              </Link>
-            </div>
-
-            {/* Business Loans */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 32px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '20px'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '12px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(16, 185, 129, 0.15)'
-              }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                  Business Loans
-                </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                  Smart capital infrastructure for startups, MSMEs, and growing enterprises.
-                </p>
-              </div>
-              <Link href="/banks/business" className="btn btn-primary btn-sm" style={{
-                marginTop: 'auto',
-                padding: '10px 24px',
-                borderRadius: '8px',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                background: 'var(--gradient-primary)',
-                boxShadow: 'var(--shadow-glow-purple)',
-                color: '#ffffff',
-                border: 'none'
-              }}>
-                View Available Banks
-              </Link>
-            </div>
-
-            {/* Instant Loans */}
-            <div className="feature-card" style={{
-              background: 'var(--color-bg-glass-heavy)',
-              border: 'var(--border-light)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: '40px 32px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '20px'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '12px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(16, 185, 129, 0.15)'
-              }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                  Instant Loans
-                </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                  Real-time digital verification with ultra-fast AI-powered approvals.
-                </p>
-              </div>
-              <Link href="/banks/instant" className="btn btn-primary btn-sm" style={{
-                marginTop: 'auto',
-                padding: '10px 24px',
-                borderRadius: '8px',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                background: 'var(--gradient-primary)',
-                boxShadow: 'var(--shadow-glow-purple)',
-                color: '#ffffff',
-                border: 'none'
-              }}>
-                View Available Banks
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Component 5: The HandToHand Lead Journey */}
-      <section className="section light-section-subtle" style={{ borderBottom: '1px solid var(--border-default)', padding: '80px 0' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-            <span className="light-tag" style={{ color: '#10b981' }}>THE PROCESS</span>
-            <h2 className="light-title" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', color: 'var(--color-text-primary)', marginBottom: '12px', marginTop: '8px' }}>
-              The HandToHand Lead Journey
-            </h2>
-            <p className="light-subtitle" style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--color-text-secondary)' }}>
-              End-to-end support from file login to account credit. Every step tracked, automated, and transparent.
-            </p>
-          </div>
-
-          {/* Timeline Steps */}
-          <div className="process-timeline-wrapper">
-            {/* Step 1 */}
-            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'var(--color-bg-primary)',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                border: '1px solid var(--border-default)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 700,
-                color: '#3b82f6'
-              }}>
-                01
-              </div>
-              <div style={{ color: '#3b82f6', margin: '8px 0' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <line x1="19" y1="8" x2="19" y2="14" />
-                  <line x1="16" y1="11" x2="22" y2="11" />
-                </svg>
-              </div>
-              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Lead Entry</h4>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                Agent enters basic customer details — Salary, CIBIL score, Loan Amount, and Pincode via the React Dashboard.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'var(--color-bg-primary)',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                border: '1px solid var(--border-default)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 700,
-                color: '#10b981'
-              }}>
-                02
-              </div>
-              <div style={{ color: '#10b981', margin: '8px 0' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              </div>
-              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>AI Bank Matching</h4>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                50+ bank policies scanned in real time. Top-3 bank matches with confidence scores are instantly generated.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'var(--color-bg-primary)',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                border: '1px solid var(--border-default)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 700,
-                color: '#d97706'
-              }}>
-                03
-              </div>
-              <div style={{ color: '#d97706', margin: '8px 0' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                  <polyline points="10 9 9 9 8 9" />
-                </svg>
-              </div>
-              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Document Upload & QC</h4>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                KYC, income proof, and bank statements uploaded. AI QC immediately checks document quality and completeness.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'var(--color-bg-primary)',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                border: '1px solid var(--border-default)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 700,
-                color: '#a855f7'
-              }}>
-                04
-              </div>
-              <div style={{ color: '#a855f7', margin: '8px 0' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-              </div>
-              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Bank Login</h4>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                Pre-filtered &quot;Disbursement-Ready&quot; profile submitted to the bank via API. Parallel processing for borderline profiles.
-              </p>
-            </div>
-
-            {/* Step 5 */}
-            <div className="timeline-card" style={{ flex: '1 1 180px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'var(--color-bg-primary)',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-                border: '1px solid var(--border-default)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 700,
-                color: '#10b981'
-              }}>
-                05
-              </div>
-              <div style={{ color: '#10b981', margin: '8px 0' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 8 8 12 12 16" />
-                  <line x1="16" y1="12" x2="8" y2="12" />
-                </svg>
-              </div>
-              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>Disbursement & Payout</h4>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                Loan credited to customer. Real-time Socket.io notification updates agent wallet. Override commission auto-calculated.
-              </p>
-            </div>
-          </div>
-
-          {/* 3 Dark Stats Cards Below */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '24px',
-            marginTop: '56px'
-          }}>
-            {/* Stat Block 1 */}
-            <div className="dark-stat-block">
-              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                <AnimatedCounter target={15} suffix=" min" />
-              </div>
-              <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
-                File Submission
-              </div>
-              <div style={{ fontSize: 'var(--text-xs)', color: '#94a3b8' }}>
-                vs 4 hours industry average
-              </div>
-            </div>
-
-            {/* Stat Block 2 */}
-            <div className="dark-stat-block">
-              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                <AnimatedCounter target={40} suffix="%" />
-              </div>
-              <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
-                Faster TAT
-              </div>
-              <div style={{ fontSize: 'var(--text-xs)', color: '#94a3b8' }}>
-                Turn Around Time reduced
-              </div>
-            </div>
-
-            {/* Stat Block 3 */}
-            <div className="dark-stat-block">
-              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                <AnimatedCounter target={70} suffix="%" />
-              </div>
-              <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
-                Rejection Reduction
-              </div>
-              <div style={{ fontSize: 'var(--text-xs)', color: '#94a3b8' }}>
-                Target through AI matching
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="section cta-section">
-        <div className="container">
-          <div className="cta-card">
-            <h2 className="cta-title">Ready to Find Your Perfect Loan?</h2>
-            <p className="cta-subtitle">
-              Join thousands of borrowers who found their ideal loan match in under a minute.
-            </p>
-            <Link
-              href="/check"
-              className="btn btn-primary btn-lg"
-              style={{
-                marginTop: '16px',
-                padding: '16px 36px',
-                fontSize: '1.1rem',
-                boxShadow: 'var(--shadow-glow-purple), 0 8px 24px rgba(251, 146, 60, 0.35)',
-                transform: 'translateY(0)',
-                transition: 'all var(--transition-base)'
-              }}
-            >
-              Start Free Check
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '8px' }}>
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Component 4: Full Agent Support Ecosystem */}
       <section className="section light-section" style={{ borderBottom: '1px solid var(--border-default)', padding: '60px 0' }}>
@@ -2339,6 +2305,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+
       {/* Become a Partner Section */}
       <section className="section partner-banner-section" style={{ padding: '40px 0', borderTop: 'var(--border-subtle)' }}>
         <div className="container">
@@ -2411,6 +2378,166 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+
+      {/* EMI Calculator Section */}
+      <section id="emi-calculator" className="section emi-calculator-section" style={{ borderTop: 'var(--border-subtle)' }}>
+        <div className="container" style={{ maxWidth: '1200px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 className="section-title">
+              Calculate Your <span className="text-gradient">Loan EMIs</span>
+            </h2>
+            <p className="section-subtitle">
+              Check your monthly payments instantly using fixed or reducing interest rate structures.
+            </p>
+          </div>
+          <EmiCalculator />
+        </div>
+      </section>
+
+
+      {/* Commodities Section */}
+      <section style={{ padding: '80px 0', background: 'var(--color-bg-secondary)' }}>
+        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span className="badge" style={{ marginBottom: '12px' }}>🟢 Live Real-Time</span>
+            <h2 style={{ fontSize: 'clamp(24px, 3.5vw, 36px)', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '12px', fontFamily: 'var(--font-heading)' }}>
+              Commodities <span className="text-gradient">Market Rates</span>
+            </h2>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
+              Live Gold & Silver spot prices updated from international markets. Track rates by purity, city, and historical trends.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+            {/* Gold Card */}
+            <Link href="/commodities/gold" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(217,119,6,0.08) 100%)',
+                border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: '20px',
+                padding: '36px 28px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.borderColor = '#fbbf24';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(251,191,36,0.15)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.borderColor = 'rgba(251,191,36,0.25)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+              }}>
+                <span style={{ fontSize: '44px', display: 'block', marginBottom: '14px' }}>👑</span>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '8px', fontFamily: 'var(--font-heading)' }}>
+                  Gold Rates Today
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+                  Track 24K, 22K & 18K purity rates with city-wise offsets, valuation estimator, and 12-month history.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '20px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>24K Rate</div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24' }}>~₹12,485/g</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>22K Rate</div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24' }}>~₹11,436/g</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  View Live Rates ➔
+                </span>
+              </div>
+            </Link>
+
+            {/* Silver Card */}
+            <Link href="/commodities/silver" style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(156,163,175,0.08) 0%, rgba(107,114,128,0.08) 100%)',
+                border: '1px solid rgba(156,163,175,0.25)',
+                borderRadius: '20px',
+                padding: '36px 28px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.borderColor = '#9ca3af';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(156,163,175,0.15)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.borderColor = 'rgba(156,163,175,0.25)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+              }}>
+                <span style={{ fontSize: '44px', display: 'block', marginBottom: '14px' }}>🥈</span>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '8px', fontFamily: 'var(--font-heading)' }}>
+                  Silver Rates Today
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+                  Track Fine (999) & Sterling (925) silver rates with monthly performance history and city premiums.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '20px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>999 Fine</div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#9ca3af' }}>~₹176/g</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>925 Sterling</div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#9ca3af' }}>~₹163/g</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  View Live Rates ➔
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <Link href="/commodities" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, padding: '12px 28px', borderRadius: '10px', textDecoration: 'none', border: '1px solid var(--border-default)', color: 'var(--color-text-primary)', background: 'var(--color-bg-card)', fontSize: '13px', transition: 'all 0.2s' }}>
+              🏷️ Explore All Commodities
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="section cta-section">
+        <div className="container">
+          <div className="cta-card">
+            <h2 className="cta-title">Ready to Find Your Perfect Loan?</h2>
+            <p className="cta-subtitle">
+              Join thousands of borrowers who found their ideal loan match in under a minute.
+            </p>
+            <Link
+              href="/check"
+              className="btn btn-primary btn-lg"
+              style={{
+                marginTop: '16px',
+                padding: '16px 36px',
+                fontSize: '1.1rem',
+                boxShadow: 'var(--shadow-glow-purple), 0 8px 24px rgba(251, 146, 60, 0.35)',
+                transform: 'translateY(0)',
+                transition: 'all var(--transition-base)'
+              }}
+            >
+              Start Free Check
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '8px' }}>
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
 
       {/* Verify Agent Partner Agreement Section */}
       <section className="section verify-partner-section" id="verify-partner" style={{ borderTop: 'var(--border-subtle)', background: 'rgba(255, 255, 255, 0.01)', padding: '60px 0' }}>
@@ -2673,6 +2800,7 @@ export default function Home() {
         </div>
       </section>
 
+
       {/* FAQ Section */}
       <section className="section faq-section" style={{ borderTop: 'var(--border-subtle)' }}>
         <div className="container">
@@ -2704,6 +2832,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+
 
       {/* Contact Us Section */}
       <section className="section contact-section" style={{ borderTop: 'var(--border-subtle)' }}>
@@ -2860,6 +2989,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+
+
+      <CalculatorsSection isHomeSection={true} />
 
       <Footer />
     </>

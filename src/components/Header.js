@@ -662,6 +662,16 @@ export default function Header() {
                       Business Loan EMI
                     </Link>
                   </li>
+                  <li>
+                    <Link 
+                      href="/calculators" 
+                      className="dropdown-item" 
+                      onClick={() => setEmiDropdownOpen(false)}
+                      style={{ display: 'block', padding: '8px 16px', color: 'var(--color-primary, #00d756)', fontWeight: 'bold', textDecoration: 'none', fontSize: '13px', transition: 'background 0.2s' }}
+                    >
+                      More Calculators ➔
+                    </Link>
+                  </li>
                 </ul>
               )}
             </li>
@@ -840,7 +850,7 @@ export default function Header() {
                     position: 'absolute',
                     top: '-2px',
                     right: '-2px',
-                    background: 'var(--color-error)',
+                    background: '#dc2626',
                     color: '#ffffff',
                     fontSize: '9px',
                     fontWeight: 800,
@@ -850,7 +860,7 @@ export default function Header() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '1.5px solid var(--color-bg-card)',
+                    border: '1.5px solid var(--color-bg-secondary)',
                     lineHeight: 1
                   }}>
                     {unreadCount}
@@ -1129,6 +1139,9 @@ export default function Header() {
               </Link>
               <Link href="/business-loan-emi-calculator" className="mobile-dropdown-item" onClick={closeMenu}>
                 Business Loan EMI
+              </Link>
+              <Link href="/calculators" className="mobile-dropdown-item" onClick={closeMenu} style={{ color: 'var(--color-primary, #00d756)', fontWeight: 700 }}>
+                More Calculators ➔
               </Link>
             </div>
           )}

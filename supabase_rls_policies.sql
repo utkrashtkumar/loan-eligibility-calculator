@@ -19,17 +19,46 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_role TEXT;
+  v_approved BOOLEAN;
+  v_agent_code TEXT;
 BEGIN
+  -- Extract role from metadata, default to user
+  v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'user');
+  
+  -- Automatically assign admin role and approval to designated admin emails
+  IF NEW.email IN ('handtohandloans@gmail.com', 'utkrashtkumar@gmail.com') THEN
+    v_role := 'admin';
+    v_approved := TRUE;
+  ELSIF v_role = 'agent' THEN
+    v_approved := FALSE;
+    -- Generate unique agent code H2H-XXXXX (5 digits)
+    v_agent_code := 'H2H-' || floor(random() * 90000 + 10000)::text;
+  ELSE
+    v_approved := TRUE;
+    v_agent_code := NULL;
+  END IF;
+
   INSERT INTO public.profiles (
-    id, email, full_name, phone, role, approved, referred_by, created_at
+    id, 
+    email, 
+    full_name, 
+    phone, 
+    role, 
+    approved, 
+    referred_by, 
+    agent_code,
+    created_at
   ) VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     COALESCE(NEW.raw_user_meta_data->>'phone', ''),
-    'user',
-    false,
+    v_role,
+    v_approved,
     NULLIF(TRIM(NEW.raw_user_meta_data->>'referred_by'), ''),
+    v_agent_code,
     NOW()
   )
   ON CONFLICT (id) DO NOTHING;
@@ -41,6 +70,7 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 
 -- ============================================================
 -- SECURITY: is_admin() helper — bypasses RLS to check admin role.
